@@ -7,9 +7,9 @@ export default
       items: [
         // Each item here is one entry in the navigation menu.
         {
-          label: "PHP",
+          label: "PHP Basics",
           autogenerate: {
-            directory: "php/",
+            directory: "php/basics",
           }
         }
       ],

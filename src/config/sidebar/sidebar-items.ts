@@ -1,6 +1,6 @@
-import componentTopic from "./php-topic.ts";
-import guidesTopic from "./guides-topic.ts";
-import referencesTopic from "./references-topic.ts";
+import phpTopics from "./php-topic.ts";
+import implementationTopics from "./implementation-topic.ts";
+import resourcesTopic from "./resources-topic.ts";
 
 /*
  You can add more topics here as needed. Create a new file for each topic in the sidebar folder and import it here.
@@ -15,9 +15,9 @@ import referencesTopic from "./references-topic.ts";
 */
 
 export default [
-  ...guidesTopic,
-  ...componentTopic,
-  ...referencesTopic,
+  ...implementationTopics,
+  ...phpTopics,
+  ...resourcesTopic,
 
   // Add another topic to the sidebar. Example:
   // ...anotherTopic,

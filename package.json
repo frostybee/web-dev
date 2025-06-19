@@ -1,5 +1,5 @@
 {
-  "name": "cool-starlight",
+  "name": "e-commerce",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
@@ -9,6 +9,10 @@
     "preview": "astro preview",
     "astro": "astro"
   },
+  "author": "Frostybee",
+  "license": "MIT",
+  "description": "A website for the e-Commerce course",
+  "packageManager": "pnpm@9.15.4",
   "dependencies": {
     "@astrojs/check": "^0.9.4",
     "@astrojs/markdown-remark": "^6.3.2",

@@ -1,0 +1,157 @@
+---
+title: PHP Constants
+description: PHP Constants
+sidebar:
+  label: 'Constants'
+  order: 1
+---
+
+:::note
+Constants are like variables, but they cannot be changed once they are defined.
+:::
+
+## How to define a constant?
+
+In PHP, you can define constants with various data types:
+
+### Using the `define()` function
+```php
+// String constants
+define('SITE_NAME', 'My Website');
+define('DATABASE_HOST', 'localhost');
+
+// Integer constants
+define('MAX_USERS', 1000);
+define('DEFAULT_PORT', 3306);
+
+// Float constants
+define('PI', 3.14159);
+define('TAX_RATE', 0.085);
+
+// Boolean constants
+define('DEBUG_MODE', true);
+define('MAINTENANCE_MODE', false);
+
+// Array constants (PHP 7.0+)
+define('ALLOWED_EXTENSIONS', ['jpg', 'png', 'gif', 'pdf']);
+define('DATABASE_CONFIG', [
+    'host' => 'localhost',
+    'port' => 3306,
+    'name' => 'myapp'
+]);
+
+// Null constant
+define('DEFAULT_AVATAR', null);
+```
+
+### Using the `const` keyword (PHP 5.3+)
+```php
+// String constants
+const SITE_NAME = 'My Website';
+const DATABASE_HOST = 'localhost';
+
+// Integer constants
+const MAX_USERS = 1000;
+const DEFAULT_PORT = 3306;
+
+// Float constants
+const PI = 3.14159;
+const TAX_RATE = 0.085;
+
+// Boolean constants
+const DEBUG_MODE = true;
+const MAINTENANCE_MODE = false;
+
+// Array constants (PHP 5.6+)
+const ALLOWED_EXTENSIONS = ['jpg', 'png', 'gif', 'pdf'];
+const DATABASE_CONFIG = [
+    'host' => 'localhost',
+    'port' => 3306,
+    'name' => 'myapp'
+];
+
+// Null constant
+const DEFAULT_AVATAR = null;
+```
+
+## How to check if a constant is defined?
+
+```php
+if (defined("CONSTANT_NAME")) {
+    echo "CONSTANT_NAME is defined";
+} else {
+    echo "CONSTANT_NAME is not defined";
+}
+```
+
+## How to get the value of a constant?
+
+```php
+echo CONSTANT_NAME; 
+```
+
+## Key differences:
+
+**`define()` function:**
+- Can be used anywhere in your code (including inside functions, conditionals, etc.)
+- Can use variables or expressions for the constant name
+- Works with all PHP versions
+- Array constants supported since PHP 7.0
+
+**`const` keyword:**
+- Must be declared at the top level of the script (not inside functions or classes, except for class constants)
+- The constant name must be a literal string
+- Only available in PHP 5.3 and later
+- Slightly faster performance
+- Array constants supported since PHP 5.6
+
+## Example usage:
+
+```php
+// String
+echo SITE_NAME;  // Outputs: My Website
+
+// Integer
+echo MAX_USERS;  // Outputs: 1000
+
+// Float
+echo PI;         // Outputs: 3.14159
+
+// Boolean
+var_dump(DEBUG_MODE);  // Outputs: bool(true)
+
+// Array
+print_r(ALLOWED_EXTENSIONS);
+// Outputs: Array ( [0] => jpg [1] => png [2] => gif [3] => pdf )
+
+// Accessing array elements
+echo ALLOWED_EXTENSIONS[0];  // Outputs: jpg
+echo DATABASE_CONFIG['host']; // Outputs: localhost
+
+// Null
+var_dump(DEFAULT_AVATAR);    // Outputs: NULL
+```
+
+### Class constants with different data types:
+```php
+class AppConfig {
+    const VERSION = '2.1.0';              // String
+    const MAX_FILE_SIZE = 5242880;         // Integer (5MB in bytes)
+    const UPLOAD_RATE_LIMIT = 10.5;        // Float
+    const CACHE_ENABLED = true;            // Boolean
+    const SUPPORTED_FORMATS = ['json', 'xml', 'csv']; // Array
+    const DEFAULT_THEME = null;            // Null
+}
+
+echo AppConfig::VERSION;                   // Outputs: 2.1.0
+echo AppConfig::MAX_FILE_SIZE;             // Outputs: 5242880
+var_dump(AppConfig::CACHE_ENABLED);        // Outputs: bool(true)
+print_r(AppConfig::SUPPORTED_FORMATS);     // Outputs array
+```
+
+## Important notes:
+- **Array constants** are supported in `define()` since PHP 7.0 and in `const` since PHP 5.6
+- **Resource type** constants are not allowed
+- **Object constants** are not directly supported (except for simple objects in some cases)
+- Constants are always **case-sensitive**
+- Once defined, constants **cannot be changed or undefined**
