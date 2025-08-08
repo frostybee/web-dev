@@ -1,0 +1,362 @@
+---
+title: PHP Arrays
+description: Complete guide to working with PHP Arrays - indexed, associative, and multidimensional
+sidebar:
+  label: 'Arrays'
+  order: 5
+---
+
+## What are Arrays?
+
+Arrays are a collection of elements that are stored in a single variable. PHP supports several types of arrays that allow you to store multiple values in an organized way.
+
+## Types of Arrays in PHP
+
+### 1. Indexed Arrays (Numeric Arrays)
+
+Indexed arrays use numeric indices starting from 0.
+
+#### Syntax:
+
+```php
+// Method 1: Using array() function
+$fruits = array("apple", "banana", "orange");
+
+// Method 2: Using short array syntax (PHP 5.4+)
+$fruits = ["apple", "banana", "orange"];
+
+// Method 3: Manual assignment
+$fruits[0] = "apple";
+$fruits[1] = "banana";
+$fruits[2] = "orange";
+```
+
+#### Accessing Elements:
+
+```php
+$fruits = ["apple", "banana", "orange"];
+
+echo $fruits[0]; // Output: apple
+echo $fruits[1]; // Output: banana
+echo $fruits[2]; // Output: orange
+```
+
+### 2. Associative Arrays
+
+Associative arrays use named keys instead of numeric indices.
+
+#### Syntax:
+
+```php
+// Method 1: Using array() function
+$person = array(
+    "name" => "John Doe",
+    "age" => 30,
+    "city" => "New York"
+);
+
+// Method 2: Using short array syntax (PHP 5.4+)
+$person = [
+    "name" => "John Doe",
+    "age" => 30,
+    "city" => "New York"
+];
+
+// Method 3: Manual assignment
+$person["name"] = "John Doe";
+$person["age"] = 30;
+$person["city"] = "New York";
+```
+
+#### Accessing Elements:
+
+```php
+$person = [
+    "name" => "John Doe",
+    "age" => 30,
+    "city" => "New York"
+];
+
+echo $person["name"]; // Output: John Doe
+echo $person["age"];  // Output: 30
+echo $person["city"]; // Output: New York
+```
+
+### 3. Multidimensional Arrays
+
+Arrays that contain other arrays as elements.
+
+#### Syntax:
+
+```php
+// 2D Array
+$students = [
+    ["John", 85, "Math"],
+    ["Jane", 92, "Science"],
+    ["Bob", 78, "History"]
+];
+
+// Associative multidimensional array
+$products = [
+    "laptop" => [
+        "brand" => "Dell",
+        "price" => 800,
+        "specs" => ["RAM" => "8GB", "Storage" => "256GB SSD"]
+    ],
+    "phone" => [
+        "brand" => "iPhone",
+        "price" => 999,
+        "specs" => ["RAM" => "6GB", "Storage" => "128GB"]
+    ]
+];
+```
+
+#### Accessing Elements:
+
+```php
+// Accessing 2D array
+echo $students[0][0]; // Output: John
+echo $students[1][2]; // Output: Science
+
+// Accessing associative multidimensional array
+echo $products["laptop"]["brand"]; // Output: Dell
+echo $products["phone"]["specs"]["RAM"]; // Output: 6GB
+```
+
+## Common Array Operations
+
+### Adding Elements
+
+```php
+$fruits = ["apple", "banana"];
+
+// Add to end
+$fruits[] = "orange";
+array_push($fruits, "grape", "mango");
+
+// Add to beginning
+array_unshift($fruits, "strawberry");
+
+// Add at specific index (associative)
+$fruits["tropical"] = "pineapple";
+```
+
+### Removing Elements
+
+```php
+$fruits = ["apple", "banana", "orange", "grape"];
+
+// Remove last element
+$lastFruit = array_pop($fruits);
+
+// Remove first element
+$firstFruit = array_shift($fruits);
+
+// Remove specific element by key
+unset($fruits[1]);
+
+// Remove specific value
+$key = array_search("orange", $fruits);
+if ($key !== false) {
+    unset($fruits[$key]);
+}
+```
+
+### Looping Through Arrays
+
+#### For Loop (Indexed Arrays):
+
+```php
+$numbers = [1, 2, 3, 4, 5];
+
+for ($i = 0; $i < count($numbers); $i++) {
+    echo $numbers[$i] . " ";
+}
+```
+
+#### Foreach Loop:
+
+```php
+// For indexed arrays
+$fruits = ["apple", "banana", "orange"];
+
+foreach ($fruits as $fruit) {
+    echo $fruit . " ";
+}
+
+// For associative arrays
+$person = ["name" => "John", "age" => 30, "city" => "NYC"];
+
+foreach ($person as $key => $value) {
+    echo "$key: $value\n";
+}
+```
+
+#### While Loop:
+
+```php
+$fruits = ["apple", "banana", "orange"];
+$i = 0;
+
+while ($i < count($fruits)) {
+    echo $fruits[$i] . " ";
+    $i++;
+}
+```
+
+## Useful Array Functions
+
+### Array Information
+
+```php
+$fruits = ["apple", "banana", "orange"];
+
+// Get array length
+$length = count($fruits); // 3
+
+// Check if array is empty
+$isEmpty = empty($fruits); // false
+
+// Check if key exists
+$keyExists = array_key_exists("name", $person); // true/false
+
+// Check if value exists
+$valueExists = in_array("apple", $fruits); // true
+```
+
+### Array Manipulation
+
+```php
+$numbers = [3, 1, 4, 1, 5, 9];
+
+// Sort array
+sort($numbers); // [1, 1, 3, 4, 5, 9]
+
+// Reverse array
+$reversed = array_reverse($numbers);
+
+// Get unique values
+$unique = array_unique($numbers);
+
+// Filter array
+$evenNumbers = array_filter($numbers, function($n) {
+    return $n % 2 == 0;
+});
+
+// Map array (transform each element)
+$doubled = array_map(function($n) {
+    return $n * 2;
+}, $numbers);
+```
+
+### Array Merging and Splitting
+
+```php
+$array1 = ["a", "b", "c"];
+$array2 = ["d", "e", "f"];
+
+// Merge arrays
+$merged = array_merge($array1, $array2);
+
+// Split array into chunks
+$chunks = array_chunk($merged, 2);
+
+// Extract slice of array
+$slice = array_slice($merged, 1, 3);
+```
+
+## Practical Examples
+
+### Example 1: Student Grade Management
+
+```php
+$students = [
+    "Alice" => ["Math" => 85, "Science" => 92, "English" => 78],
+    "Bob" => ["Math" => 76, "Science" => 84, "English" => 88],
+    "Charlie" => ["Math" => 93, "Science" => 89, "English" => 95]
+];
+
+// Calculate average grade for each student
+foreach ($students as $name => $grades) {
+    $average = array_sum($grades) / count($grades);
+    echo "$name's average: " . round($average, 2) . "\n";
+}
+
+// Find highest grade in Math
+$mathGrades = array_column($students, 'Math');
+$highestMath = max($mathGrades);
+echo "Highest Math grade: $highestMath\n";
+```
+
+### Example 2: Shopping Cart
+
+```php
+$cart = [
+    "laptop" => ["price" => 800, "quantity" => 1],
+    "mouse" => ["price" => 25, "quantity" => 2],
+    "keyboard" => ["price" => 50, "quantity" => 1]
+];
+
+// Calculate total cost
+$total = 0;
+foreach ($cart as $item => $details) {
+    $itemTotal = $details["price"] * $details["quantity"];
+    $total += $itemTotal;
+    echo "$item: $" . $itemTotal . "\n";
+}
+
+echo "Total: $" . $total . "\n";
+```
+
+### Example 3: Data Processing
+
+```php
+$employees = [
+    ["name" => "John", "department" => "IT", "salary" => 50000],
+    ["name" => "Jane", "department" => "HR", "salary" => 45000],
+    ["name" => "Bob", "department" => "IT", "salary" => 55000],
+    ["name" => "Alice", "department" => "Finance", "salary" => 48000]
+];
+
+// Group employees by department
+$byDepartment = [];
+foreach ($employees as $employee) {
+    $dept = $employee["department"];
+    $byDepartment[$dept][] = $employee;
+}
+
+// Calculate average salary by department
+foreach ($byDepartment as $dept => $deptEmployees) {
+    $salaries = array_column($deptEmployees, 'salary');
+    $avgSalary = array_sum($salaries) / count($salaries);
+    echo "$dept average salary: $" . number_format($avgSalary) . "\n";
+}
+```
+
+## Best Practices
+
+1. **Use descriptive keys** in associative arrays
+2. **Validate array indices** before accessing to avoid errors
+3. **Use appropriate array functions** instead of manual loops when possible
+4. **Consider memory usage** with large arrays
+5. **Use type hints** in function parameters when working with arrays
+
+```php
+// Good practice: Type hinting
+function processNumbers(array $numbers): array {
+    return array_map(function($n) {
+        return $n * 2;
+    }, $numbers);
+}
+
+// Good practice: Check if key exists
+if (isset($person["email"])) {
+    echo $person["email"];
+} else {
+    echo "Email not provided";
+}
+```
+
+## Summary
+
+PHP arrays are versatile data structures that can store multiple values efficiently. Whether you're working with simple indexed arrays, complex associative arrays, or multidimensional structures, understanding the various syntaxes and built-in functions will help you write more effective PHP code.
