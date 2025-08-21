@@ -7,7 +7,7 @@
   --tab-switcher-border-radius: calc(var(--tab-item-border-radius) + var(--tab-switcher-padding) + var(--tab-switcher-border-width));
   /* Color variables */
   --tab-switcher-border-color: var(--sl-color-hairline-light);
-  --tab-switcher-background-color: var(--sl-color-gray-8, var(--sl-color-gray-6));
+  --tab-switcher-background-color: var(--sl-color-gray-9, var(--sl-color-gray-6));
   --tab-switcher-text-color: var(--sl-color-gray-2);
   --tab-switcher-text-color-active: var(--sl-color-white);
   --tab-switcher-icon-color: var(--sl-color-gray-4);
