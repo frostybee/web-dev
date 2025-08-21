@@ -8,11 +8,12 @@ import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeSlug from 'rehype-slug';
 import starlightSidebarTopics from "starlight-sidebar-topics";
 import starlightLinksValidator from 'starlight-links-validator'
-import starlightViewModes from 'starlight-view-modes'
 import starlightScrollToTop from 'starlight-scroll-to-top';
 
 import leftSidebar from './src/config/sidebar/sidebar-items.ts'
 import appConfig from './src/config/website-config.ts'
+import starlightThemeGalaxy from 'starlight-theme-galaxy'
+
 
 //@see: https://astro.build/config
 export default defineConfig({
@@ -31,8 +32,7 @@ export default defineConfig({
 
       // Load components overrides.
       components: {
-        Header: './src/components/Header.astro',
-        // Pagination: './src/components/pages/NavigationArrows.astro',
+        // Header: './src/components/Header.astro',
         // PageFrame: './src/components/pages/CustomPageFrame.astro',
         // TableOfContents: './src/components/ui/CustomToC.astro',
         // PageFrame: './src/components/pages/NavArrowsWithContainer.astro',
@@ -41,26 +41,26 @@ export default defineConfig({
 
       // Load and apply the default custom styles.
       customCss: [
-        "./src/styles/index.css",
+               "./src/styles/index.css",
       ],
-
       lastUpdated: true,
       plugins: [
-        starlightScrollToTop(),
+        starlightScrollToTop(
+          {
+            threshold: 10,
+            showTooltip: true,
+            showProgressRing: true
+          }
+        ),
         starlightImageZoom(),
+        starlightThemeGalaxy(),
         starlightSidebarTopics(
           [
             // Load the sidebar items from the ./src/config/sidebar/sidebar-items.ts file.
             ...leftSidebar
           ],
-
-          //FIXME: the starlightViewModes plugin is buggy and it doesn't work as expected.
-          // {
-          //   exclude: ["/zen-mode/**/*"],
-			    // }
         )
       ],
-
       //TODO: enable the links validator plugin when the site is ready for production or if you want to validate the links in the site.
       // plugins: [
       //   starlightLinksValidator({
@@ -74,7 +74,7 @@ export default defineConfig({
     rehypePlugins: [
       rehypeSlug,
       rehypeHeadingIds,
-      [rehypeAutolinkHeadings, { behavior: 'wrap' }],
+      // [rehypeAutolinkHeadings, { behavior: 'wrap' }],
       [rehypeExternalLinks,
         {
           content: {

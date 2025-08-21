@@ -9,3 +9,8 @@ Less concerned with telling a story or addressing a specific use case, they shou
 ## Further reading
 
 - Read [about reference](https://diataxis.fr/reference/) in the Diátaxis framework
+
+## PHP
+
+- [Composer](https://getcomposer.org/)
+- [Top 10 Web Application Security Risks](https://owasp.org/www-project-top-ten/)

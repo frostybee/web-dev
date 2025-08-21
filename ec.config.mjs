@@ -1,7 +1,8 @@
 import { definePlugin } from "@expressive-code/core";
 import { h } from "@expressive-code/core/hast";
-import fs from "node:fs";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
+import { pluginFullscreen } from 'expressive-code-fullscreen';
+
 
 function sideBorder() {
   return definePlugin({
@@ -100,16 +101,12 @@ export default {
     sideBorder(),
     languageLabel(),
     pluginLineNumbers(),
+    pluginFullscreen(),
   ],
   defaultProps: {
     showLineNumbers: false,
     wrap: true,
   },
-  // Code block style
-  // @doc: https://expressive-code.com/installation/
-  // themes: ["dark-plus", "light-plus"],
-  // themes: ['dracula', 'catppuccin-latte'],
-  // themes: ['aurora-x', 'catppuccin-latte'],
   themes: ["github-dark-high-contrast", "light-plus"],
   styleOverrides: {
     borderRadius: "0.4rem",
@@ -118,6 +115,9 @@ export default {
       shadowColor: "var(--sl-shadow-sm)"
     },
     codeBackground: "var(--fb-code-block-bg-color)",
+    fontFamily: "'Fira Code', monospace",
+    fontSize: "0.9em",
+    lineHeight: "1.5",
   },
   frames: {
     extractFileNameFromCode: false,
