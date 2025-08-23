@@ -32,11 +32,8 @@ export default defineConfig({
 
       // Load components overrides.
       components: {
-        // Header: './src/components/Header.astro',
-        // PageFrame: './src/components/pages/CustomPageFrame.astro',
-        // TableOfContents: './src/components/ui/CustomToC.astro',
-        // PageFrame: './src/components/pages/NavArrowsWithContainer.astro',
-        // TwoColumnContent: './src/components/pages/CustomTwoColumnContent.astro',
+        TableOfContents: './src/components/ui/CustomToC.astro',
+        Head: './src/components/search/TelescopeProvider.astro',
       },
 
       // Load and apply the default custom styles.
