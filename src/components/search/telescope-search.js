@@ -43,7 +43,7 @@ export default class TelescopeSearch {
         throw new Error(`Failed to fetch pages: ${response.status}`);
       }
       this.allPages = await response.json();
-      console.log('Fetched pages:', this.allPages);
+      // console.log('Fetched pages:', this.allPages);
 
       // Get the URL from the response object:
       this.currentOrigin = new URL(response.url).origin;

@@ -6,15 +6,18 @@ sidebar:
   order: 4
 ---
 
-:::note
-Constants are like variables, but they cannot be changed once they are defined.
-:::
+import {NeoCallout} from 'astro-nebula-ui'
+
+<NeoCallout type="tip">
+Constants are like variables, but they **cannot be changed** once they are defined.
+</NeoCallout>
 
 ## How to define a constant?
 
-In PHP, you can define constants with various data types:
+- You can define constants using the `define()` function or the `const` keyword. 
+- In PHP, you can define constants with various data type.
 
-### Using the `define()` function
+### 1. Using the `define()` function
 ```php
 // String constants
 define('SITE_NAME', 'My Website');
@@ -44,7 +47,7 @@ define('DATABASE_CONFIG', [
 define('DEFAULT_AVATAR', null);
 ```
 
-### Using the `const` keyword (PHP 5.3+)
+### 2. Using the `const` keyword (PHP 5.3+)
 ```php
 // String constants
 const SITE_NAME = 'My Website';
@@ -74,6 +77,31 @@ const DATABASE_CONFIG = [
 const DEFAULT_AVATAR = null;
 ```
 
+## Key differences
+
+1. **`define()` function:**
+    - Can be **used anywhere** in your code (including inside functions, conditionals, etc.),
+    - Can use **variables or expressions** for the constant name,
+    - Works with **all PHP versions**,
+    - **Array constants** supported since PHP 7.0.
+
+2. **`const` keyword:**
+    - Must be declared at the top level of the script (not inside functions or classes, except for class constants),
+    - The constant name must be a literal string,
+    - Only available in PHP 5.3 and later,
+    - Slightly faster performance,
+    - Array constants supported since PHP 5.6.
+
+## Important notes
+<NeoCallout type="info" outline={true} variant='minimal'>
+- **Array constants** are supported in `define()` since PHP 7.0 and in `const` since PHP 5.6,
+- Constants are always **case-sensitive**,
+- Once defined, constants **cannot be changed or undefined**,
+- **Resource type** constants are not allowed,
+- **Object constants** are not directly supported (except for simple objects in some cases).
+</NeoCallout>
+
+
 ## How to check if a constant is defined?
 
 ```php
@@ -90,20 +118,6 @@ if (defined("CONSTANT_NAME")) {
 echo CONSTANT_NAME; 
 ```
 
-## Key differences:
-
-**`define()` function:**
-- Can be used anywhere in your code (including inside functions, conditionals, etc.)
-- Can use variables or expressions for the constant name
-- Works with all PHP versions
-- Array constants supported since PHP 7.0
-
-**`const` keyword:**
-- Must be declared at the top level of the script (not inside functions or classes, except for class constants)
-- The constant name must be a literal string
-- Only available in PHP 5.3 and later
-- Slightly faster performance
-- Array constants supported since PHP 5.6
 
 ## Example usage:
 
@@ -149,9 +163,4 @@ var_dump(AppConfig::CACHE_ENABLED);        // Outputs: bool(true)
 print_r(AppConfig::SUPPORTED_FORMATS);     // Outputs array
 ```
 
-## Important notes:
-- **Array constants** are supported in `define()` since PHP 7.0 and in `const` since PHP 5.6
-- **Resource type** constants are not allowed
-- **Object constants** are not directly supported (except for simple objects in some cases)
-- Constants are always **case-sensitive**
-- Once defined, constants **cannot be changed or undefined**
+

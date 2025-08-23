@@ -4,12 +4,11 @@
 /* Colors (dark mode) */
 :root {
   color-scheme: dark;
-
   --fb-blacks: 255, 255, 255;
   --sl-hue-blue: 222;
   --sl-text-h3: var(--sl-text-2xl);
   --sl-text-h4: 1.2rem;
-  --sl-content-width: 50rem;
+
   /* --sl-color-bg: #0d1117; */
   /* --sl-color-bg: #1b1b1f; */
   --sl-color-bg: hsl(224, 10%, 10%);
@@ -60,7 +59,8 @@
 }
 
 body {
-  font-weight: 400;
+  font-size: 1.125rem;
+  /* font-weight: 400; */
 }
 
 /* Light mode colors. */
@@ -68,7 +68,7 @@ body {
   color-scheme: light;
   --fb-blacks: 0, 0, 0;
   --sl-text-h3: var(--sl-text-2xl);
-  --sl-content-width: 50rem;
+  /* --sl-content-width: 50rem; */
   --sl-color-bg: #ffffff;
   --badge-border-color: lightgrey;
   --sl-color-hairline: #edeef3;
@@ -125,9 +125,9 @@ body {
 :root {
   /* Customize the font style here */
 
-  --sl-font: "Roboto Flex Variable", sans-serif;
-  --font-mono: Noto Mono, Menlo, Monaco, Consolas, monospace;
-  font-weight: 400;
+  /* --sl-font: "Roboto Flex Variable", sans-serif; */
+  /* --font-mono: Noto Mono, Menlo, Monaco, Consolas, monospace; */
+  /* font-weight: 400; */
   --fb-scrollbar-height: 0.250rem;
   --purple-hsl: 205, 60%, 60%;
   --overlay-blurple: hsla(var(--purple-hsl), 0.4);
@@ -147,22 +147,24 @@ body {
   --outline-width: 2px;
   --color-text-highlight: var(--sl-color-accent);
   /* --color-text-highlight: var(--color-white); */
-  --fb-theme-btn-color-text: var(--sl-color-accent-high);
-  --outline-width: 2px;
-  --rounded-full: 1e5px;
-  --header-button-size: 2rem;
-  --size-1: 0.25rem;
-  --size-npx: -1px;
-  --fb-toc-current-text-color: var(--sl-color-accent-high);
-  --fb-font-weight-semibold: 500;
-  --fb-h5-font-size: .875rem;
+  /* --fb-theme-btn-color-text: var(--sl-color-accent-high); */
+  /* --outline-width: 2px; */
+  /* --rounded-full: 1e5px; */
+  /* --header-button-size: 2rem; */
+  /* --size-1: 0.25rem; */
+  /* --size-npx: -1px; */
+  /* --fb-toc-current-text-color: var(--sl-color-accent-high); */
+  /* --fb-font-weight-semibold: 500; */
+  /* --fb-h5-font-size: .875rem; */
   /* Steps component: */
-  --steps-hairline-color: var(--sl-color-accent-high);
-  --paragraph-spacing: 1.5rem;
-  --fb-table-border-radius: .375rem;
+  /* --steps-hairline-color: var(--sl-color-accent-high); */
+  /* --paragraph-spacing: 1.5rem; */
+  /* --fb-table-border-radius: .375rem; */
 }
 
-
+:root {
+  --sl-content-width: 60rem;
+}
 
 /* date page title onl 2.5rem on mobile devices */
 /* @media (max-width: 768px) {
@@ -170,6 +172,5 @@ body {
     font-size: 2.5rem;
   }
 } */
-
 
 
