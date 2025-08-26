@@ -1,0 +1,290 @@
+---
+title: Working with Data Types in PHP
+description: Working with PHP Data Types
+sidebar:
+  label: 'Data Types and Type Conversion'
+  order: 2
+---
+
+## Data Types
+
+- PHP is a **dynamically typed** language, meaning you don't need to declare variable types explicitly ==> PHP automatically **determines** the type based on the value assigned.
+---
+
+### A. Scalar Types
+
+#### 1. String
+Sequences of characters enclosed in quotes:
+
+```php
+$singleQuoted = 'Hello World';
+$doubleQuoted = "Hello World";
+$name = "John";
+$greeting = "Hello, $name!"; // Variable interpolation with double quotes
+
+// Heredoc for multi-line strings
+$html = <<<HTML
+<div>
+    <h1>Welcome, $name!</h1>
+</div>
+HTML;
+```
+
+#### 2. Integer
+Whole numbers (positive or negative):
+
+```php
+$positive = 42;
+$negative = -17;
+$octal = 0755;          // Octal notation
+$hexadecimal = 0xFF;    // Hexadecimal notation
+$binary = 0b1010;       // Binary notation (PHP 5.4+)
+```
+
+#### 3. Float (Double)
+Numbers with decimal points:
+
+```php
+$price = 19.99;
+$scientific = 1.2e3;    // Scientific notation (1200)
+$negative = -3.14;
+```
+
+#### 4. Boolean
+True or false values:
+
+```php
+$isActive = true;
+$isComplete = false;
+
+// Values that evaluate to false
+$false1 = 0;           // Integer zero
+$false2 = 0.0;         // Float zero
+$false3 = "";          // Empty string
+$false4 = "0";         // String zero
+$false5 = null;        // NULL value
+$false6 = array();     // Empty array
+```
+
+---
+
+### B. Compound Types
+
+#### 1. Array
+Collection of values:
+
+```php
+// Indexed array
+$fruits = array("apple", "banana", "orange");
+$colors = ["red", "green", "blue"]; // Short syntax (PHP 5.4+)
+
+// Associative array
+$person = array(
+    "name" => "John",
+    "age" => 30,
+    "city" => "New York"
+);
+
+// Mixed array
+$mixed = [
+    0 => "first",
+    "key" => "value",
+    1 => 42
+];
+```
+
+#### 2. Object
+Instances of classes:
+
+```php
+class Person {
+    public $name;
+    public $age;
+    
+    public function __construct($name, $age) {
+        $this->name = $name;
+        $this->age = $age;
+    }
+}
+
+$person = new Person("John", 30);
+```
+
+---
+
+### C. Special Types
+
+#### 1. NULL
+Represents no value:
+
+```php
+$empty = null;
+$undefined = NULL; // Case insensitive
+
+// Variables become NULL when:
+unset($someVariable);  // Explicitly unset
+$notAssigned;          // Never assigned (generates notice)
+```
+
+#### 2. Resource
+Special variables holding references to external resources:
+
+```php
+$file = fopen("data.txt", "r");  // File resource
+$connection = mysqli_connect("localhost", "user", "pass", "db"); // Database resource
+```
+
+---
+
+## Type Checking
+
+### Getting Variable Type
+```php
+$value = "Hello";
+echo gettype($value);        // "string"
+echo var_dump($value);       // string(5) "Hello"
+echo print_r($value, true);  // Hello
+
+// Type checking functions
+var_dump(is_string($value));   // bool(true)
+var_dump(is_int($value));      // bool(false)
+var_dump(is_array($value));    // bool(false)
+var_dump(is_null($value));     // bool(false)
+```
+
+### Checking if Variable Exists
+```php
+$name = "John";
+
+var_dump(isset($name));        // bool(true)
+var_dump(isset($undefined));   // bool(false)
+var_dump(empty($name));        // bool(false)
+var_dump(empty(""));           // bool(true)
+
+// Check if variable is set and not null
+if (isset($name) && $name !== null) {
+    echo "Variable exists and has value";
+}
+```
+
+---
+
+## Type Conversion
+
+:::note[What is type conversion?]
+
+- Type conversion is the process of **converting** a value from one data type to another.
+- PHP automatically converts types when needed in expressions.
+- Type conversion can be **implicit** or **explicit**.
+    - Implicit type conversion is also known as **type juggling** or **coercion**.
+    - Explicit type conversion is also known as **type casting**.
+:::
+
+
+---
+
+### Type Juggling (Implicit Type Conversion)
+
+PHP automatically converts types when needed in expressions:
+
+#### String to Number Conversion
+```php
+$str = "123";
+$num = $str + 0;      // $num becomes integer 123
+$result = $str * 2;   // $result becomes integer 246
+
+// Leading numeric strings
+$price = "19.99 dollars";
+$tax = $price * 0.1;  // $tax becomes float 1.999
+
+// Non-numeric strings become 0
+$text = "hello";
+$result = $text + 5;  // $result becomes integer 5
+```
+
+#### Number to String Conversion
+```php
+$number = 123;
+$string = $number . " items";  // "123 items"
+$concat = "Price: $" . 19.99;  // "Price: $19.99"
+```
+
+#### Boolean Conversion
+```php
+// Converting to boolean in conditions
+$value = "0";
+if ($value) {  // false - string "0" is falsy
+    echo "Truthy";
+} else {
+    echo "Falsy";
+}
+
+// Explicit boolean conversion
+$bool = (bool)"hello";    // true
+$bool = (bool)"";         // false
+$bool = (bool)0;          // false
+$bool = (bool)1;          // true
+```
+
+#### Array and Object Juggling
+```php
+$array = [1, 2, 3];
+$count = count($array);   // Integer 3
+$string = implode(",", $array); // "1,2,3"
+
+// Object to array
+$obj = new stdClass();
+$obj->name = "John";
+$array = (array)$obj;     // ["name" => "John"]
+```
+
+---
+
+### Explicit Type Conversion (Type Casting)
+
+#### Cast Operators
+```php
+$value = "123.45";
+
+$int = (int)$value;        // 123
+$float = (float)$value;    // 123.45
+$string = (string)123;     // "123"
+$bool = (bool)$value;      // true
+$array = (array)$value;    // ["123.45"]
+$object = (object)$value;  // stdClass with scalar property
+```
+
+#### Type Conversion Functions
+```php
+$value = "123.45";
+
+// Convert to integer
+$int1 = intval($value);           // 123
+$int2 = (int)$value;              // 123
+$int3 = filter_var($value, FILTER_VALIDATE_INT); // false (not pure int)
+
+// Convert to float
+$float1 = floatval($value);       // 123.45
+$float2 = (float)$value;          // 123.45
+
+// Convert to string
+$string1 = strval(123);           // "123"
+$string2 = (string)123;           // "123"
+
+// Convert to boolean
+$bool1 = boolval($value);         // true
+$bool2 = (bool)$value;            // true
+```
+
+#### Safe Type Conversion
+```php
+function safeIntConvert($value, $default = 0) {
+    if (is_numeric($value)) {
+        return (int)$value;
+    }
+    return $default;
+}
+
+$userInput = "abc123";
+$number = safeIntConvert($userInput, 0); // Returns 0
+```

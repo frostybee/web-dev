@@ -32,8 +32,9 @@ export default defineConfig({
 
       // Load components overrides.
       components: {
-         TableOfContents: './src/components/ui/CustomToC.astro',
+        //  TableOfContents: './src/components/ui/CustomToC.astro',
          Head: './src/components/search/TelescopeProvider.astro',
+         Header: './src/components/ui/CustomHeader.astro',
       },
 
       // Load and apply the default custom styles.
