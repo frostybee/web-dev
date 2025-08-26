@@ -72,8 +72,8 @@ importers:
         specifier: ^0.6.0
         version: 0.6.0(@astrojs/starlight@0.35.2(astro@5.13.3(@types/node@24.3.0)(rollup@4.48.0)(typescript@5.9.2)(yaml@2.8.1)))
       starlight-theme-galaxy:
-        specifier: ^0.2.0
-        version: 0.2.0(@astrojs/starlight@0.35.2(astro@5.13.3(@types/node@24.3.0)(rollup@4.48.0)(typescript@5.9.2)(yaml@2.8.1)))
+        specifier: ^0.3.0
+        version: 0.3.0(@astrojs/starlight@0.35.2(astro@5.13.3(@types/node@24.3.0)(rollup@4.48.0)(typescript@5.9.2)(yaml@2.8.1)))
     devDependencies:
       typescript:
         specifier: ^5.9.2
@@ -2393,8 +2393,8 @@ packages:
     peerDependencies:
       '@astrojs/starlight': '>=0.32.0'
 
-  starlight-theme-galaxy@0.2.0:
-    resolution: {integrity: sha512-Sl15le8bUwz98JmuReITTrY4AebwH+pBxHRvA4hQavKL0EqGKNobfpTAEqsSw99ddHeMhawtU1XiErb9rAvR2Q==}
+  starlight-theme-galaxy@0.3.0:
+    resolution: {integrity: sha512-fFrbWbYT0sSOFmbjT1CQZLm8zJFJEOfukr5BDX9J2uVzilq/Y1Yec3bOXrexzXmsnR/p/xSjrC4WRHWmIQcOkw==}
     engines: {node: ^18.17.1 || ^20.3.0 || >=21.0.0}
     peerDependencies:
       '@astrojs/starlight': '>=0.34'
@@ -5888,7 +5888,7 @@ snapshots:
       '@astrojs/starlight': 0.35.2(astro@5.13.3(@types/node@24.3.0)(rollup@4.48.0)(typescript@5.9.2)(yaml@2.8.1))
       picomatch: 4.0.3
 
-  starlight-theme-galaxy@0.2.0(@astrojs/starlight@0.35.2(astro@5.13.3(@types/node@24.3.0)(rollup@4.48.0)(typescript@5.9.2)(yaml@2.8.1))):
+  starlight-theme-galaxy@0.3.0(@astrojs/starlight@0.35.2(astro@5.13.3(@types/node@24.3.0)(rollup@4.48.0)(typescript@5.9.2)(yaml@2.8.1))):
     dependencies:
       '@astrojs/starlight': 0.35.2(astro@5.13.3(@types/node@24.3.0)(rollup@4.48.0)(typescript@5.9.2)(yaml@2.8.1))
       '@expressive-code/core': 0.41.3

@@ -35,7 +35,7 @@
     "starlight-links-validator": "^0.17.1",
     "starlight-scroll-to-top": "^0.3.1",
     "starlight-sidebar-topics": "^0.6.0",
-    "starlight-theme-galaxy": "^0.2.0"
+    "starlight-theme-galaxy": "^0.3.0"
   },
   "devDependencies": {
     "typescript": "^5.9.2"

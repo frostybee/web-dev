@@ -8,14 +8,25 @@ sidebar:
 
 import {NeoCallout} from 'astro-nebula-ui'
 
+
+---
 <NeoCallout type="tip">
 Constants are like variables, but they **cannot be changed** once they are defined.
 </NeoCallout>
 
 ## How to define a constant?
 
-- You can define constants using the `define()` function or the `const` keyword. 
-- In PHP, you can define constants with various data type.
+- In PHP, you can define constants using the `define()` function or the `const` keyword. 
+- A constant can be defined with various data types.
+
+:::note[Important notes]
+- **Array constants** are supported in `define()` since PHP 7.0 and in `const` since PHP 5.6,
+- Constants are always **case-sensitive**,
+- Once defined, constants **cannot be changed or undefined**,
+- **Resource type** constants are not allowed,
+- **Object constants** are not directly supported (except for simple objects in some cases).
+:::
+---
 
 ### 1. Using the `define()` function
 ```php
@@ -47,6 +58,8 @@ define('DATABASE_CONFIG', [
 define('DEFAULT_AVATAR', null);
 ```
 
+---
+
 ### 2. Using the `const` keyword (PHP 5.3+)
 ```php
 // String constants
@@ -77,6 +90,8 @@ const DATABASE_CONFIG = [
 const DEFAULT_AVATAR = null;
 ```
 
+---
+
 ## Key differences
 
 1. **`define()` function:**
@@ -92,17 +107,10 @@ const DEFAULT_AVATAR = null;
     - Slightly faster performance,
     - Array constants supported since PHP 5.6.
 
-## Important notes
-<NeoCallout type="info" outline={true} variant='minimal'>
-- **Array constants** are supported in `define()` since PHP 7.0 and in `const` since PHP 5.6,
-- Constants are always **case-sensitive**,
-- Once defined, constants **cannot be changed or undefined**,
-- **Resource type** constants are not allowed,
-- **Object constants** are not directly supported (except for simple objects in some cases).
-</NeoCallout>
 
 
-## How to check if a constant is defined?
+---
+## Checking if a constant is defined
 
 ```php
 if (defined("CONSTANT_NAME")) {
@@ -112,13 +120,13 @@ if (defined("CONSTANT_NAME")) {
 }
 ```
 
-## How to get the value of a constant?
+## Accessing a constant
 
 ```php
 echo CONSTANT_NAME; 
 ```
 
-
+---
 ## Example usage:
 
 ```php
@@ -145,6 +153,8 @@ echo DATABASE_CONFIG['host']; // Outputs: localhost
 // Null
 var_dump(DEFAULT_AVATAR);    // Outputs: NULL
 ```
+
+---
 
 ### Class constants with different data types:
 ```php title="AppConfig.php"

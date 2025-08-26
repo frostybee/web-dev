@@ -1,4 +1,7 @@
+/* Import Geist font for testing */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
 @custom-media --motionSafe (prefers-reduced-motion: no-preference);
+
 
 /* NOTE: fb short for frostybee: */
 /* Colors (dark mode) */
@@ -61,6 +64,11 @@
 body {
   font-size: 1.125rem;
   /* font-weight: 400; */
+  /* Font smoothing for better Geist rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "pnum" 1, "tnum" 0, "onum" 1, "lnum" 0, "dlig" 0;
 }
 
 /* Light mode colors. */
@@ -123,8 +131,8 @@ body {
 }
 
 :root {
-  /* Customize the font style here */
-
+  /* Customize the font style here - testing Geist */
+  --sl-font: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   /* --sl-font: "Roboto Flex Variable", sans-serif; */
   /* --font-mono: Noto Mono, Menlo, Monaco, Consolas, monospace; */
   /* font-weight: 400; */
@@ -163,8 +171,27 @@ body {
 }
 
 :root {
-  --sl-content-width: 60rem;
+  --sl-content-width: 50rem;
 }
+
+/* Enhanced font rendering for testing Geist */
+*, *::before, *::after {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Specific improvements for headings and text */
+h1, h2, h3, h4, h5, h6, .sl-markdown-content h1, .sl-markdown-content h2, .sl-markdown-content h3, .sl-markdown-content h4, .sl-markdown-content h5, .sl-markdown-content h6 {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Improve text rendering in paragraphs and body text */
+p, .sl-markdown-content p, li, .sl-markdown-content li {
+  text-rendering: optimizeLegibility;
+}
+
 
 /* date page title onl 2.5rem on mobile devices */
 /* @media (max-width: 768px) {

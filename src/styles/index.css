@@ -1,5 +1,7 @@
 @layer starlight, galaxy, myOverrides;
 @import "./custom.css" layer(myOverrides);
+/* @import "./toc.css" layer(myOverrides); */
+@import "./toc-good.css" layer(myOverrides);
 @import "./sidebar-topics.css";
 @import "./telescope.css";
 /* @import "./asides.css"; */
