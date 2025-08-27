@@ -68,7 +68,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "pnum" 1, "tnum" 0, "onum" 1, "lnum" 0, "dlig" 0;
+  /* font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "pnum" 1, "tnum" 0, "onum" 1, "lnum" 0, "dlig" 0; */
 }
 
 /* Light mode colors. */
@@ -132,7 +132,7 @@ body {
 
 :root {
   /* Customize the font style here - testing Geist */
-  --sl-font: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* --sl-font: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; */
   /* --sl-font: "Roboto Flex Variable", sans-serif; */
   /* --font-mono: Noto Mono, Menlo, Monaco, Consolas, monospace; */
   /* font-weight: 400; */
