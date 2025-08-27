@@ -1,0 +1,661 @@
+---
+title: PHP Syntax
+description: Working with PHP Syntax
+draft: true
+sidebar:
+  label: 'PHP Syntax'
+  order: 2
+---
+
+## PHP Syntax Fundamentals
+
+PHP (PHP: Hypertext Preprocessor) has a straightforward syntax that's easy to learn and powerful to use. This guide covers all the essential syntax elements you need to know.
+
+---
+
+## PHP Opening and Closing Tags
+
+### **Standard PHP Tags**
+```php
+<?php
+// PHP code goes here
+echo "Hello, World!";
+?>
+```
+
+### **Short Tags** (Not Recommended)
+```php
+<?
+echo "Hello, World!";
+?>
+```
+
+### **Echo Tags** (For Output)
+```php
+<?= "Hello, World!" ?>
+<!-- Equivalent to: <?php echo "Hello, World!"; ?> -->
+```
+
+### **Important Notes**
+- Always use `<?php` for maximum compatibility
+- Closing `?>` tag is optional at the end of PHP-only files
+- No spaces allowed between `<` and `?php`
+
+---
+
+## Comments
+
+### **Single-Line Comments**
+```php
+<?php
+// This is a single-line comment
+echo "Hello"; // Comment at end of line
+
+# This is also a single-line comment (Unix style)
+?>
+```
+
+### **Multi-Line Comments**
+```php
+<?php
+/*
+This is a multi-line comment
+that spans multiple lines
+and can contain detailed explanations
+*/
+echo "Hello, World!";
+?>
+```
+
+### **Documentation Comments** (PHPDoc)
+```php
+<?php
+/**
+ * This function calculates the area of a rectangle
+ * @param float $width The width of the rectangle
+ * @param float $height The height of the rectangle
+ * @return float The area of the rectangle
+ */
+function calculateArea($width, $height) {
+    return $width * $height;
+}
+?>
+```
+
+---
+
+## Variables
+
+### **Variable Declaration**
+```php
+<?php
+$name = "John";           // String
+$age = 25;               // Integer
+$height = 5.9;           // Float
+$isActive = true;        // Boolean
+$data = null;            // Null
+?>
+```
+
+### **Variable Rules**
+- Must start with `$` sign
+- First character after `$` must be letter or underscore
+- Can contain letters, numbers, and underscores
+- Case-sensitive (`$name` ≠ `$Name`)
+
+```php
+<?php
+// Valid variable names
+$userName = "John";
+$user_name = "John";
+$_private = "secret";
+$var123 = "test";
+
+// Invalid variable names
+// $123var = "invalid";  // Cannot start with number
+// $user-name = "invalid"; // Hyphen not allowed
+// $user name = "invalid"; // Space not allowed
+?>
+```
+
+---
+
+## Data Types
+
+### **Scalar Types**
+
+#### **String**
+```php
+<?php
+$single = 'Single quotes';
+$double = "Double quotes with $variable interpolation";
+$heredoc = <<<EOT
+Heredoc syntax for
+multi-line strings
+with $variable interpolation
+EOT;
+
+$nowdoc = <<<'EOT'
+Nowdoc syntax for
+multi-line strings
+without variable interpolation
+EOT;
+?>
+```
+
+#### **Integer**
+```php
+<?php
+$decimal = 42;
+$octal = 052;        // Octal (42 in decimal)
+$hex = 0x2A;         // Hexadecimal (42 in decimal)
+$binary = 0b101010;  // Binary (42 in decimal)
+?>
+```
+
+#### **Float**
+```php
+<?php
+$float1 = 1.234;
+$float2 = 1.2e3;    // 1200
+$float3 = 7E-10;    // 0.0000000007
+?>
+```
+
+#### **Boolean**
+```php
+<?php
+$true = true;
+$false = false;
+
+// Values that evaluate to false:
+// false, 0, 0.0, "", "0", null, empty arrays
+?>
+```
+
+### **Compound Types**
+
+#### **Array**
+```php
+<?php
+// Indexed array
+$fruits = array("apple", "banana", "orange");
+$numbers = [1, 2, 3, 4, 5];  // Short syntax (PHP 5.4+)
+
+// Associative array
+$person = array(
+    "name" => "John",
+    "age" => 30,
+    "city" => "New York"
+);
+
+// Multi-dimensional array
+$users = [
+    ["name" => "John", "age" => 30],
+    ["name" => "Jane", "age" => 25]
+];
+?>
+```
+
+#### **Object**
+```php
+<?php
+class Person {
+    public $name;
+    public $age;
+    
+    public function __construct($name, $age) {
+        $this->name = $name;
+        $this->age = $age;
+    }
+    
+    public function sayHello() {
+        return "Hello, I'm " . $this->name;
+    }
+}
+
+$person = new Person("John", 30);
+?>
+```
+
+---
+
+## Operators
+
+### **Arithmetic Operators**
+```php
+<?php
+$a = 10;
+$b = 3;
+
+$addition = $a + $b;        // 13
+$subtraction = $a - $b;     // 7
+$multiplication = $a * $b;   // 30
+$division = $a / $b;        // 3.333...
+$modulus = $a % $b;         // 1 (remainder)
+$exponentiation = $a ** $b; // 1000 (10^3)
+?>
+```
+
+### **Assignment Operators**
+```php
+<?php
+$x = 10;    // Basic assignment
+$x += 5;    // $x = $x + 5  (15)
+$x -= 3;    // $x = $x - 3  (12)
+$x *= 2;    // $x = $x * 2  (24)
+$x /= 4;    // $x = $x / 4  (6)
+$x %= 5;    // $x = $x % 5  (1)
+
+$str = "Hello";
+$str .= " World";  // String concatenation: "Hello World"
+?>
+```
+
+### **Comparison Operators**
+```php
+<?php
+$a = 5;
+$b = "5";
+
+// Equality (value only)
+var_dump($a == $b);   // true
+
+// Identity (value and type)
+var_dump($a === $b);  // false
+
+// Not equal
+var_dump($a != $b);   // false
+var_dump($a <> $b);   // false (alternative syntax)
+
+// Not identical
+var_dump($a !== $b);  // true
+
+// Greater/Less than
+var_dump($a > 3);     // true
+var_dump($a < 10);    // true
+var_dump($a >= 5);    // true
+var_dump($a <= 5);    // true
+
+// Spaceship operator (PHP 7+)
+echo 5 <=> 3;         // 1 (5 is greater than 3)
+echo 3 <=> 5;         // -1 (3 is less than 5)
+echo 5 <=> 5;         // 0 (5 equals 5)
+?>
+```
+
+### **Logical Operators**
+```php
+<?php
+$x = true;
+$y = false;
+
+// AND operators
+var_dump($x && $y);   // false (logical AND)
+var_dump($x and $y);  // false (lower precedence)
+
+// OR operators
+var_dump($x || $y);   // true (logical OR)
+var_dump($x or $y);   // true (lower precedence)
+
+// XOR operator
+var_dump($x xor $y);  // true (exclusive OR)
+
+// NOT operator
+var_dump(!$x);        // false
+var_dump(!$y);        // true
+?>
+```
+
+### **String Operators**
+```php
+<?php
+$first = "Hello";
+$second = "World";
+
+// Concatenation
+$result = $first . " " . $second;  // "Hello World"
+
+// Concatenation assignment
+$greeting = "Hello";
+$greeting .= " World";             // "Hello World"
+?>
+```
+
+---
+
+## Control Structures
+
+### **Conditional Statements**
+
+#### **if-else**
+```php
+<?php
+$age = 18;
+
+if ($age >= 18) {
+    echo "You are an adult";
+} elseif ($age >= 13) {
+    echo "You are a teenager";
+} else {
+    echo "You are a child";
+}
+
+// Ternary operator
+$status = ($age >= 18) ? "adult" : "minor";
+
+// Null coalescing operator (PHP 7+)
+$username = $_GET['user'] ?? 'guest';
+?>
+```
+
+#### **switch**
+```php
+<?php
+$day = "Monday";
+
+switch ($day) {
+    case "Monday":
+        echo "Start of the work week";
+        break;
+    case "Friday":
+        echo "TGIF!";
+        break;
+    case "Saturday":
+    case "Sunday":
+        echo "Weekend!";
+        break;
+    default:
+        echo "Regular day";
+        break;
+}
+?>
+```
+
+### **Loops**
+
+#### **for Loop**
+```php
+<?php
+// Basic for loop
+for ($i = 0; $i < 10; $i++) {
+    echo "Number: $i<br>";
+}
+
+// Nested for loop
+for ($i = 1; $i <= 3; $i++) {
+    for ($j = 1; $j <= 3; $j++) {
+        echo "($i, $j) ";
+    }
+    echo "<br>";
+}
+?>
+```
+
+#### **while Loop**
+```php
+<?php
+$count = 0;
+
+while ($count < 5) {
+    echo "Count: $count<br>";
+    $count++;
+}
+
+// do-while loop
+$num = 1;
+do {
+    echo "Number: $num<br>";
+    $num++;
+} while ($num <= 5);
+?>
+```
+
+#### **foreach Loop**
+```php
+<?php
+$fruits = ["apple", "banana", "orange"];
+
+// Simple foreach
+foreach ($fruits as $fruit) {
+    echo "Fruit: $fruit<br>";
+}
+
+// Foreach with key and value
+$person = ["name" => "John", "age" => 30, "city" => "NYC"];
+foreach ($person as $key => $value) {
+    echo "$key: $value<br>";
+}
+
+// Foreach by reference (modifies original array)
+$numbers = [1, 2, 3, 4, 5];
+foreach ($numbers as &$number) {
+    $number *= 2;
+}
+unset($number); // Clean up reference
+?>
+```
+
+---
+
+## Functions
+
+### **Function Declaration**
+```php
+<?php
+// Basic function
+function greet() {
+    echo "Hello, World!";
+}
+
+// Function with parameters
+function greetUser($name) {
+    echo "Hello, $name!";
+}
+
+// Function with default parameters
+function greetWithTitle($name, $title = "Mr.") {
+    echo "Hello, $title $name!";
+}
+
+// Function with return value
+function add($a, $b) {
+    return $a + $b;
+}
+
+// Function with type declarations (PHP 7+)
+function multiply(int $a, int $b): int {
+    return $a * $b;
+}
+?>
+```
+
+### **Variable Functions**
+```php
+<?php
+function sayHello() {
+    return "Hello!";
+}
+
+$functionName = "sayHello";
+echo $functionName(); // Calls sayHello()
+
+// Anonymous functions (closures)
+$greet = function($name) {
+    return "Hello, $name!";
+};
+echo $greet("John");
+
+// Arrow functions (PHP 7.4+)
+$multiply = fn($a, $b) => $a * $b;
+echo $multiply(5, 3); // 15
+?>
+```
+
+---
+
+## Constants
+
+### **Defining Constants**
+```php
+<?php
+// Using define() function
+define("SITE_NAME", "My Website");
+define("VERSION", "1.0.0");
+
+// Using const keyword (PHP 5.3+)
+const DATABASE_HOST = "localhost";
+const MAX_USERS = 100;
+
+echo SITE_NAME;        // My Website
+echo DATABASE_HOST;    // localhost
+?>
+```
+
+### **Magic Constants**
+```php
+<?php
+echo __LINE__;         // Current line number
+echo __FILE__;         // Full path to current file
+echo __DIR__;          // Directory of current file
+echo __FUNCTION__;     // Current function name
+echo __CLASS__;        // Current class name
+echo __METHOD__;       // Current class method
+echo __NAMESPACE__;    // Current namespace
+?>
+```
+
+---
+
+## Arrays in Detail
+
+### **Array Functions**
+```php
+<?php
+$fruits = ["apple", "banana", "orange"];
+
+// Array length
+echo count($fruits);              // 3
+
+// Add elements
+array_push($fruits, "grape");     // Add to end
+$fruits[] = "mango";              // Alternative syntax
+array_unshift($fruits, "kiwi");   // Add to beginning
+
+// Remove elements
+$last = array_pop($fruits);       // Remove from end
+$first = array_shift($fruits);    // Remove from beginning
+
+// Check if value exists
+if (in_array("apple", $fruits)) {
+    echo "Apple found!";
+}
+
+// Check if key exists
+$person = ["name" => "John", "age" => 30];
+if (array_key_exists("name", $person)) {
+    echo "Name key exists!";
+}
+?>
+```
+
+---
+
+## String Manipulation
+
+### **String Functions**
+```php
+<?php
+$text = "Hello, World!";
+
+// String length
+echo strlen($text);                    // 13
+
+// String case
+echo strtoupper($text);               // HELLO, WORLD!
+echo strtolower($text);               // hello, world!
+echo ucfirst("hello");                // Hello
+echo ucwords("hello world");          // Hello World
+
+// String search
+echo strpos($text, "World");          // 7
+echo str_contains($text, "Hello");    // true (PHP 8+)
+
+// String replacement
+echo str_replace("World", "PHP", $text); // Hello, PHP!
+
+// String splitting
+$parts = explode(", ", $text);        // ["Hello", "World!"]
+$joined = implode("-", $parts);       // "Hello-World!"
+
+// String trimming
+$padded = "  Hello  ";
+echo trim($padded);                   // "Hello"
+?>
+```
+
+---
+
+## Error Handling
+
+### **Basic Error Handling**
+```php
+<?php
+// Display errors (for development)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Try-catch blocks (PHP 5+)
+try {
+    $result = 10 / 0;
+} catch (DivisionByZeroError $e) {
+    echo "Error: " . $e->getMessage();
+} catch (Exception $e) {
+    echo "General error: " . $e->getMessage();
+} finally {
+    echo "This always executes";
+}
+
+// Custom exception
+class CustomException extends Exception {}
+
+function riskyFunction() {
+    throw new CustomException("Something went wrong!");
+}
+
+try {
+    riskyFunction();
+} catch (CustomException $e) {
+    echo "Caught custom exception: " . $e->getMessage();
+}
+?>
+```
+
+---
+
+## Include and Require
+
+### **File Inclusion**
+```php
+<?php
+// Include files (continues on failure)
+include 'header.php';
+include_once 'config.php';  // Include only once
+
+// Require files (stops on failure)
+require 'database.php';
+require_once 'functions.php'; // Require only once
+
+// Example usage
+// config.php
+$database_host = "localhost";
+$database_name = "myapp";
+
+// main.php
+require_once 'config.php';
+echo "Connecting to: " . $database_host;
+?>
+```
+
+---
+

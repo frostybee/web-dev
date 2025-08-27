@@ -1,0 +1,144 @@
+---
+title: Server-Side PHP
+description: Working with PHP on the server-side
+sidebar:
+  label: 'Server-Side PHP'
+  order: 2
+---
+
+## What is Server-Side Programming?
+
+**Server-side programming** refers to code that runs on the web server rather than in the user's browser. When a user visits a website, their browser (client) sends a request to the web server, which processes the request using server-side code and sends back a response.
+
+### Client-Side vs Server-Side
+
+| **Client-Side** | **Server-Side** |
+|-----------------|-----------------|
+| Runs in the browser | Runs on the web server |
+| Languages: HTML, CSS, JavaScript | Languages: PHP, Python, Java, Node.js, etc. |
+| Visible to users | Hidden from users |
+| Limited security | More secure |
+| Can't access databases directly | Direct database access |
+
+---
+
+## PHP as a Server-Side Language
+
+PHP (PHP: Hypertext Preprocessor) is one of the most popular server-side scripting languages. Here's how it works:
+
+### 1. Request-Response Cycle
+```
+User Browser → Web Server → PHP Engine → Database (if needed) → Response → User Browser
+```
+
+### 2. PHP Execution Process
+1. User requests a PHP page (e.g., `example.com/page.php`)
+2. Web server locates the PHP file
+3. PHP engine executes the PHP code
+4. PHP generates HTML output
+5. Server sends HTML to user's browser
+6. Browser displays the final webpage
+
+### 3. Key Characteristics
+
+- **Dynamic Content**: PHP can generate different content based on user input, time, database data, etc.
+- **Server Processing**: All PHP code is processed before reaching the user
+- **Security**: Source code remains hidden from users
+- **Database Integration**: Seamless connection to MySQL, PostgreSQL, and other databases
+
+---
+
+## What PHP Can Do on the Server
+
+### 1. Generate Dynamic Web Pages
+```php
+<?php
+$username = "John";
+$currentTime = date("Y-m-d H:i:s");
+echo "<h1>Welcome, $username!</h1>";
+echo "<p>Current time: $currentTime</p>";
+?>
+```
+
+### 2. Database Operations
+- Connect to databases (MySQL, PostgreSQL, SQLite)
+- Perform CRUD operations (Create, Read, Update, Delete)
+- Manage user accounts and data
+
+### 3. File Management
+- Read and write files on the server
+- Upload and process user files
+- Generate reports and documents
+
+### 4. Session Management
+- Track user login status
+- Store temporary data across page visits
+- Manage shopping carts and user preferences
+
+### 5. Form Processing
+- Validate user input
+- Sanitize data for security
+- Send emails and notifications
+
+### 6. API Integration
+- Connect to external services
+- Process payments
+- Integrate with social media platforms
+
+---
+
+## Advantages of Server-Side PHP
+
+### Security Benefits
+- Source code is never exposed to users
+- Sensitive operations happen on the server
+- Better protection against client-side attacks
+
+### Performance
+- Powerful server hardware for processing
+- Optimized for handling multiple requests
+- Efficient database connections
+
+### Functionality
+- Full access to server resources
+- Can perform complex calculations
+- Unlimited processing capabilities
+
+### Data Management
+- Direct database access
+- Server-side data validation
+- Centralized data processing
+
+---
+
+## Real-World Examples
+
+### E-commerce Website
+```php
+<?php
+// Process user login
+if ($_POST['username'] && $_POST['password']) {
+    // Validate credentials against database
+    $user = authenticateUser($_POST['username'], $_POST['password']);
+    if ($user) {
+        // Start user session
+        session_start();
+        $_SESSION['user_id'] = $user['id'];
+        header('Location: dashboard.php');
+    }
+}
+?>
+```
+
+### Content Management
+- WordPress, Drupal use PHP for content management
+- Dynamic page generation based on database content
+- User role management and permissions
+
+### Data Processing
+- Form submissions and validation
+- File uploads and processing
+- Report generation and analytics
+
+---
+
