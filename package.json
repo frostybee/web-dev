@@ -1,5 +1,5 @@
 {
-  "name": "e-commerce",
+  "name": "web-dev",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "author": "Frostybee",
   "license": "MIT",
-  "description": "A website for the e-Commerce course",
+  "description": "A website for the web development course",
   "packageManager": "pnpm@10.1.0",
   "dependencies": {
     "@astrojs/check": "^0.9.4",
