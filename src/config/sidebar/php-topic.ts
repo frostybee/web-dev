@@ -13,6 +13,24 @@ export default
           autogenerate: {
             directory: "php/basics",
           }
+        },
+        {
+          label: "Variables and Data Types",
+          autogenerate: {
+            directory: "php/Data-Types",
+          }
+        },
+        {
+          label: "Strings",
+          autogenerate: {
+            directory: "php/strings",
+          }
+        },
+        {
+          label: "Arrays",
+          autogenerate: {
+            directory: "php/arrays",
+          }
         }
       ],
     }
