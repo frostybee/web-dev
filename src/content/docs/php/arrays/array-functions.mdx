@@ -1,0 +1,942 @@
+---
+title: Array Functions
+description: Complete guide to working with PHP Array Functions
+sidebar:
+  label: 'Array Functions'
+  order: 2
+---
+
+PHP provides an extensive collection of built-in functions for array manipulation. This comprehensive guide covers the most important array functions organized by their primary use cases.
+
+## Array Information & Validation
+
+These functions help you inspect and validate arrays.
+
+### `count()` - Get Array Length
+Returns the number of elements in an array.
+
+```php
+$fruits = ['apple', 'banana', 'orange'];
+echo count($fruits);  // Outputs: 3
+
+// Multidimensional arrays
+$users = [
+    ['name' => 'John', 'age' => 25],
+    ['name' => 'Jane', 'age' => 30]
+];
+echo count($users);           // Outputs: 2 (top level)
+echo count($users, COUNT_RECURSIVE);  // Outputs: 6 (all elements)
+```
+
+### `is_array()` - Check if Variable is Array
+Determines whether a variable is an array.
+
+```php
+$data = ['apple', 'banana'];
+$string = 'hello';
+
+var_dump(is_array($data));    // bool(true)
+var_dump(is_array($string));  // bool(false)
+```
+
+### `array_key_exists()` - Check if Key Exists
+Checks if a specified key exists in an array.
+
+```php
+$user = ['name' => 'John', 'email' => 'john@example.com'];
+
+if (array_key_exists('name', $user)) {
+    echo "Name exists: " . $user['name'];
+}
+
+// Note: Different from isset() - works with null values
+$data = ['key' => null];
+var_dump(array_key_exists('key', $data));  // bool(true)
+var_dump(isset($data['key']));             // bool(false)
+```
+
+### `empty()` and `isset()` - Check Values
+```php
+$data = ['name' => 'John', 'age' => 0, 'email' => ''];
+
+var_dump(isset($data['name']));    // bool(true)
+var_dump(empty($data['age']));     // bool(true) - 0 is empty
+var_dump(empty($data['email']));   // bool(true) - empty string
+var_dump(isset($data['phone']));   // bool(false) - doesn't exist
+```
+
+---
+
+## Array Manipulation & Modification
+
+Functions for adding, removing, and modifying array elements.
+
+### Adding Elements
+
+#### `array_push()` - Add to End
+Adds one or more elements to the end of an array.
+
+```php
+$colors = ['red', 'green'];
+array_push($colors, 'blue', 'yellow');
+print_r($colors);  // ['red', 'green', 'blue', 'yellow']
+
+// Alternative syntax (PHP 7.4+)
+$colors[] = 'purple';  // Same as array_push($colors, 'purple')
+```
+
+#### `array_unshift()` - Add to Beginning
+Adds elements to the beginning of an array.
+
+```php
+$numbers = [2, 3, 4];
+array_unshift($numbers, 0, 1);
+print_r($numbers);  // [0, 1, 2, 3, 4]
+```
+
+#### `array_splice()` - Insert at Specific Position
+Removes and replaces elements at any position.
+
+```php
+$fruits = ['apple', 'banana', 'orange'];
+
+// Insert 'grape' at position 1 without removing anything
+array_splice($fruits, 1, 0, ['grape']);
+print_r($fruits);  // ['apple', 'grape', 'banana', 'orange']
+
+// Replace 'banana' with 'mango'
+array_splice($fruits, 2, 1, ['mango']);
+print_r($fruits);  // ['apple', 'grape', 'mango', 'orange']
+```
+
+### Removing Elements
+
+#### `array_pop()` - Remove from End
+Removes and returns the last element.
+
+```php
+$stack = ['item1', 'item2', 'item3'];
+$lastItem = array_pop($stack);
+echo $lastItem;  // 'item3'
+print_r($stack); // ['item1', 'item2']
+```
+
+#### `array_shift()` - Remove from Beginning
+Removes and returns the first element.
+
+```php
+$queue = ['first', 'second', 'third'];
+$firstItem = array_shift($queue);
+echo $firstItem;  // 'first'
+print_r($queue);  // ['second', 'third']
+```
+
+#### `unset()` - Remove Specific Elements
+Removes elements by key.
+
+```php
+$data = ['a' => 1, 'b' => 2, 'c' => 3];
+unset($data['b']);
+print_r($data);  // ['a' => 1, 'c' => 3]
+
+// Remove multiple elements
+unset($data['a'], $data['c']);
+print_r($data);  // []
+```
+
+### Array Keys and Values
+
+#### `array_keys()` - Get All Keys
+Returns an array of all keys.
+
+```php
+$person = ['name' => 'John', 'age' => 30, 'city' => 'NYC'];
+$keys = array_keys($person);
+print_r($keys);  // ['name', 'age', 'city']
+
+// Get keys for specific value
+$colors = ['red', 'blue', 'red', 'green'];
+$redKeys = array_keys($colors, 'red');
+print_r($redKeys);  // [0, 2]
+```
+
+#### `array_values()` - Get All Values
+Returns an array of all values with numeric keys.
+
+```php
+$person = ['name' => 'John', 'age' => 30, 'city' => 'NYC'];
+$values = array_values($person);
+print_r($values);  // ['John', 30, 'NYC']
+```
+
+#### `array_flip()` - Swap Keys and Values
+Exchanges keys with their associated values.
+
+```php
+$original = ['a' => 1, 'b' => 2, 'c' => 3];
+$flipped = array_flip($original);
+print_r($flipped);  // [1 => 'a', 2 => 'b', 3 => 'c']
+```
+
+---
+
+## Array Search & Filtering
+
+Functions for finding and filtering array elements.
+
+### `in_array()` - Check if Value Exists
+Searches for a value in an array.
+
+```php
+$fruits = ['apple', 'banana', 'orange'];
+
+var_dump(in_array('banana', $fruits));  // bool(true)
+var_dump(in_array('grape', $fruits));   // bool(false)
+
+// Strict type checking
+$numbers = [1, 2, 3, '4'];
+var_dump(in_array(4, $numbers));        // bool(true) - loose comparison
+var_dump(in_array(4, $numbers, true));  // bool(false) - strict comparison
+```
+
+### `array_search()` - Find Key by Value
+Returns the key of the first matching value.
+
+```php
+$fruits = ['apple', 'banana', 'orange'];
+$key = array_search('banana', $fruits);
+echo $key;  // Outputs: 1
+
+// Returns false if not found
+$key = array_search('grape', $fruits);
+var_dump($key);  // bool(false)
+
+// With strict comparison
+$numbers = [1, 2, 3, '4'];
+$key = array_search(4, $numbers, true);
+var_dump($key);  // bool(false) - strict comparison
+```
+
+### `array_filter()` - Filter Array Elements
+Filters elements using a callback function.
+
+```php
+$numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+// Filter even numbers
+$evenNumbers = array_filter($numbers, function($n) {
+    return $n % 2 === 0;
+});
+print_r($evenNumbers);  // [2, 4, 6, 8, 10]
+
+// Filter by key and value
+$users = [
+    'john' => ['age' => 25, 'active' => true],
+    'jane' => ['age' => 17, 'active' => true],
+    'bob' => ['age' => 30, 'active' => false]
+];
+
+$activeAdults = array_filter($users, function($user, $key) {
+    return $user['age'] >= 18 && $user['active'];
+}, ARRAY_FILTER_USE_BOTH);
+
+print_r($activeAdults);  // Only 'john'
+```
+
+### `array_column()` - Extract Column from 2D Array
+Extracts a single column from a multidimensional array.
+
+```php
+$users = [
+    ['id' => 1, 'name' => 'John', 'email' => 'john@example.com'],
+    ['id' => 2, 'name' => 'Jane', 'email' => 'jane@example.com'],
+    ['id' => 3, 'name' => 'Bob', 'email' => 'bob@example.com']
+];
+
+// Extract names
+$names = array_column($users, 'name');
+print_r($names);  // ['John', 'Jane', 'Bob']
+
+// Extract emails with ID as key
+$emails = array_column($users, 'email', 'id');
+print_r($emails);  // [1 => 'john@example.com', 2 => 'jane@example.com', ...]
+```
+
+### `array_unique()` - Remove Duplicate Values
+Removes duplicate values from an array.
+
+```php
+$colors = ['red', 'blue', 'red', 'green', 'blue'];
+$uniqueColors = array_unique($colors);
+print_r($uniqueColors);  // ['red', 'blue', 'green']
+
+// With associative arrays
+$data = [
+    'a' => 'apple',
+    'b' => 'banana', 
+    'c' => 'apple',
+    'd' => 'orange'
+];
+$unique = array_unique($data);
+print_r($unique);  // ['a' => 'apple', 'b' => 'banana', 'd' => 'orange']
+```
+
+### `array_intersect()` - Find Common Values
+Returns values that exist in all arrays.
+
+```php
+$array1 = ['a', 'b', 'c', 'd'];
+$array2 = ['b', 'c', 'd', 'e'];
+$array3 = ['c', 'd', 'e', 'f'];
+
+$common = array_intersect($array1, $array2, $array3);
+print_r($common);  // ['c', 'd']
+```
+
+### `array_diff()` - Find Different Values
+Returns values from the first array that are not in other arrays.
+
+```php
+$array1 = ['a', 'b', 'c', 'd'];
+$array2 = ['b', 'c'];
+
+$diff = array_diff($array1, $array2);
+print_r($diff);  // ['a', 'd']
+```
+
+---
+
+## Array Transformation
+
+Functions that transform arrays into different structures or apply operations to all elements.
+
+### `array_map()` - Apply Function to Elements
+Applies a callback function to each element.
+
+```php
+$numbers = [1, 2, 3, 4, 5];
+
+// Square each number
+$squared = array_map(function($n) {
+    return $n * $n;
+}, $numbers);
+print_r($squared);  // [1, 4, 9, 16, 25]
+
+// Work with multiple arrays
+$names = ['John', 'Jane', 'Bob'];
+$ages = [25, 30, 35];
+
+$combined = array_map(function($name, $age) {
+    return "$name is $age years old";
+}, $names, $ages);
+print_r($combined);  // ['John is 25 years old', 'Jane is 30 years old', ...]
+```
+
+### `array_walk()` - Apply Function with Side Effects
+Applies a function to each element, allowing modification of the original array.
+
+```php
+$prices = ['apple' => 1.50, 'banana' => 0.75, 'orange' => 2.00];
+
+// Add tax to each price
+array_walk($prices, function(&$price, $item) {
+    $price = round($price * 1.08, 2);  // 8% tax
+});
+print_r($prices);  // ['apple' => 1.62, 'banana' => 0.81, 'orange' => 2.16]
+
+// With additional data
+array_walk($prices, function(&$price, $item, $taxRate) {
+    $price = round($price * (1 + $taxRate), 2);
+}, 0.05);  // 5% additional tax
+```
+
+### `array_reduce()` - Reduce Array to Single Value
+Iteratively reduces an array to a single value using a callback.
+
+```php
+$numbers = [1, 2, 3, 4, 5];
+
+// Sum all numbers
+$sum = array_reduce($numbers, function($carry, $item) {
+    return $carry + $item;
+}, 0);
+echo $sum;  // 15
+
+// Find maximum value
+$max = array_reduce($numbers, function($carry, $item) {
+    return max($carry, $item);
+}, PHP_INT_MIN);
+echo $max;  // 5
+
+// Build a string
+$words = ['Hello', 'World', 'PHP'];
+$sentence = array_reduce($words, function($carry, $word) {
+    return $carry . ' ' . $word;
+}, '');
+echo trim($sentence);  // "Hello World PHP"
+```
+
+### `array_chunk()` - Split Array into Chunks
+Splits an array into chunks of specified size.
+
+```php
+$data = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+// Split into chunks of 3
+$chunks = array_chunk($data, 3);
+print_r($chunks);  // [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+
+// Preserve keys
+$associativeData = ['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4];
+$chunks = array_chunk($associativeData, 2, true);
+print_r($chunks);  // [['a' => 1, 'b' => 2], ['c' => 3, 'd' => 4]]
+```
+
+### `array_slice()` - Extract Portion of Array
+Returns a slice of an array.
+
+```php
+$fruits = ['apple', 'banana', 'orange', 'grape', 'kiwi'];
+
+// Get elements 1-3
+$slice = array_slice($fruits, 1, 3);
+print_r($slice);  // ['banana', 'orange', 'grape']
+
+// Get last 2 elements
+$lastTwo = array_slice($fruits, -2);
+print_r($lastTwo);  // ['grape', 'kiwi']
+
+// Preserve keys
+$data = ['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4];
+$slice = array_slice($data, 1, 2, true);
+print_r($slice);  // ['b' => 2, 'c' => 3]
+```
+
+### `array_reverse()` - Reverse Array Order
+Reverses the order of array elements.
+
+```php
+$numbers = [1, 2, 3, 4, 5];
+$reversed = array_reverse($numbers);
+print_r($reversed);  // [5, 4, 3, 2, 1]
+
+// Preserve keys
+$data = ['first' => 1, 'second' => 2, 'third' => 3];
+$reversed = array_reverse($data, true);
+print_r($reversed);  // ['third' => 3, 'second' => 2, 'first' => 1]
+```
+
+### `implode()` and `explode()` - String Conversion
+Convert between arrays and strings.
+
+```php
+// Array to string
+$fruits = ['apple', 'banana', 'orange'];
+$string = implode(', ', $fruits);
+echo $string;  // "apple, banana, orange"
+
+// String to array
+$text = "one,two,three,four";
+$array = explode(',', $text);
+print_r($array);  // ['one', 'two', 'three', 'four']
+
+// Limit splits
+$limitedArray = explode(',', $text, 2);
+print_r($limitedArray);  // ['one', 'two,three,four']
+```
+
+---
+
+## Array Comparison & Merging
+
+Functions for combining and comparing arrays.
+
+### `array_merge()` - Merge Arrays
+Merges one or more arrays together.
+
+```php
+$array1 = ['a', 'b', 'c'];
+$array2 = ['d', 'e', 'f'];
+$merged = array_merge($array1, $array2);
+print_r($merged);  // ['a', 'b', 'c', 'd', 'e', 'f']
+
+// With associative arrays
+$defaults = ['color' => 'blue', 'size' => 'medium'];
+$userPrefs = ['color' => 'red', 'style' => 'modern'];
+$config = array_merge($defaults, $userPrefs);
+print_r($config);  // ['color' => 'red', 'size' => 'medium', 'style' => 'modern']
+```
+
+### `array_merge_recursive()` - Recursive Merge
+Merges arrays recursively, combining values with same keys into arrays.
+
+```php
+$array1 = [
+    'colors' => ['red', 'blue'],
+    'sizes' => ['S', 'M']
+];
+
+$array2 = [
+    'colors' => ['green', 'yellow'],
+    'sizes' => ['L', 'XL'],
+    'styles' => ['modern', 'classic']
+];
+
+$merged = array_merge_recursive($array1, $array2);
+print_r($merged);
+// Output:
+// [
+//     'colors' => ['red', 'blue', 'green', 'yellow'],
+//     'sizes' => ['S', 'M', 'L', 'XL'],
+//     'styles' => ['modern', 'classic']
+// ]
+```
+
+### `array_combine()` - Create Array Using Keys and Values
+Creates an array by using one array for keys and another for values.
+
+```php
+$keys = ['name', 'email', 'age'];
+$values = ['John Doe', 'john@example.com', 30];
+
+$combined = array_combine($keys, $values);
+print_r($combined);
+// ['name' => 'John Doe', 'email' => 'john@example.com', 'age' => 30]
+```
+
+### `array_replace()` - Replace Array Values
+Replaces values of an array with values from other arrays having the same keys.
+
+```php
+$base = ['a' => 1, 'b' => 2, 'c' => 3];
+$replacements = ['b' => 20, 'd' => 4];
+
+$result = array_replace($base, $replacements);
+print_r($result);  // ['a' => 1, 'b' => 20, 'c' => 3, 'd' => 4]
+```
+
+### `array_intersect_key()` - Intersect by Keys
+Returns an array containing all keys that exist in all compared arrays.
+
+```php
+$array1 = ['a' => 1, 'b' => 2, 'c' => 3];
+$array2 = ['a' => 4, 'c' => 5, 'd' => 6];
+
+$intersection = array_intersect_key($array1, $array2);
+print_r($intersection);  // ['a' => 1, 'c' => 3]
+```
+
+### `array_diff_key()` - Difference by Keys
+Returns an array containing all keys from the first array that are not in other arrays.
+
+```php
+$array1 = ['a' => 1, 'b' => 2, 'c' => 3];
+$array2 = ['a' => 4, 'c' => 5];
+
+$diff = array_diff_key($array1, $array2);
+print_r($diff);  // ['b' => 2]
+```
+
+### `array_pad()` - Pad Array to Length
+Pads an array to specified length with a given value.
+
+```php
+$input = ['a', 'b', 'c'];
+
+// Pad to length 5 with 'x'
+$padded = array_pad($input, 5, 'x');
+print_r($padded);  // ['a', 'b', 'c', 'x', 'x']
+
+// Pad to the left (negative size)
+$leftPadded = array_pad($input, -5, 'x');
+print_r($leftPadded);  // ['x', 'x', 'a', 'b', 'c']
+```
+
+---
+
+## Array Sorting & Ordering
+
+Functions for sorting arrays in various ways.
+
+### Basic Sorting Functions
+
+#### `sort()` - Sort Indexed Array (Values)
+Sorts an indexed array by values in ascending order.
+
+```php
+$fruits = ['orange', 'apple', 'banana'];
+sort($fruits);
+print_r($fruits);  // ['apple', 'banana', 'orange']
+
+$numbers = [3, 1, 4, 1, 5];
+sort($numbers);
+print_r($numbers);  // [1, 1, 3, 4, 5]
+```
+
+#### `rsort()` - Reverse Sort Indexed Array
+Sorts an indexed array by values in descending order.
+
+```php
+$numbers = [3, 1, 4, 1, 5];
+rsort($numbers);
+print_r($numbers);  // [5, 4, 3, 1, 1]
+```
+
+#### `asort()` - Sort Associative Array by Values
+Sorts an associative array by values while maintaining key-value associations.
+
+```php
+$ages = ['John' => 25, 'Jane' => 30, 'Bob' => 20];
+asort($ages);
+print_r($ages);  // ['Bob' => 20, 'John' => 25, 'Jane' => 30]
+```
+
+#### `arsort()` - Reverse Sort Associative Array by Values
+Sorts an associative array by values in descending order.
+
+```php
+$scores = ['Alice' => 95, 'Bob' => 87, 'Charlie' => 92];
+arsort($scores);
+print_r($scores);  // ['Alice' => 95, 'Charlie' => 92, 'Bob' => 87]
+```
+
+#### `ksort()` - Sort by Keys
+Sorts an array by keys in ascending order.
+
+```php
+$data = ['c' => 3, 'a' => 1, 'b' => 2];
+ksort($data);
+print_r($data);  // ['a' => 1, 'b' => 2, 'c' => 3]
+```
+
+#### `krsort()` - Reverse Sort by Keys
+Sorts an array by keys in descending order.
+
+```php
+$data = ['a' => 1, 'c' => 3, 'b' => 2];
+krsort($data);
+print_r($data);  // ['c' => 3, 'b' => 2, 'a' => 1]
+```
+
+### Advanced Sorting Functions
+
+#### `usort()` - Custom Sort by Values
+Sorts by values using a user-defined comparison function.
+
+```php
+$people = [
+    ['name' => 'John', 'age' => 25],
+    ['name' => 'Jane', 'age' => 30],
+    ['name' => 'Bob', 'age' => 20]
+];
+
+// Sort by age
+usort($people, function($a, $b) {
+    return $a['age'] <=> $b['age'];  // PHP 7+ spaceship operator
+});
+print_r($people);  // Bob (20), John (25), Jane (30)
+
+// Sort by name length
+usort($people, function($a, $b) {
+    return strlen($a['name']) <=> strlen($b['name']);
+});
+```
+
+#### `uasort()` - Custom Sort Preserving Keys
+Sorts by values using a user-defined function while preserving keys.
+
+```php
+$students = [
+    'student1' => ['name' => 'Alice', 'grade' => 85],
+    'student2' => ['name' => 'Bob', 'grade' => 92],
+    'student3' => ['name' => 'Charlie', 'grade' => 78]
+];
+
+uasort($students, function($a, $b) {
+    return $b['grade'] <=> $a['grade'];  // Descending order
+});
+print_r($students);  // Keys preserved, sorted by grade
+```
+
+#### `uksort()` - Custom Sort by Keys
+Sorts by keys using a user-defined comparison function.
+
+```php
+$data = [
+    'item_10' => 'Ten',
+    'item_2' => 'Two',
+    'item_1' => 'One'
+];
+
+uksort($data, function($a, $b) {
+    // Extract numbers and compare numerically
+    $numA = (int)str_replace('item_', '', $a);
+    $numB = (int)str_replace('item_', '', $b);
+    return $numA <=> $numB;
+});
+print_r($data);  // Sorted by numeric value in key
+```
+
+### Multi-dimensional Array Sorting
+
+#### `array_multisort()` - Sort Multiple Arrays
+Sorts multiple arrays or multi-dimensional arrays.
+
+```php
+$names = ['John', 'Jane', 'Bob'];
+$ages = [25, 30, 20];
+
+// Sort both arrays based on ages
+array_multisort($ages, SORT_ASC, $names);
+print_r($ages);   // [20, 25, 30]
+print_r($names);  // ['Bob', 'John', 'Jane']
+
+// Multi-dimensional array sorting
+$people = [
+    ['name' => 'John', 'age' => 25, 'salary' => 50000],
+    ['name' => 'Jane', 'age' => 30, 'salary' => 60000],
+    ['name' => 'Bob', 'age' => 25, 'salary' => 45000]
+];
+
+// Extract columns for sorting
+$ages = array_column($people, 'age');
+$salaries = array_column($people, 'salary');
+
+// Sort by age (ascending), then by salary (descending)
+array_multisort($ages, SORT_ASC, $salaries, SORT_DESC, $people);
+print_r($people);
+```
+
+### Sorting Options
+
+```php
+$data = ['10', '2', '1', '20'];
+
+// Default sort (lexicographic)
+sort($data);
+print_r($data);  // ['1', '10', '2', '20']
+
+// Numeric sort
+sort($data, SORT_NUMERIC);
+print_r($data);  // ['1', '2', '10', '20']
+
+// Case-insensitive string sort
+$words = ['Banana', 'apple', 'Cherry'];
+sort($words, SORT_STRING | SORT_FLAG_CASE);
+print_r($words);  // ['apple', 'Banana', 'Cherry']
+```
+
+---
+
+## Practical Examples & Use Cases
+
+Real-world examples demonstrating how to combine array functions effectively.
+
+### Example 1: User Management System
+
+```php
+$users = [
+    ['id' => 1, 'name' => 'John Doe', 'email' => 'john@example.com', 'age' => 25, 'active' => true],
+    ['id' => 2, 'name' => 'Jane Smith', 'email' => 'jane@example.com', 'age' => 17, 'active' => true],
+    ['id' => 3, 'name' => 'Bob Johnson', 'email' => 'bob@example.com', 'age' => 30, 'active' => false],
+    ['id' => 4, 'name' => 'Alice Brown', 'email' => 'alice@example.com', 'age' => 28, 'active' => true]
+];
+
+// Get active adult users (age >= 18)
+$activeAdults = array_filter($users, function($user) {
+    return $user['age'] >= 18 && $user['active'];
+});
+
+// Sort by age (descending)
+usort($activeAdults, function($a, $b) {
+    return $b['age'] <=> $a['age'];
+});
+
+// Extract just names and emails
+$contactInfo = array_map(function($user) {
+    return ['name' => $user['name'], 'email' => $user['email']];
+}, $activeAdults);
+
+print_r($contactInfo);
+```
+
+### Example 2: E-commerce Product Processing
+
+```php
+$products = [
+    ['name' => 'Laptop', 'category' => 'Electronics', 'price' => 999.99, 'stock' => 15],
+    ['name' => 'Mouse', 'category' => 'Electronics', 'price' => 29.99, 'stock' => 0],
+    ['name' => 'Desk', 'category' => 'Furniture', 'price' => 199.99, 'stock' => 8],
+    ['name' => 'Chair', 'category' => 'Furniture', 'price' => 149.99, 'stock' => 12],
+];
+
+// Group products by category
+$grouped = array_reduce($products, function($result, $product) {
+    $result[$product['category']][] = $product;
+    return $result;
+}, []);
+
+// Get available products (stock > 0) with discount
+$availableProducts = array_map(function($product) {
+    if ($product['stock'] > 0) {
+        $product['discounted_price'] = round($product['price'] * 0.9, 2); // 10% discount
+        return $product;
+    }
+    return null;
+}, $products);
+
+// Remove null values (out of stock items)
+$availableProducts = array_filter($availableProducts);
+
+// Sort by price (ascending)
+usort($availableProducts, function($a, $b) {
+    return $a['price'] <=> $b['price'];
+});
+```
+
+### Example 3: Data Processing Pipeline
+
+```php
+$rawData = [
+    'user1,John Doe,25,Engineer',
+    'user2,Jane Smith,30,Designer',
+    'user3,Bob Johnson,28,Developer',
+    'user4,Alice Brown,32,Manager'
+];
+
+// Process CSV-like data
+$processedUsers = array_map(function($line) {
+    $parts = explode(',', $line);
+    return [
+        'id' => $parts[0],
+        'name' => $parts[1],
+        'age' => (int)$parts[2],
+        'role' => $parts[3]
+    ];
+}, $rawData);
+
+// Group by role
+$roleGroups = array_reduce($processedUsers, function($groups, $user) {
+    $groups[$user['role']][] = $user;
+    return $groups;
+}, []);
+
+// Get average age per role
+$roleAverages = array_map(function($users) {
+    $ages = array_column($users, 'age');
+    return round(array_sum($ages) / count($ages), 1);
+}, $roleGroups);
+
+print_r($roleAverages);
+```
+
+### Example 4: Configuration Merging
+
+```php
+// Default configuration
+$defaultConfig = [
+    'database' => [
+        'host' => 'localhost',
+        'port' => 3306,
+        'charset' => 'utf8mb4'
+    ],
+    'cache' => [
+        'enabled' => false,
+        'ttl' => 3600
+    ],
+    'features' => ['logging', 'monitoring']
+];
+
+// User configuration
+$userConfig = [
+    'database' => [
+        'host' => 'prod-db.example.com',
+        'username' => 'app_user',
+        'password' => 'secret123'
+    ],
+    'cache' => [
+        'enabled' => true
+    ],
+    'features' => ['logging', 'analytics', 'debugging']
+];
+
+// Merge configurations recursively
+$finalConfig = array_merge_recursive($defaultConfig, $userConfig);
+
+// For features, we want unique values only
+$finalConfig['features'] = array_unique($finalConfig['features']);
+
+print_r($finalConfig);
+```
+
+### Example 5: Statistics and Analysis
+
+```php
+$salesData = [
+    ['month' => 'Jan', 'revenue' => 12500, 'orders' => 45],
+    ['month' => 'Feb', 'revenue' => 15800, 'orders' => 52],
+    ['month' => 'Mar', 'revenue' => 18200, 'orders' => 63],
+    ['month' => 'Apr', 'revenue' => 14300, 'orders' => 48],
+    ['month' => 'May', 'revenue' => 21000, 'orders' => 71]
+];
+
+// Calculate total revenue
+$totalRevenue = array_sum(array_column($salesData, 'revenue'));
+
+// Calculate average revenue per month
+$avgRevenue = $totalRevenue / count($salesData);
+
+// Find month with highest revenue
+$maxRevenueMonth = array_reduce($salesData, function($max, $current) {
+    return (!$max || $current['revenue'] > $max['revenue']) ? $current : $max;
+});
+
+// Calculate revenue growth month-over-month
+$growthData = [];
+for ($i = 1; $i < count($salesData); $i++) {
+    $current = $salesData[$i]['revenue'];
+    $previous = $salesData[$i-1]['revenue'];
+    $growth = round((($current - $previous) / $previous) * 100, 2);
+    
+    $growthData[] = [
+        'month' => $salesData[$i]['month'],
+        'growth_percent' => $growth
+    ];
+}
+
+echo "Total Revenue: $" . number_format($totalRevenue) . "\n";
+echo "Average Revenue: $" . number_format($avgRevenue) . "\n";
+echo "Best Month: " . $maxRevenueMonth['month'] . " ($" . 
+     number_format($maxRevenueMonth['revenue']) . ")\n";
+```
+
+### Performance Tips
+
+```php
+// ✅ Efficient: Use array_column() for extracting data
+$userIds = array_column($users, 'id');
+
+// ❌ Less efficient: Manual loop
+$userIds = [];
+foreach ($users as $user) {
+    $userIds[] = $user['id'];
+}
+
+// ✅ Efficient: Use array_key_exists() for null values
+if (array_key_exists('optional_field', $data)) {
+    // Handle the field
+}
+
+// ❌ Less reliable: Using isset() misses null values
+if (isset($data['optional_field'])) {
+    // This won't work if the value is null
+}
+
+// ✅ Efficient: Chain operations
+$result = array_unique(
+    array_filter(
+        array_map('trim', $inputArray),
+        'strlen'
+    )
+);
+```

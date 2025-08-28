@@ -101,7 +101,7 @@ const DEFAULT_AVATAR = null;
     - **Array constants** supported since PHP 7.0.
 
 2. **`const` keyword:**
-    - Must be declared at the top level of the script (not inside functions or classes, except for class constants),
+    - Must be declared at the **top level** of the script (not inside functions or classes, except for class constants),
     - The constant name must be a literal string,
     - Only available in PHP 5.3 and later,
     - Slightly faster performance,
@@ -173,4 +173,189 @@ var_dump(AppConfig::CACHE_ENABLED);        // Outputs: bool(true)
 print_r(AppConfig::SUPPORTED_FORMATS);     // Outputs array
 ```
 
+---
 
+## Magic Constants
+
+Magic constants **are predefined** constants in PHP that provide contextual information about the script and its execution environment. They are automatically defined by PHP and change their value depending on where they are used in the code.
+
+<NeoCallout type="tip">
+Magic constants start and end with **double underscores** (`__`) and are **case-insensitive**. Their values are resolved at compile time, not runtime.
+</NeoCallout>
+
+### Available Magic Constants
+
+#### `__LINE__`
+Returns the current line number of the file.
+
+```php
+echo "This is line number: " . __LINE__;  // Outputs: This is line number: 2
+echo "This is line number: " . __LINE__;  // Outputs: This is line number: 3
+```
+
+#### `__FILE__`
+Returns the full path and filename of the current file (with symlinks resolved).
+
+```php
+echo __FILE__;  // Outputs: /var/www/html/index.php
+echo basename(__FILE__);  // Outputs: index.php
+```
+
+#### `__DIR__`
+Returns the directory of the current file (equivalent to `dirname(__FILE__)`).
+
+```php
+echo __DIR__;  // Outputs: /var/www/html
+include __DIR__ . '/config.php';  // Include file from same directory
+```
+
+#### `__FUNCTION__`
+Returns the name of the current function (case-sensitive as declared).
+
+```php
+function getUserData() {
+    echo "Currently in function: " . __FUNCTION__;  // Outputs: getUserData
+}
+
+getUserData();
+```
+
+#### `__CLASS__`
+Returns the name of the current class (case-sensitive as declared).
+
+```php
+class UserManager {
+    public function showClassName() {
+        echo "Current class: " . __CLASS__;  // Outputs: UserManager
+    }
+}
+
+$user = new UserManager();
+$user->showClassName();
+```
+
+#### `__METHOD__`
+Returns the class method name (includes class name and method name).
+
+```php
+class DatabaseConnection {
+    public function connect() {
+        echo "Current method: " . __METHOD__;  // Outputs: DatabaseConnection::connect
+    }
+    
+    private static function getConfig() {
+        echo "Current method: " . __METHOD__;  // Outputs: DatabaseConnection::getConfig
+    }
+}
+
+$db = new DatabaseConnection();
+$db->connect();
+```
+
+#### `__NAMESPACE__`
+Returns the name of the current namespace.
+
+```php
+namespace App\Controllers;
+
+class HomeController {
+    public function index() {
+        echo "Current namespace: " . __NAMESPACE__;  // Outputs: App\Controllers
+        echo "Full class name: " . __NAMESPACE__ . '\\' . __CLASS__;  // App\Controllers\HomeController
+    }
+}
+```
+
+#### `__TRAIT__`
+Returns the trait name (case-sensitive as declared).
+
+```php
+trait Loggable {
+    public function log($message) {
+        echo "Logging from trait: " . __TRAIT__ . " - " . $message;  // Outputs: Loggable
+    }
+}
+
+class User {
+    use Loggable;
+}
+
+$user = new User();
+$user->log("User created");
+```
+---
+
+### Practical Examples
+
+#### Error Logging with Context
+```php
+function logError($message) {
+    $logEntry = sprintf(
+        "[%s] Error in %s on line %d: %s\n",
+        date('Y-m-d H:i:s'),
+        __FILE__,
+        __LINE__,
+        $message
+    );
+    error_log($logEntry);
+}
+
+// Usage
+logError("Database connection failed");
+```
+
+---
+
+#### Dynamic File Inclusion
+```php
+// Include configuration file from same directory
+require_once __DIR__ . '/config.php';
+
+// Include class file based on current namespace
+$classFile = __DIR__ . '/' . str_replace('\\', '/', __NAMESPACE__) . '/' . __CLASS__ . '.php';
+```
+
+---
+
+#### Debug Information
+```php
+class DebugHelper {
+    public static function getDebugInfo() {
+        return [
+            'file' => __FILE__,
+            'line' => __LINE__,
+            'class' => __CLASS__,   
+            'method' => __METHOD__,
+            'namespace' => __NAMESPACE__,
+            'directory' => __DIR__
+        ];
+    }
+}
+
+// Usage
+print_r(DebugHelper::getDebugInfo());
+```
+
+---
+
+#### Automatic Class Loading
+```php
+function autoloader($className) {
+    $file = __DIR__ . '/classes/' . str_replace('\\', '/', $className) . '.php';
+    if (file_exists($file)) {
+        require_once $file;
+        echo "Loaded class from: " . $file . " (detected from " . __FILE__ . ")\n";
+    }
+}
+
+spl_autoload_register('autoloader');
+```
+
+:::note[Usage Tips]
+- Magic constants are resolved at **compile time**, so they reflect where they appear in the source code
+- Use `__DIR__` instead of `dirname(__FILE__)` for better readability (PHP 5.3+)
+- Magic constants are useful for debugging, logging, and dynamic file inclusion
+- They help make your code more portable and maintainable
+:::
+
+---

@@ -31,6 +31,12 @@ export default
           autogenerate: {
             directory: "php/arrays",
           }
+        },
+        {
+          label: "Functions",
+          autogenerate: {
+            directory: "php/functions",
+          }
         }
       ],
     }
