@@ -1,0 +1,357 @@
+---
+---
+<div class="mvc-container">
+  <h3>MVC Pattern Flow</h3>
+  <p>Model-View-Controller architecture separates application logic into three interconnected components:</p>
+
+  <svg viewBox="0 0 700 350" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" class="mvc-diagram">
+    <!-- Desktop Layout -->
+    <g class="desktop-layout">
+      <!-- User icon -->
+      <g class="user-icon">
+        <!-- User head -->
+        <circle cx="20" cy="140" r="12" fill="#6b7280" stroke="#374151" stroke-width="2"/>
+        <!-- User body -->
+        <path d="M 8 155 Q 8 148 15 148 L 25 148 Q 32 148 32 155 L 32 175 Q 32 180 27 180 L 13 180 Q 8 180 8 175 Z" 
+              fill="#6b7280" stroke="#374151" stroke-width="2"/>
+        <text x="20" y="195" text-anchor="middle" font-size="12" font-weight="bold" fill="#374151">User</text>
+      </g>
+      
+      <!-- Boxes with detailed labels -->
+      <rect x="50" y="120" width="140" height="80" rx="10" fill="#3b82f6" class="component-box"/>
+      <text x="120" y="145" text-anchor="middle" fill="white" font-size="18" font-weight="bold">View</text>
+      <text x="120" y="165" text-anchor="middle" fill="white" font-size="12">User Interface</text>
+      <text x="120" y="180" text-anchor="middle" fill="white" font-size="12">HTML, Forms, UI</text>
+
+      <rect x="320" y="50" width="140" height="80" rx="10" fill="#10b981" class="component-box"/>
+      <text x="390" y="75" text-anchor="middle" fill="white" font-size="18" font-weight="bold">Controller</text>
+      <text x="390" y="95" text-anchor="middle" fill="white" font-size="12">Business Logic</text>
+      <text x="390" y="110" text-anchor="middle" fill="white" font-size="12">Request Handler</text>
+
+      <rect x="320" y="200" width="140" height="80" rx="10" fill="#f59e0b" class="component-box"/>
+      <text x="390" y="225" text-anchor="middle" fill="white" font-size="18" font-weight="bold">Model</text>
+      <text x="390" y="245" text-anchor="middle" fill="white" font-size="12">Data Layer</text>
+      <text x="390" y="260" text-anchor="middle" fill="white" font-size="12">Database, APIs</text>
+
+      <!-- Step indicators -->
+      <circle cx="30" cy="90" r="15" fill="#e11d48" class="step step-1"/>
+      <text x="30" y="95" text-anchor="middle" fill="white" font-size="12" font-weight="bold">1</text>
+
+      <circle cx="510" cy="90" r="15" fill="#e11d48" class="step step-2"/>
+      <text x="510" y="95" text-anchor="middle" fill="white" font-size="12" font-weight="bold">2</text>
+
+      <circle cx="510" cy="300" r="15" fill="#e11d48" class="step step-3"/>
+      <text x="510" y="305" text-anchor="middle" fill="white" font-size="12" font-weight="bold">3</text>
+
+      <circle cx="30" cy="300" r="15" fill="#e11d48" class="step step-4"/>
+      <text x="30" y="305" text-anchor="middle" fill="white" font-size="12" font-weight="bold">4</text>
+
+      <!-- Arrows with detailed descriptions -->
+      <line x1="190" y1="130" x2="320" y2="80" stroke="#333" stroke-width="3"
+            marker-end="url(#arrow)" class="view-to-controller"/>
+      <text x="220" y="95" font-size="13" font-weight="bold" class="arrow-label">User Action</text>
+      <text x="220" y="110" font-size="11" class="arrow-sublabel">(clicks, form submit)</text>
+
+      <line x1="410" y1="130" x2="410" y2="200" stroke="#333" stroke-width="3"
+            marker-end="url(#arrow)" class="controller-to-model"/>
+      <text x="450" y="160" font-size="13" font-weight="bold" class="arrow-label">Data Request</text>
+      <text x="450" y="175" font-size="11" class="arrow-sublabel">(CRUD operations)</text>
+
+      <line x1="370" y1="200" x2="370" y2="130" stroke="#333" stroke-width="3"
+            marker-end="url(#arrow)" class="model-to-controller"/>
+      <text x="310" y="240" font-size="13" font-weight="bold" class="arrow-label">Data Response</text>
+      <text x="310" y="255" font-size="11" class="arrow-sublabel">(returns processed data)</text>
+
+      <line x1="320" y1="130" x2="190" y2="190" stroke="#333" stroke-width="3"
+            marker-end="url(#arrow)" class="controller-to-view"/>
+      <text x="220" y="310" font-size="13" font-weight="bold" class="arrow-label">View Update</text>
+      <text x="220" y="325" font-size="11" class="arrow-sublabel">(renders new content)</text>
+    </g>
+
+    <!-- Mobile Layout -->
+    <g class="mobile-layout" style="display: none;">
+      <!-- Mobile User icon -->
+      <g class="mobile-user-icon">
+        <!-- User head -->
+        <circle cx="50" cy="50" r="10" fill="#6b7280" stroke="#374151" stroke-width="2"/>
+        <!-- User body -->
+        <path d="M 40 62 Q 40 57 45 57 L 55 57 Q 60 57 60 62 L 60 75 Q 60 78 57 78 L 43 78 Q 40 78 40 75 Z" 
+              fill="#6b7280" stroke="#374151" stroke-width="2"/>
+        <text x="50" y="90" text-anchor="middle" font-size="10" font-weight="bold" fill="#374151">User</text>
+      </g>
+      
+      <!-- Vertical stacked layout for mobile -->
+      <rect x="80" y="30" width="120" height="60" rx="8" fill="#3b82f6" class="component-box"/>
+      <text x="140" y="55" text-anchor="middle" fill="white" font-size="16" font-weight="bold">View</text>
+      <text x="140" y="75" text-anchor="middle" fill="white" font-size="11">User Interface</text>
+
+      <rect x="80" y="140" width="120" height="60" rx="8" fill="#10b981" class="component-box"/>
+      <text x="140" y="165" text-anchor="middle" fill="white" font-size="16" font-weight="bold">Controller</text>
+      <text x="140" y="185" text-anchor="middle" fill="white" font-size="11">Business Logic</text>
+
+      <rect x="80" y="250" width="120" height="60" rx="8" fill="#f59e0b" class="component-box"/>
+      <text x="140" y="275" text-anchor="middle" fill="white" font-size="16" font-weight="bold">Model</text>
+      <text x="140" y="295" text-anchor="middle" fill="white" font-size="11">Data Layer</text>
+
+      <!-- Mobile step indicators -->
+      <circle cx="30" cy="60" r="12" fill="#e11d48" class="step step-1"/>
+      <text x="30" y="65" text-anchor="middle" fill="white" font-size="10" font-weight="bold">1</text>
+
+      <circle cx="30" cy="170" r="12" fill="#e11d48" class="step step-2"/>
+      <text x="30" y="175" text-anchor="middle" fill="white" font-size="10" font-weight="bold">2</text>
+
+      <circle cx="230" cy="280" r="12" fill="#e11d48" class="step step-3"/>
+      <text x="230" y="285" text-anchor="middle" fill="white" font-size="10" font-weight="bold">3</text>
+
+      <circle cx="30" cy="60" r="12" fill="#e11d48" class="step step-4"/>
+      <text x="30" y="65" text-anchor="middle" fill="white" font-size="10" font-weight="bold">4</text>
+
+      <!-- Mobile arrows -->
+      <line x1="140" y1="90" x2="140" y2="140" stroke="#333" stroke-width="2"
+            marker-end="url(#arrow)" class="view-to-controller"/>
+      <text x="155" y="120" font-size="11" font-weight="bold" class="arrow-label">User Action</text>
+
+      <line x1="160" y1="200" x2="160" y2="250" stroke="#333" stroke-width="2"
+            marker-end="url(#arrow)" class="controller-to-model"/>
+      <text x="175" y="230" font-size="11" font-weight="bold" class="arrow-label">Data Request</text>
+
+      <line x1="120" y1="250" x2="120" y2="200" stroke="#333" stroke-width="2"
+            marker-end="url(#arrow)" class="model-to-controller"/>
+      <text x="35" y="280" font-size="11" font-weight="bold" class="arrow-label">Data Response</text>
+
+      <line x1="80" y1="160" x2="80" y2="90" stroke="#333" stroke-width="2"
+            marker-end="url(#arrow)" class="controller-to-view"/>
+      <text x="20" y="125" font-size="11" font-weight="bold" class="arrow-label">View Update</text>
+    </g>
+
+    <!-- Arrowhead -->
+    <defs>
+      <marker id="arrow" markerWidth="12" markerHeight="12" refX="12" refY="4" orient="auto">
+        <path d="M0,0 L0,8 L12,4 z" fill="#333" />
+      </marker>
+    </defs>
+  </svg>
+
+  <div class="mvc-explanation">
+    <div class="step-explanation">
+      <h4>How MVC Works:</h4>
+      <ol>
+        <li><strong>User Interaction:</strong> User clicks a button or submits a form in the View</li>
+        <li><strong>Controller Processing:</strong> Controller receives the request, validates input, and decides what action to take</li>
+        <li><strong>Data Operations:</strong> Controller asks Model to fetch/update data from database or external APIs</li>
+        <li><strong>Data Response:</strong> Model returns processed data back to the Controller</li>
+        <li><strong>View Update:</strong> Controller processes the data and updates the View with new information</li>
+      </ol>
+    </div>
+
+    <div class="benefits">
+      <h4>Benefits of MVC:</h4>
+      <ul>
+        <li><strong>Separation of Concerns:</strong> Each component has a specific responsibility</li>
+        <li><strong>Maintainable:</strong> Changes to one component don't affect others</li>
+        <li><strong>Testable:</strong> Each layer can be tested independently</li>
+        <li><strong>Reusable:</strong> Models and Controllers can be reused across different Views</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<style>
+.mvc-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.mvc-container h3 {
+  color: #1f2937;
+  margin-bottom: 10px;
+}
+
+.mvc-container p {
+  color: #6b7280;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.mvc-diagram {
+  display: block;
+  margin: 0 auto 30px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 100%;
+  height: auto;
+  /* You can change this scale value to resize the diagram */
+  transform: scale(1);
+  transform-origin: center;
+}
+
+.mvc-diagram line {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: drawLoop 7s infinite;
+}
+
+.mvc-diagram .view-to-controller {
+  animation-delay: 0.5s;
+}
+.mvc-diagram .controller-to-model {
+  animation-delay: 2.0s;
+}
+.mvc-diagram .model-to-controller {
+  animation-delay: 3.5s;
+}
+.mvc-diagram .controller-to-view {
+  animation-delay: 5.0s;
+}
+
+.component-box {
+  filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+}
+
+.step {
+  opacity: 0;
+  animation: fadeInLoop 7s infinite;
+}
+
+.step-1 {
+  animation-delay: 0s;
+}
+.step-2 {
+  animation-delay: 1.5s;
+}
+.step-3 {
+  animation-delay: 3.0s;
+}
+.step-4 {
+  animation-delay: 4.5s;
+}
+
+.arrow-label {
+  opacity: 0;
+  animation: fadeInLoop 7s infinite;
+}
+
+.arrow-sublabel {
+  opacity: 0;
+  fill: #6b7280;
+  animation: fadeInLoop 7s infinite;
+}
+
+.view-to-controller + .arrow-label,
+.view-to-controller + .arrow-label + .arrow-sublabel {
+  animation-delay: 1s;
+}
+
+.controller-to-model + .arrow-label,
+.controller-to-model + .arrow-label + .arrow-sublabel {
+  animation-delay: 2.5s;
+}
+
+.model-to-controller + .arrow-label,
+.model-to-controller + .arrow-label + .arrow-sublabel {
+  animation-delay: 4.0s;
+}
+
+.controller-to-view + .arrow-label,
+.controller-to-view + .arrow-label + .arrow-sublabel {
+  animation-delay: 5.5s;
+}
+
+.mvc-explanation {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 30px;
+}
+
+.step-explanation h4,
+.benefits h4 {
+  color: #1f2937;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #3b82f6;
+  padding-bottom: 8px;
+}
+
+.step-explanation ol {
+  padding-left: 20px;
+}
+
+.step-explanation li {
+  margin-bottom: 12px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.benefits ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.benefits li {
+  margin-bottom: 12px;
+  padding-left: 20px;
+  position: relative;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.benefits li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #10b981;
+  font-weight: bold;
+}
+
+@keyframes drawLoop {
+  0% { stroke-dashoffset: 200; }
+  28.6% { stroke-dashoffset: 0; }
+  85.7% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 200; }
+}
+
+@keyframes fadeInLoop {
+  0% { opacity: 0; }
+  28.6% { opacity: 1; }
+  85.7% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (max-width: 768px) {
+  .mvc-container {
+    padding: 15px;
+  }
+
+  .mvc-diagram {
+    width: 100%;
+    height: auto;
+  }
+
+  .desktop-layout {
+    display: none !important;
+  }
+
+  .mobile-layout {
+    display: block !important;
+  }
+
+  .mvc-explanation {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .mvc-explanation h4 {
+    font-size: 16px;
+  }
+
+  .step-explanation li,
+  .benefits li {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+}
+</style>

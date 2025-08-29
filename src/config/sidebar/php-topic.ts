@@ -9,6 +9,12 @@ export default
         // Direct link to index.mdx file.
         // { label: "Quick Reference", link: "php/" },
         {
+          label: "Demo",
+          autogenerate: {
+            directory: "demos/http-cycle-demo",
+          }
+        },
+        {
           label: "PHP Basics",
           autogenerate: {
             directory: "php/basics",

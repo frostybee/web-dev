@@ -1,13 +1,12 @@
 import { defineConfig } from "astro/config";
 import { passthroughImageService } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import svelte from '@astrojs/svelte';
 import starlightImageZoom from 'starlight-image-zoom'
 import rehypeExternalLinks from "rehype-external-links";
 import { rehypeHeadingIds } from "@astrojs/markdown-remark";
-import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeSlug from 'rehype-slug';
 import starlightSidebarTopics from "starlight-sidebar-topics";
-import starlightLinksValidator from 'starlight-links-validator'
 import starlightScrollToTop from 'starlight-scroll-to-top';
 
 import leftSidebar from './src/config/sidebar/sidebar-items.ts'
@@ -20,6 +19,7 @@ export default defineConfig({
   site: appConfig.siteURI,
   base: appConfig.baseDirectory,
   integrations: [
+    svelte(),
     starlight({
       title: appConfig.title,
       favicon: appConfig.favicon,
@@ -57,6 +57,9 @@ export default defineConfig({
             // Load the sidebar items from the ./src/config/sidebar/sidebar-items.ts file.
             ...leftSidebar
           ],
+          {
+            exclude: ['/demos/**']
+          }
         )
       ],
       //TODO: enable the links validator plugin when the site is ready for production or if you want to validate the links in the site.

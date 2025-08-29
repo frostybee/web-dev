@@ -1,0 +1,603 @@
+---
+---
+<div class="http-container">
+  <!-- Control Panel -->
+  <div class="controls">
+    <h3>HTTP Request Simulator</h3>
+    <div class="method-buttons">
+      <button class="method-btn active" data-method="GET" data-color="#3498db" title="GET: Retrieve data from server">GET</button>
+      <button class="method-btn" data-method="POST" data-color="#e74c3c" title="POST: Create new resource">POST</button>
+      <button class="method-btn" data-method="PUT" data-color="#f39c12" title="PUT: Update/replace existing resource">PUT</button>
+      <button class="method-btn" data-method="DELETE" data-color="#e67e22" title="DELETE: Remove resource from server">DELETE</button>
+    </div>
+    <div class="scenario-buttons">
+      <button class="scenario-btn active" data-scenario="success" title="Successful request (200 OK)">Success</button>
+      <button class="scenario-btn" data-scenario="error" title="Resource not found (404)">Error</button>
+      <button class="scenario-btn" data-scenario="timeout" title="Request takes too long">Timeout</button>
+    </div>
+
+    <!-- Method Description Panel -->
+    <div class="method-info">
+      <div class="info-content">
+        <h4 class="method-title">GET Request</h4>
+        <p class="method-description">Retrieve data from the server. Safe operation that doesn't modify anything.</p>
+        <div class="method-examples">
+          <strong>Examples:</strong> Loading user profile, fetching product list, getting search results
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <svg width="700" height="350" xmlns="http://www.w3.org/2000/svg" class="http-diagram" viewBox="0 0 700 350">
+  <!-- Definitions for filters, markers, and paths -->
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="blur">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+    </filter>
+
+    <!-- Arrow markers - simplified for better compatibility -->
+    <marker id="arrowRequest" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#3498db" />
+    </marker>
+    <marker id="arrowResponse" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#27ae60" />
+    </marker>
+    <marker id="arrowError" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#e74c3c" />
+    </marker>
+
+    <!-- Hidden paths for packet animation -->
+    <path id="requestPath" d="M 150 115 L 550 115" stroke="none" fill="none"/>
+    <path id="responsePath" d="M 550 145 L 150 145" stroke="none" fill="none"/>
+  </defs>
+
+  <!-- Client Box with glow -->
+  <rect x="48" y="98" width="104" height="64" rx="12" fill="rgba(59, 130, 246, 0.1)" stroke="rgba(59, 130, 246, 0.3)" stroke-width="2" filter="url(#blur)" class="client-glow"/>
+  <rect x="50" y="100" width="100" height="60" rx="10" fill="rgba(59, 130, 246, 0.9)" class="client-box" filter="url(#glow)"/>
+  <text x="100" y="125" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Client</text>
+  <text x="100" y="140" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="12">(Browser)</text>
+
+  <!-- Server Box with glow -->
+  <rect x="548" y="98" width="104" height="64" rx="12" fill="rgba(16, 185, 129, 0.1)" stroke="rgba(16, 185, 129, 0.3)" stroke-width="2" filter="url(#blur)" class="server-glow"/>
+  <rect x="550" y="100" width="100" height="60" rx="10" fill="rgba(16, 185, 129, 0.9)" class="server-box" filter="url(#glow)"/>
+  <text x="600" y="125" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Server</text>
+  <text x="600" y="140" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="12">(Web Server)</text>
+
+  <!-- Request Arrow -->
+  <line x1="150" y1="115" x2="550" y2="115" stroke="#3498db" stroke-width="3"
+        marker-end="url(#arrowRequest)" class="request-arrow"/>
+  <text x="350" y="110" text-anchor="middle" font-size="14" font-weight="bold" fill="#3498db" class="request-text">
+    <tspan class="method-text">GET</tspan> Request
+  </text>
+  <text x="350" y="95" text-anchor="middle" font-size="12" fill="#666" class="request-details">
+    <tspan class="endpoint-text">/api/users</tspan>
+  </text>
+
+  <!-- Response Arrow -->
+  <line x1="550" y1="145" x2="150" y2="145" stroke="#27ae60" stroke-width="3"
+        marker-end="url(#arrowResponse)" class="response-arrow"/>
+  <text x="350" y="170" text-anchor="middle" font-size="14" font-weight="bold" fill="#27ae60" class="response-text">
+    HTTP Response
+  </text>
+  <text x="350" y="185" text-anchor="middle" font-size="12" fill="#666" class="response-details">
+    <tspan class="status-text">200 OK</tspan> + JSON Data
+  </text>
+
+  <!-- Error Response (hidden by default) -->
+  <line x1="550" y1="145" x2="150" y2="145" stroke="#e74c3c" stroke-width="3"
+        marker-end="url(#arrowError)" class="error-arrow hidden"/>
+  <text x="350" y="170" text-anchor="middle" font-size="14" font-weight="bold" fill="#e74c3c" class="error-text hidden">
+    HTTP Error
+  </text>
+  <text x="350" y="185" text-anchor="middle" font-size="12" fill="#e74c3c" class="error-details hidden">
+    <tspan class="error-status">404 Not Found</tspan>
+  </text>
+
+  <!-- Request Packet with particles -->
+  <g class="request-packet-group">
+    <circle r="10" fill="rgba(52, 152, 219, 0.3)" class="packet-trail" filter="url(#blur)"/>
+    <circle r="8" fill="#3498db" class="request-packet" filter="url(#glow)"/>
+    <circle r="4" fill="#fff" class="packet-core"/>
+    <animateMotion dur="2s" begin="0s" fill="freeze">
+      <mpath href="#requestPath"/>
+    </animateMotion>
+  </g>
+
+  <!-- Response Packet with particles -->
+  <g class="response-packet-group">
+    <circle r="10" fill="rgba(39, 174, 96, 0.3)" class="packet-trail" filter="url(#blur)"/>
+    <circle r="8" fill="#27ae60" class="response-packet" filter="url(#glow)"/>
+    <circle r="4" fill="#fff" class="packet-core"/>
+    <animateMotion dur="2s" begin="3s" fill="freeze">
+      <mpath href="#responsePath"/>
+    </animateMotion>
+  </g>
+
+  <!-- Error Packet (hidden by default) -->
+  <g class="error-packet-group hidden">
+    <circle r="10" fill="rgba(231, 76, 60, 0.3)" class="packet-trail" filter="url(#blur)"/>
+    <circle r="8" fill="#e74c3c" class="error-packet" filter="url(#glow)"/>
+    <circle r="4" fill="#fff" class="packet-core"/>
+    <animateMotion dur="2s" begin="3s" fill="freeze">
+      <mpath href="#responsePath"/>
+    </animateMotion>
+  </g>
+
+
+  <!-- Processing indicator on server -->
+  <g class="processing-indicator">
+    <circle cx="590" cy="180" r="4" fill="#f39c12" class="processing-dot">
+      <animate attributeName="opacity" values="0;1;0" dur="0.5s" begin="2s" repeatCount="2" />
+    </circle>
+    <circle cx="600" cy="180" r="4" fill="#f39c12" class="processing-dot">
+      <animate attributeName="opacity" values="0;1;0" dur="0.5s" begin="2.2s" repeatCount="2" />
+    </circle>
+    <circle cx="610" cy="180" r="4" fill="#f39c12" class="processing-dot">
+      <animate attributeName="opacity" values="0;1;0" dur="0.5s" begin="2.4s" repeatCount="2" />
+    </circle>
+    <text x="600" y="200" text-anchor="middle" font-size="10" fill="#f39c12" class="processing-text">
+      Processing...
+    </text>
+  </g>
+
+  <!-- Loading spinner (for timeout scenario) -->
+  <g class="timeout-spinner hidden">
+    <circle cx="600" cy="180" r="15" fill="none" stroke="#e67e22" stroke-width="3" stroke-dasharray="70" class="spinner">
+      <animateTransform attributeName="transform" type="rotate" values="0 600 180;360 600 180" dur="1s" repeatCount="indefinite"/>
+    </circle>
+    <text x="600" y="210" text-anchor="middle" font-size="10" fill="#e67e22">Timeout...</text>
+  </g>
+</svg>
+</div>
+
+<style>
+.http-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  padding: 20px;
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.controls {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.controls h3 {
+  color: white;
+  margin: 0 0 15px 0;
+  font-size: 20px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.method-buttons, .scenario-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.method-btn, .scenario-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  background: rgba(255,255,255,0.1);
+  min-width: 80px;
+}
+
+.method-btn:hover, .scenario-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+  background: rgba(255,255,255,0.2);
+}
+
+.method-btn.active, .scenario-btn.active {
+  background: rgba(255,255,255,0.25);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  transform: scale(1.05);
+}
+
+/* Method Info Panel */
+.method-info {
+  margin-top: 20px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 15px;
+  border: 1px solid rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+}
+
+.method-title {
+  color: white;
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.method-description {
+  color: rgba(255,255,255,0.9);
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.method-examples {
+  color: rgba(255,255,255,0.8);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.method-examples strong {
+  color: white;
+}
+
+.http-diagram {
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255,255,255,0.1);
+  width: 100%;
+  max-width: 700px;
+  height: auto;
+}
+
+/* Box animations */
+.client-box, .server-box {
+  transition: all 0.3s ease;
+}
+
+.client-glow, .server-glow {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.diagram-active .client-glow, .diagram-active .server-glow {
+  opacity: 1;
+  animation: pulse 2s infinite;
+}
+
+/* Line animations */
+.http-diagram line {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 0;
+  transition: all 0.3s ease;
+}
+
+.diagram-active .request-arrow {
+  animation: drawLine 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.diagram-active .response-arrow {
+  animation: drawLine 2s 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.diagram-active .error-arrow {
+  animation: drawLine 2s 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Text animations */
+.request-text, .request-details, .response-text, .response-details {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.diagram-active .request-text, .diagram-active .request-details {
+  animation: slideUp 0.6s 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.diagram-active .response-text, .diagram-active .response-details {
+  animation: slideUp 0.6s 3.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.error-text, .error-details {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.diagram-active .error-text, .diagram-active .error-details {
+  animation: slideUp 0.6s 3.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Packet animations */
+.request-packet-group, .response-packet-group, .error-packet-group {
+  opacity: 0;
+}
+
+.diagram-active .request-packet-group {
+  opacity: 1;
+  animation: fadeIn 0.3s forwards;
+}
+
+.diagram-active .response-packet-group {
+  opacity: 1;
+  animation: fadeIn 0.3s 3s forwards;
+}
+
+.diagram-active .error-packet-group {
+  opacity: 1;
+  animation: fadeIn 0.3s 3s forwards;
+}
+
+.packet-trail {
+  animation: pulse 0.5s infinite alternate;
+}
+
+/* Processing indicators */
+.processing-text {
+  opacity: 0;
+  animation: fadeIn 0.3s 2s forwards, fadeOut 0.3s 3s forwards;
+}
+
+/* Hidden elements */
+.hidden {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .http-container {
+    padding: 15px;
+  }
+
+  .controls h3 {
+    font-size: 18px;
+  }
+
+  .method-buttons, .scenario-buttons {
+    gap: 8px;
+  }
+
+  .method-btn, .scenario-btn {
+    padding: 6px 12px;
+    font-size: 14px;
+    min-width: 70px;
+  }
+
+  .http-diagram {
+    height: 280px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .request-arrow, .response-arrow, .error-arrow {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .request-text, .request-details, .response-text, .response-details, .error-text, .error-details {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .packet-trail {
+    animation: none;
+  }
+
+  .client-glow, .server-glow {
+    animation: none;
+  }
+}
+
+/* Keyframes */
+@keyframes drawLine {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes slideUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  to { opacity: 0; }
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .http-container {
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+  }
+}
+</style>
+
+<script is:inline>
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait a bit longer for Astro to fully render
+  setTimeout(function() {
+    const diagram = document.querySelector('.http-diagram');
+    const methodBtns = document.querySelectorAll('.method-btn');
+    const scenarioBtns = document.querySelectorAll('.scenario-btn');
+
+    console.log('Diagram:', diagram);
+    console.log('Method buttons:', methodBtns.length);
+    console.log('Scenario buttons:', scenarioBtns.length);
+
+    if (!diagram || !methodBtns.length || !scenarioBtns.length) {
+      console.error('Elements not found! Retrying...');
+      return;
+    }
+
+    const httpMethods = {
+      GET: {
+        color: '#3498db',
+        endpoint: '/api/users',
+        title: 'GET Request',
+        description: 'Retrieve data from the server. Safe operation that doesn\'t modify anything.',
+        examples: 'Loading user profile, fetching product list, getting search results'
+      },
+      POST: {
+        color: '#e74c3c',
+        endpoint: '/api/users',
+        title: 'POST Request',
+        description: 'Send data to create a new resource on the server. Not safe - creates new data.',
+        examples: 'Creating user account, submitting form data, adding item to cart'
+      },
+      PUT: {
+        color: '#f39c12',
+        endpoint: '/api/users/123',
+        title: 'PUT Request',
+        description: 'Update or replace an entire existing resource. Idempotent operation.',
+        examples: 'Updating user profile completely, replacing file contents, editing product details'
+      },
+      DELETE: {
+        color: '#e67e22',
+        endpoint: '/api/users/123',
+        title: 'DELETE Request',
+        description: 'Remove a resource from the server. Destructive operation that can\'t be undone.',
+        examples: 'Deleting user account, removing cart item, canceling subscription'
+      }
+    };
+
+    const scenarios = {
+      success: { status: '200 OK', color: '#27ae60' },
+      error: { status: '404 Not Found', color: '#e74c3c' },
+      timeout: { status: 'Request Timeout', color: '#e67e22' }
+    };
+
+    let currentMethod = 'GET';
+    let currentScenario = 'success';
+
+    function updateDiagram() {
+      console.log('Updating diagram with:', currentMethod, currentScenario);
+
+      const method = httpMethods[currentMethod];
+      const scenario = scenarios[currentScenario];
+
+      // Update method text and colors
+      const methodText = document.querySelector('.method-text');
+      const endpointText = document.querySelector('.endpoint-text');
+      const requestArrow = document.querySelector('.request-arrow');
+      const requestText = document.querySelector('.request-text');
+      const statusText = document.querySelector('.status-text');
+
+      if (methodText) methodText.textContent = currentMethod;
+      if (endpointText) endpointText.textContent = method.endpoint;
+      if (requestArrow) requestArrow.setAttribute('stroke', method.color);
+      if (requestText) requestText.setAttribute('fill', method.color);
+      if (statusText) statusText.textContent = scenario.status;
+
+      // Update arrow marker color dynamically
+      const arrowMarker = document.querySelector('#arrowRequest path');
+      if (arrowMarker) arrowMarker.setAttribute('fill', method.color);
+
+      // Update method info panel
+      const methodTitle = document.querySelector('.method-title');
+      const methodDescription = document.querySelector('.method-description');
+      const methodExamples = document.querySelector('.method-examples');
+
+      if (methodTitle) methodTitle.textContent = method.title;
+      if (methodDescription) methodDescription.textContent = method.description;
+      if (methodExamples) methodExamples.innerHTML = `<strong>Examples:</strong> ${method.examples}`;
+
+      // Hide/show elements based on scenario
+      const successElements = ['.response-arrow', '.response-text', '.response-details', '.response-packet-group', '.processing-indicator'];
+      const errorElements = ['.error-arrow', '.error-text', '.error-details', '.error-packet-group'];
+      const timeoutElements = ['.timeout-spinner'];
+
+      // Hide all scenario elements first
+      [...successElements, ...errorElements, ...timeoutElements].forEach(selector => {
+        const el = document.querySelector(selector);
+        if (el) {
+          el.classList.add('hidden');
+          el.style.display = 'none';
+        }
+      });
+
+      // Show relevant elements
+      let elementsToShow = [];
+      if (currentScenario === 'success') {
+        elementsToShow = successElements;
+      } else if (currentScenario === 'error') {
+        elementsToShow = errorElements;
+        const errorStatus = document.querySelector('.error-status');
+        if (errorStatus) errorStatus.textContent = scenario.status;
+      } else if (currentScenario === 'timeout') {
+        elementsToShow = timeoutElements;
+      }
+
+      elementsToShow.forEach(selector => {
+        const el = document.querySelector(selector);
+        if (el) {
+          el.classList.remove('hidden');
+          el.style.display = '';
+        }
+      });
+
+      // Restart animations
+      diagram.classList.remove('diagram-active');
+      setTimeout(() => {
+        diagram.classList.add('diagram-active');
+        console.log('Animation restarted');
+      }, 100);
+    }
+
+    // Method button handlers
+    methodBtns.forEach((btn, index) => {
+      console.log('Setting up method button', index, btn.dataset.method);
+      btn.addEventListener('click', (e) => {
+        console.log('Method button clicked:', btn.dataset.method);
+        e.preventDefault();
+
+        methodBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMethod = btn.dataset.method;
+        updateDiagram();
+      });
+    });
+
+    // Scenario button handlers
+    scenarioBtns.forEach((btn, index) => {
+      console.log('Setting up scenario button', index, btn.dataset.scenario);
+      btn.addEventListener('click', (e) => {
+        console.log('Scenario button clicked:', btn.dataset.scenario);
+        e.preventDefault();
+
+        scenarioBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentScenario = btn.dataset.scenario;
+        updateDiagram();
+      });
+    });
+
+    // Initial animation
+    setTimeout(() => {
+      diagram.classList.add('diagram-active');
+      console.log('Initial animation started');
+    }, 500);
+
+  }, 1000); // Wait 1 second for full initialization
+});
+</script>

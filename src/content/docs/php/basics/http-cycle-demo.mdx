@@ -1,0 +1,47 @@
+---
+title: Interactive HTTP Request-Response Cycle
+description: An interactive Svelte 5 component demonstrating HTTP request-response cycles for educational purposes
+label: Demo
+---
+
+import HttpCycleSvelte from '../../../../components/diagrams/HttpCycleSvelte.svelte';
+
+# Interactive HTTP Request-Response Cycle
+
+This interactive diagram helps students understand the HTTP request-response cycle through hands-on exploration.
+
+## Features
+
+- **Step-by-step Animation Controls**: Play, pause, reset, and manual stepping
+- **Multiple HTTP Methods**: GET, POST, PUT, DELETE, PATCH with detailed explanations
+- **Response Scenarios**: Success, error, timeout, and redirect scenarios
+- **Educational Content**: Method descriptions, status code references, and real-world examples
+- **Accessibility**: Keyboard navigation and screen reader support
+
+## How to Use
+
+1. **Select an HTTP Method**: Click on GET, POST, PUT, DELETE, or PATCH buttons
+2. **Choose a Scenario**: Pick from success, error, timeout, or redirect scenarios  
+3. **Control the Animation**: Use play/pause/reset controls or step through manually
+4. **Learn**: Read the method descriptions and status code references
+
+<HttpCycleSvelte client:load />
+
+## Educational Value
+
+This component helps students understand:
+
+- **HTTP Methods**: Purpose and appropriate use cases for each method
+- **Request-Response Flow**: Visual representation of client-server communication
+- **Status Codes**: Common HTTP status codes and their meanings
+- **Request Lifecycle**: Step-by-step breakdown of HTTP transactions
+- **Error Handling**: Different error scenarios and their responses
+
+## Technical Implementation
+
+Built with:
+- **Svelte 5**: Using new runes (`$state`, `$derived`, `$effect`)
+- **TypeScript**: Full type safety and better developer experience
+- **SVG Animations**: Smooth, performant animations with CSS and SVG
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+- **Accessibility**: ARIA labels, keyboard support, and reduced motion preferences

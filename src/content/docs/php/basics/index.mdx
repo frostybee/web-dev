@@ -7,9 +7,15 @@ sidebar:
 ---
 import { LinkCard, CardGrid  } from '@astrojs/starlight/components';
 
+import HttpCycleDiagram from '../../../../components/diagrams/HttpCycleDiagram.astro';
+import MvcDiagram from '../../../../components/diagrams/MvcDiagram.astro';
 
+
+<HttpCycleDiagram />
+<MvcDiagram />
 <CardGrid>
   <LinkCard title="Cheatsheet" href="./cheatsheet/" />
+  
 </CardGrid>
 
 
