@@ -19,7 +19,38 @@ sidebar:
 
 Functions in PHP are declared using the `function` keyword:
 
+
+```php title="Syntax for declaring a function:"
+<?php
+function functionName($parameter1, $parameter2 = 'default'): returnType {
+    // Function body
+    return $value;
+}
+```
+
+:::note
+Modern PHP 8.0+ enhances this with **union types** and **trailing comma support**, making function declarations more flexible and maintainable:
+:::
+
 ```php
+<?php
+// Union types allow multiple parameter types
+function calculateArea(int|float $width, int|float $height = 1.0): int|float {
+    return $width * $height;
+}
+
+// Trailing commas improve code formatting
+function processUserData(
+    string $name,
+    int $age,
+    bool $active,  // Trailing comma allowed in PHP 8.0+
+) {
+    return ['name' => $name, 'age' => $age, 'active' => $active];
+}
+```
+
+
+```php title="Basic function declaration and call:"
 <?php
 // Basic function declaration
 function greet() {
