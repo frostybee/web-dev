@@ -14,13 +14,16 @@ sidebar:
 :::
 
 ### Variable Declaration
-PHP variables start with the `$` symbol followed by the variable name:
+PHP variables are created the moment you assign a value to them. Unlike some languages, you don't need to explicitly declare variables before use.
+- They start with the `$` symbol followed by the variable name.
 
 ```php
-$name = "John Doe";
-$age = 25;
-$isStudent = true;
-$salary = 50000.50;
+// Variables are created the moment you assign a value
+$message = "Hello, World!";
+$count = 42;
+$price = 19.99;
+$isActive = true;
+$items = array("apple", "banana", "orange");
 ```
 - The dollar sign **distinguishes variables** from other programming **elements** like function names or keywords. Without it, PHP wouldn't know whether you're referring to stored data or trying to use a command.
 - The dollar sign serves as a signal flag that says "container ahead!"

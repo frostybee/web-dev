@@ -1,0 +1,282 @@
+---
+title: PHP Null Coalescing
+description: Working with PHP Null Coalescing
+sidebar:
+  label: 'Null Coalescing'
+  order: 4
+  badge: 
+    text: New!
+    variant: danger
+---
+
+## What is Null Coalescing?
+
+- **Null coalescing** is a convenient PHP feature that allows you to handle **null** or **undefined** values gracefully. 
+- It provides a clean way to assign **default values** when **a variable** might be **null**, **undefined**, or doesn't exist, without having to write lengthy conditional statements.
+
+
+:::note[how it works]   
+- The null coalescing operator (`??`) is a **binary operator** that returns the **left operand** if it exists and is not null, otherwise it returns the **right operand**. 
+:::
+
+
+### Syntax
+
+```php
+$result = $variable ?? $default_value;
+```
+
+This is equivalent to:
+
+```php
+$result = isset($variable) ? $variable : $default_value;
+```
+
+Or using if/else statements:
+
+```php
+if (isset($variable) && $variable !== null) {
+    $result = $variable;
+} else {
+    $result = $default_value;
+}
+```
+
+--- 
+
+## Basic Examples
+
+### Simple Null Coalescing
+
+```php
+<?php
+$username = null;
+$default = "guest";
+
+// Using null coalescing operator
+$user = $username ?? $default;
+echo $user; // Output: "guest"
+
+// Traditional approach
+$user = isset($username) ? $username : $default;
+echo $user; // Output: "guest"
+?>
+```
+
+### With Form Data
+
+```php
+<?php
+// Handling form input with default values
+$name = $_POST['name'] ?? 'Anonymous';
+$email = $_GET['email'] ?? 'no-email@example.com';
+$age = $_POST['age'] ?? 0;
+
+echo "Name: $name, Email: $email, Age: $age";
+?>
+```
+
+--- 
+
+## Chaining Null Coalescing Operators
+
+You can chain multiple `??` operators to check **several values** in sequence.
+
+**Chaining Syntax:**
+```php
+$result = $first ?? $second ?? $third ?? $default;
+```
+:::note[How it works]        
+- When chaining, PHP evaluates each operand from **left to right** and returns the **first non-null value** it encounters. 
+- This creates a cascade of fallback values, allowing you to check **multiple sources** (user input, configuration, environment variables, etc.) until a valid value is found. 
+- If all operands are null, the rightmost value is returned.
+:::
+
+```php title="Examples: Chaining Null Coalescing"
+<?php
+// Check multiple sources for a value
+$userInput = null;
+$configDefault = null;
+$systemDefault = "fallback";
+
+$finalValue = $userInput ?? $configDefault ?? $systemDefault;
+echo $finalValue; // Outputs: "fallback"
+
+// Real-world example: Getting user preferences
+$theme = $_GET['theme'] ?? $_COOKIE['theme'] ?? $_SESSION['theme'] ?? 'light';
+
+// Database configuration example
+$dbHost = $_ENV['DB_HOST'] ?? $_SERVER['DB_HOST'] ?? 'localhost';
+$dbPort = $_ENV['DB_PORT'] ?? $_SERVER['DB_PORT'] ?? 3306;
+?>
+```
+
+--- 
+
+## Working with Arrays and Undefined Keys
+
+Null coalescing is particularly useful when working with arrays that might have missing keys:
+
+```php
+<?php
+// Accessing potentially undefined array keys
+$config = ['database' => 'mysql', 'port' => 3306];
+
+// Without null coalescing (throws notice if key doesn't exist)
+// $host = $config['host']; // Notice: Undefined index: host
+
+// With null coalescing (no notice, clean default)
+$host = $config['host'] ?? 'localhost';
+$timeout = $config['timeout'] ?? 30;
+$ssl = $config['ssl'] ?? false;
+
+echo "Host: $host\n";        // Host: localhost
+echo "Timeout: $timeout\n";  // Timeout: 30
+echo "SSL: " . ($ssl ? 'yes' : 'no'); // SSL: no
+?>
+```
+
+--- 
+
+## Null Coalescing Assignment Operator (`??=`)
+
+The `??=` operator (PHP 7.4+) assigns **a value** to **a variable** only if the variable is null or undefined:
+
+```php
+<?php
+// Null coalescing assignment syntax
+$config['theme'] ??= 'default';
+
+// This is equivalent to:
+if (!isset($config['theme']) || $config['theme'] === null) {
+    $config['theme'] = 'default';
+}
+
+// More examples
+$settings = [];
+
+// Assign default values only if not already set
+$settings['language'] ??= 'en';
+$settings['timezone'] ??= 'UTC';
+$settings['debug'] ??= false;
+
+print_r($settings);
+// Output:
+// Array
+// (
+//     [language] => en
+//     [timezone] => UTC
+//     [debug] => 
+// )
+
+// If values already exist, they won't be overwritten
+$settings['language'] = 'fr';
+$settings['language'] ??= 'en'; // This won't change the value
+echo $settings['language']; // Still outputs: 'fr'
+?>
+```
+
+--- 
+
+## Practical Use Cases
+
+### 1. Form Processing
+
+```php
+<?php
+// Processing form data with defaults
+$name = $_POST['name'] ?? '';
+$email = $_POST['email'] ?? '';
+$age = $_POST['age'] ?? 0;
+$newsletter = $_POST['newsletter'] ?? false;
+
+// Validation with defaults
+$errors = [];
+if (empty($name)) {
+    $errors[] = "Name is required";
+}
+?>
+```
+
+--- 
+
+### 2. Configuration Management
+
+```php
+<?php
+// Loading configuration with fallbacks
+class Config {
+    private $settings = [];
+    
+    public function get($key, $default = null) {
+        return $this->settings[$key] ?? $default;
+    }
+    
+    public function set($key, $value) {
+        $this->settings[$key] ??= $value; // Only set if not already defined
+    }
+}
+
+$config = new Config();
+$apiUrl = $config->get('api_url', 'https://api.example.com');
+$timeout = $config->get('timeout', 30);
+?>
+```
+
+--- 
+
+### 3. API Response Handling
+
+```php
+<?php
+// Handling API responses with missing fields
+$apiResponse = [
+    'user' => [
+        'name' => 'Alice',
+        'email' => 'alice@example.com'
+        // 'phone' might be missing
+    ]
+];
+
+$userName = $apiResponse['user']['name'] ?? 'Unknown';
+$userEmail = $apiResponse['user']['email'] ?? 'no-email@example.com';
+$userPhone = $apiResponse['user']['phone'] ?? 'Not provided';
+
+echo "Name: $userName\n";
+echo "Email: $userEmail\n"; 
+echo "Phone: $userPhone\n";
+?>
+```
+
+--- 
+
+## Null Coalescing vs Other Operators
+
+Understanding the differences between null coalescing and similar operators:
+
+```php
+<?php
+$value = null;
+$empty = '';
+$zero = 0;
+$false = false;
+
+// Null coalescing (??) - only checks for null/undefined
+echo $value ?? 'default';  // 'default'
+echo $empty ?? 'default';  // '' (empty string is not null)
+echo $zero ?? 'default';   // 0 (zero is not null)
+echo $false ?? 'default';  // false (false is not null)
+
+// Ternary operator with isset()
+echo isset($value) ? $value : 'default';  // 'default'
+echo isset($empty) ? $empty : 'default';  // ''
+echo isset($zero) ? $zero : 'default';    // 0
+echo isset($false) ? $false : 'default';  // false
+
+// Logical OR (||) - checks for "falsy" values
+echo $value || 'default';  // 'default'
+echo $empty || 'default';  // 'default' (empty string is falsy)
+echo $zero || 'default';   // 'default' (zero is falsy)
+echo $false || 'default';  // 'default' (false is falsy)
+?>
+```

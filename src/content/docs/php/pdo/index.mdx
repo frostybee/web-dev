@@ -1,0 +1,873 @@
+---
+title: PHP PDO
+description: Working with PHP PDO
+sidebar:
+  label: 'PHP PDO'
+  order: 1
+--- 
+
+## What is PHP PDO? 
+
+PHP Data Objects (PDO) is a database access layer that provides a consistent interface for interacting with different databases. It's a PHP extension that defines a lightweight interface for accessing databases in PHP, supporting multiple database systems including MySQL, PostgreSQL, SQLite, and more.
+
+## Why Use PDO?
+
+- **Database Independence**: Write code once, run on multiple database systems
+- **Security**: Built-in protection against SQL injection attacks through prepared statements
+- **Performance**: Prepared statements can improve performance for repeated queries
+- **Object-Oriented Interface**: Modern, clean API design
+- **Error Handling**: Robust exception-based error handling
+
+## Setting Up PDO Connection to MySQL
+
+### Basic Connection
+
+```php
+<?php
+$host = 'localhost';
+$dbname = 'your_database';
+$username = 'your_username';
+$password = 'your_password';
+$charset = 'utf8mb4';
+
+$dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
+
+try {
+    $pdo = new PDO($dsn, $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    echo "Connected successfully!";
+} catch (PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+?>
+```
+
+### Connection with Options
+
+```php
+<?php
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+];
+
+try {
+    $pdo = new PDO($dsn, $username, $password, $options);
+} catch (PDOException $e) {
+    throw new PDOException($e->getMessage(), (int)$e->getCode());
+}
+?>
+```
+
+### Database Connection Class
+
+```php
+<?php
+class Database {
+    private $host = 'localhost';
+    private $db_name = 'ecommerce';
+    private $username = 'root';
+    private $password = '';
+    private $conn;
+
+    public function getConnection() {
+        $this->conn = null;
+
+        try {
+            $dsn = "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8mb4";
+            $options = [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::ATTR_PERSISTENT         => true,
+            ];
+
+            $this->conn = new PDO($dsn, $this->username, $this->password, $options);
+        } catch(PDOException $exception) {
+            echo "Connection error: " . $exception->getMessage();
+        }
+
+        return $this->conn;
+    }
+}
+
+// Usage
+$database = new Database();
+$db = $database->getConnection();
+?>
+```
+
+## CRUD Operations with PDO
+
+### Creating Tables
+
+```php
+<?php
+// Create users table
+$sql = "CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)";
+
+try {
+    $pdo->exec($sql);
+    echo "Table 'users' created successfully";
+} catch(PDOException $e) {
+    echo "Error creating table: " . $e->getMessage();
+}
+
+// Create products table
+$sql = "CREATE TABLE IF NOT EXISTS products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    stock_quantity INT DEFAULT 0,
+    category_id INT,
+    image_url VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)";
+
+$pdo->exec($sql);
+?>
+```
+
+### INSERT Operations
+
+#### Simple Insert
+
+```php
+<?php
+// Insert single user
+$sql = "INSERT INTO users (username, email, password, first_name, last_name) 
+        VALUES (:username, :email, :password, :first_name, :last_name)";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute([
+    ':username' => 'johndoe',
+    ':email' => 'john@example.com',
+    ':password' => password_hash('secretpass', PASSWORD_DEFAULT),
+    ':first_name' => 'John',
+    ':last_name' => 'Doe'
+]);
+
+echo "User inserted with ID: " . $pdo->lastInsertId();
+?>
+```
+
+#### Insert with Error Handling
+
+```php
+<?php
+function createUser($pdo, $userData) {
+    $sql = "INSERT INTO users (username, email, password, first_name, last_name) 
+            VALUES (:username, :email, :password, :first_name, :last_name)";
+    
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':username' => $userData['username'],
+            ':email' => $userData['email'],
+            ':password' => password_hash($userData['password'], PASSWORD_DEFAULT),
+            ':first_name' => $userData['first_name'],
+            ':last_name' => $userData['last_name']
+        ]);
+        
+        return $pdo->lastInsertId();
+    } catch(PDOException $e) {
+        if ($e->getCode() == 23000) { // Duplicate entry
+            throw new Exception("Username or email already exists");
+        }
+        throw new Exception("Error creating user: " . $e->getMessage());
+    }
+}
+
+// Usage
+$userData = [
+    'username' => 'janedoe',
+    'email' => 'jane@example.com',
+    'password' => 'mypassword',
+    'first_name' => 'Jane',
+    'last_name' => 'Doe'
+];
+
+try {
+    $userId = createUser($pdo, $userData);
+    echo "User created with ID: $userId";
+} catch(Exception $e) {
+    echo "Error: " . $e->getMessage();
+}
+?>
+```
+
+#### Batch Insert
+
+```php
+<?php
+function insertProducts($pdo, $products) {
+    $sql = "INSERT INTO products (name, description, price, stock_quantity, category_id) 
+            VALUES (:name, :description, :price, :stock_quantity, :category_id)";
+    
+    $pdo->beginTransaction();
+    
+    try {
+        $stmt = $pdo->prepare($sql);
+        
+        foreach ($products as $product) {
+            $stmt->execute([
+                ':name' => $product['name'],
+                ':description' => $product['description'],
+                ':price' => $product['price'],
+                ':stock_quantity' => $product['stock_quantity'],
+                ':category_id' => $product['category_id']
+            ]);
+        }
+        
+        $pdo->commit();
+        return true;
+    } catch(Exception $e) {
+        $pdo->rollback();
+        throw new Exception("Error inserting products: " . $e->getMessage());
+    }
+}
+
+// Usage
+$products = [
+    ['name' => 'Laptop', 'description' => 'Gaming laptop', 'price' => 999.99, 'stock_quantity' => 50, 'category_id' => 1],
+    ['name' => 'Mouse', 'description' => 'Wireless mouse', 'price' => 29.99, 'stock_quantity' => 100, 'category_id' => 1],
+    ['name' => 'Keyboard', 'description' => 'Mechanical keyboard', 'price' => 79.99, 'stock_quantity' => 75, 'category_id' => 1]
+];
+
+insertProducts($pdo, $products);
+?>
+```
+
+### SELECT Operations
+
+#### Simple Select
+
+```php
+<?php
+// Fetch all users
+$sql = "SELECT id, username, email, first_name, last_name, created_at FROM users";
+$stmt = $pdo->query($sql);
+$users = $stmt->fetchAll();
+
+foreach ($users as $user) {
+    echo "User: " . $user['username'] . " (" . $user['email'] . ")\n";
+}
+?>
+```
+
+#### Select with Parameters
+
+```php
+<?php
+// Find user by ID
+function getUserById($pdo, $userId) {
+    $sql = "SELECT id, username, email, first_name, last_name, created_at 
+            FROM users WHERE id = :id";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':id' => $userId]);
+    
+    return $stmt->fetch();
+}
+
+// Find users by criteria
+function searchUsers($pdo, $searchTerm, $limit = 10) {
+    $sql = "SELECT id, username, email, first_name, last_name 
+            FROM users 
+            WHERE username LIKE :search 
+               OR email LIKE :search 
+               OR first_name LIKE :search 
+               OR last_name LIKE :search
+            LIMIT :limit";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindValue(':search', "%$searchTerm%");
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    return $stmt->fetchAll();
+}
+
+// Usage
+$user = getUserById($pdo, 1);
+if ($user) {
+    echo "Found user: " . $user['username'];
+} else {
+    echo "User not found";
+}
+
+$searchResults = searchUsers($pdo, 'john', 5);
+?>
+```
+
+#### Complex Joins
+
+```php
+<?php
+// Get products with category information
+function getProductsWithCategories($pdo, $page = 1, $perPage = 20) {
+    $offset = ($page - 1) * $perPage;
+    
+    $sql = "SELECT p.id, p.name, p.description, p.price, p.stock_quantity,
+                   c.name as category_name, p.created_at
+            FROM products p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE p.is_active = 1
+            ORDER BY p.created_at DESC
+            LIMIT :limit OFFSET :offset";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    return $stmt->fetchAll();
+}
+
+// Get order details with user and product information
+function getOrderDetails($pdo, $orderId) {
+    $sql = "SELECT o.id as order_id, o.total_amount, o.status, o.created_at,
+                   u.username, u.email, u.first_name, u.last_name,
+                   oi.quantity, oi.price as item_price,
+                   p.name as product_name, p.description as product_description
+            FROM orders o
+            JOIN users u ON o.user_id = u.id
+            JOIN order_items oi ON o.id = oi.order_id
+            JOIN products p ON oi.product_id = p.id
+            WHERE o.id = :order_id";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':order_id' => $orderId]);
+    
+    return $stmt->fetchAll();
+}
+?>
+```
+
+### UPDATE Operations
+
+```php
+<?php
+// Update user information
+function updateUser($pdo, $userId, $data) {
+    $fields = [];
+    $params = [':id' => $userId];
+    
+    // Build dynamic UPDATE query
+    foreach ($data as $key => $value) {
+        if (in_array($key, ['username', 'email', 'first_name', 'last_name'])) {
+            $fields[] = "$key = :$key";
+            $params[":$key"] = $value;
+        }
+    }
+    
+    if (empty($fields)) {
+        throw new InvalidArgumentException("No valid fields to update");
+    }
+    
+    $sql = "UPDATE users SET " . implode(', ', $fields) . ", updated_at = NOW() WHERE id = :id";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    
+    return $stmt->rowCount();
+}
+
+// Update product stock
+function updateProductStock($pdo, $productId, $newStock) {
+    $sql = "UPDATE products SET stock_quantity = :stock, updated_at = NOW() WHERE id = :id";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        ':stock' => $newStock,
+        ':id' => $productId
+    ]);
+    
+    return $stmt->rowCount();
+}
+
+// Usage
+$updatedRows = updateUser($pdo, 1, [
+    'first_name' => 'Jonathan',
+    'email' => 'jonathan@example.com'
+]);
+
+echo "Updated $updatedRows user(s)";
+?>
+```
+
+### DELETE Operations
+
+```php
+<?php
+// Soft delete (recommended)
+function softDeleteUser($pdo, $userId) {
+    $sql = "UPDATE users SET is_active = 0, deleted_at = NOW() WHERE id = :id";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':id' => $userId]);
+    
+    return $stmt->rowCount();
+}
+
+// Hard delete
+function deleteUser($pdo, $userId) {
+    $sql = "DELETE FROM users WHERE id = :id";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':id' => $userId]);
+    
+    return $stmt->rowCount();
+}
+
+// Delete with foreign key constraints
+function deleteUserAndOrders($pdo, $userId) {
+    $pdo->beginTransaction();
+    
+    try {
+        // Delete order items first
+        $sql1 = "DELETE oi FROM order_items oi 
+                 JOIN orders o ON oi.order_id = o.id 
+                 WHERE o.user_id = :user_id";
+        $stmt1 = $pdo->prepare($sql1);
+        $stmt1->execute([':user_id' => $userId]);
+        
+        // Delete orders
+        $sql2 = "DELETE FROM orders WHERE user_id = :user_id";
+        $stmt2 = $pdo->prepare($sql2);
+        $stmt2->execute([':user_id' => $userId]);
+        
+        // Delete user
+        $sql3 = "DELETE FROM users WHERE id = :user_id";
+        $stmt3 = $pdo->prepare($sql3);
+        $stmt3->execute([':user_id' => $userId]);
+        
+        $pdo->commit();
+        return true;
+    } catch (Exception $e) {
+        $pdo->rollback();
+        throw new Exception("Error deleting user: " . $e->getMessage());
+    }
+}
+?>
+```
+
+## Prepared Statements and Security
+
+### Why Use Prepared Statements?
+
+```php
+<?php
+// NEVER DO THIS - Vulnerable to SQL injection
+$username = $_POST['username'];
+$sql = "SELECT * FROM users WHERE username = '$username'";
+$result = $pdo->query($sql);
+
+// DO THIS - Safe with prepared statements
+$username = $_POST['username'];
+$sql = "SELECT * FROM users WHERE username = :username";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([':username' => $username]);
+$result = $stmt->fetch();
+?>
+```
+
+### Different Binding Methods
+
+```php
+<?php
+// Method 1: bindParam (variables bound by reference)
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id AND status = :status");
+$userId = 1;
+$status = 'active';
+$stmt->bindParam(':id', $userId, PDO::PARAM_INT);
+$stmt->bindParam(':status', $status, PDO::PARAM_STR);
+$stmt->execute();
+
+// Method 2: bindValue (values bound immediately)
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id AND status = :status");
+$stmt->bindValue(':id', 1, PDO::PARAM_INT);
+$stmt->bindValue(':status', 'active', PDO::PARAM_STR);
+$stmt->execute();
+
+// Method 3: execute with array (most common)
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id AND status = :status");
+$stmt->execute([':id' => 1, ':status' => 'active']);
+
+// Method 4: Positional parameters
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ? AND status = ?");
+$stmt->execute([1, 'active']);
+?>
+```
+
+## Transaction Management
+
+### Basic Transactions
+
+```php
+<?php
+function transferMoney($pdo, $fromUserId, $toUserId, $amount) {
+    $pdo->beginTransaction();
+    
+    try {
+        // Check if sender has sufficient funds
+        $stmt = $pdo->prepare("SELECT balance FROM user_accounts WHERE user_id = :id FOR UPDATE");
+        $stmt->execute([':id' => $fromUserId]);
+        $senderBalance = $stmt->fetchColumn();
+        
+        if ($senderBalance < $amount) {
+            throw new Exception("Insufficient funds");
+        }
+        
+        // Deduct from sender
+        $stmt = $pdo->prepare("UPDATE user_accounts SET balance = balance - :amount WHERE user_id = :id");
+        $stmt->execute([':amount' => $amount, ':id' => $fromUserId]);
+        
+        // Add to receiver
+        $stmt = $pdo->prepare("UPDATE user_accounts SET balance = balance + :amount WHERE user_id = :id");
+        $stmt->execute([':amount' => $amount, ':id' => $toUserId]);
+        
+        // Log transaction
+        $stmt = $pdo->prepare("INSERT INTO transactions (from_user_id, to_user_id, amount, type) VALUES (:from, :to, :amount, 'transfer')");
+        $stmt->execute([':from' => $fromUserId, ':to' => $toUserId, ':amount' => $amount]);
+        
+        $pdo->commit();
+        return true;
+        
+    } catch (Exception $e) {
+        $pdo->rollback();
+        throw new Exception("Transfer failed: " . $e->getMessage());
+    }
+}
+?>
+```
+
+### Nested Transactions with Savepoints
+
+```php
+<?php
+function processComplexOrder($pdo, $orderData) {
+    $pdo->beginTransaction();
+    
+    try {
+        // Create order
+        $stmt = $pdo->prepare("INSERT INTO orders (user_id, total_amount, status) VALUES (:user_id, :total, 'processing')");
+        $stmt->execute([':user_id' => $orderData['user_id'], ':total' => $orderData['total']]);
+        $orderId = $pdo->lastInsertId();
+        
+        // Create savepoint before processing items
+        $pdo->exec("SAVEPOINT item_processing");
+        
+        foreach ($orderData['items'] as $item) {
+            try {
+                // Check stock
+                $stmt = $pdo->prepare("SELECT stock_quantity FROM products WHERE id = :id FOR UPDATE");
+                $stmt->execute([':id' => $item['product_id']]);
+                $stock = $stmt->fetchColumn();
+                
+                if ($stock < $item['quantity']) {
+                    throw new Exception("Insufficient stock for product " . $item['product_id']);
+                }
+                
+                // Update stock
+                $stmt = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity - :qty WHERE id = :id");
+                $stmt->execute([':qty' => $item['quantity'], ':id' => $item['product_id']]);
+                
+                // Add order item
+                $stmt = $pdo->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (:order_id, :product_id, :qty, :price)");
+                $stmt->execute([
+                    ':order_id' => $orderId,
+                    ':product_id' => $item['product_id'],
+                    ':qty' => $item['quantity'],
+                    ':price' => $item['price']
+                ]);
+                
+            } catch (Exception $e) {
+                // Rollback to savepoint and continue with next item or fail completely
+                $pdo->exec("ROLLBACK TO SAVEPOINT item_processing");
+                throw $e; // Re-throw to fail the entire transaction
+            }
+        }
+        
+        $pdo->commit();
+        return $orderId;
+        
+    } catch (Exception $e) {
+        $pdo->rollback();
+        throw new Exception("Order processing failed: " . $e->getMessage());
+    }
+}
+?>
+```
+
+## Error Handling
+
+### PDO Error Modes
+
+```php
+<?php
+// Silent mode (default) - check errors manually
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+
+// Warning mode - PHP warnings
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
+
+// Exception mode (recommended) - throws PDOException
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+?>
+```
+
+### Custom Error Handling
+
+```php
+<?php
+class DatabaseException extends Exception {
+    public function __construct($message, $code = 0, Exception $previous = null) {
+        parent::__construct($message, $code, $previous);
+    }
+}
+
+class DatabaseManager {
+    private $pdo;
+    
+    public function __construct($pdo) {
+        $this->pdo = $pdo;
+    }
+    
+    public function findUser($id) {
+        try {
+            $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = :id");
+            $stmt->execute([':id' => $id]);
+            return $stmt->fetch();
+            
+        } catch (PDOException $e) {
+            $this->handleDatabaseError($e, "Error finding user with ID: $id");
+        }
+    }
+    
+    private function handleDatabaseError(PDOException $e, $userMessage) {
+        // Log the actual error for debugging
+        error_log("Database Error: " . $e->getMessage());
+        
+        // Provide user-friendly error messages
+        switch ($e->getCode()) {
+            case 23000: // Integrity constraint violation
+                throw new DatabaseException("Data integrity error occurred");
+            case 'HY000': // General error
+                throw new DatabaseException("Database connection error");
+            default:
+                throw new DatabaseException($userMessage);
+        }
+    }
+}
+?>
+```
+
+## Performance Optimization
+
+### Connection Pooling and Persistent Connections
+
+```php
+<?php
+// Using persistent connections
+$options = [
+    PDO::ATTR_PERSISTENT => true,
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+];
+
+$pdo = new PDO($dsn, $username, $password, $options);
+?>
+```
+
+### Query Optimization
+
+```php
+<?php
+// Use LIMIT for pagination
+function getUsers($pdo, $page = 1, $limit = 20) {
+    $offset = ($page - 1) * $limit;
+    
+    $sql = "SELECT id, username, email FROM users 
+            ORDER BY created_at DESC 
+            LIMIT :limit OFFSET :offset";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    return $stmt->fetchAll();
+}
+
+// Use appropriate fetch modes
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM users");
+$stmt->execute();
+$count = $stmt->fetchColumn(); // For single values
+
+$stmt = $pdo->prepare("SELECT username FROM users");
+$stmt->execute();
+$usernames = $stmt->fetchAll(PDO::FETCH_COLUMN); // For single column arrays
+?>
+```
+
+### Prepared Statement Reuse
+
+```php
+<?php
+// Reuse prepared statements for multiple executions
+function bulkInsertUsers($pdo, $users) {
+    $sql = "INSERT INTO users (username, email, password) VALUES (:username, :email, :password)";
+    $stmt = $pdo->prepare($sql);
+    
+    foreach ($users as $user) {
+        $stmt->execute([
+            ':username' => $user['username'],
+            ':email' => $user['email'],
+            ':password' => password_hash($user['password'], PASSWORD_DEFAULT)
+        ]);
+    }
+}
+?>
+```
+
+## Best Practices
+
+### 1. Use a Database Abstraction Layer
+
+```php
+<?php
+class UserRepository {
+    private $pdo;
+    
+    public function __construct(PDO $pdo) {
+        $this->pdo = $pdo;
+    }
+    
+    public function create($userData) {
+        $sql = "INSERT INTO users (username, email, password, first_name, last_name) 
+                VALUES (:username, :email, :password, :first_name, :last_name)";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':username' => $userData['username'],
+            ':email' => $userData['email'],
+            ':password' => password_hash($userData['password'], PASSWORD_DEFAULT),
+            ':first_name' => $userData['first_name'] ?? null,
+            ':last_name' => $userData['last_name'] ?? null
+        ]);
+        
+        return $this->pdo->lastInsertId();
+    }
+    
+    public function findById($id) {
+        $sql = "SELECT id, username, email, first_name, last_name, created_at FROM users WHERE id = :id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetch();
+    }
+    
+    public function update($id, $data) {
+        $fields = [];
+        $params = [':id' => $id];
+        
+        foreach ($data as $key => $value) {
+            if (in_array($key, ['username', 'email', 'first_name', 'last_name'])) {
+                $fields[] = "$key = :$key";
+                $params[":$key"] = $value;
+            }
+        }
+        
+        if (empty($fields)) {
+            return 0;
+        }
+        
+        $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = :id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->rowCount();
+    }
+    
+    public function delete($id) {
+        $sql = "DELETE FROM users WHERE id = :id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        return $stmt->rowCount();
+    }
+}
+?>
+```
+
+### 2. Environment-based Configuration
+
+```php
+<?php
+class DatabaseConfig {
+    public static function getConnection() {
+        $config = [
+            'host' => $_ENV['DB_HOST'] ?? 'localhost',
+            'dbname' => $_ENV['DB_NAME'] ?? 'ecommerce',
+            'username' => $_ENV['DB_USER'] ?? 'root',
+            'password' => $_ENV['DB_PASS'] ?? '',
+            'charset' => 'utf8mb4'
+        ];
+        
+        $dsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
+        
+        $options = [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ];
+        
+        return new PDO($dsn, $config['username'], $config['password'], $options);
+    }
+}
+?>
+```
+
+### 3. Logging and Monitoring
+
+```php
+<?php
+class LoggedPDO extends PDO {
+    private $logger;
+    
+    public function __construct($dsn, $username, $password, $options = null) {
+        parent::__construct($dsn, $username, $password, $options);
+        $this->logger = new Logger('database');
+    }
+    
+    public function prepare($statement, $driver_options = []) {
+        $this->logger->info("Preparing query: $statement");
+        return parent::prepare($statement, $driver_options);
+    }
+    
+    public function query($statement, $mode = PDO::ATTR_DEFAULT_FETCH_MODE, ...$fetch_mode_args) {
+        $start = microtime(true);
+        $result = parent::query($statement, $mode, ...$fetch_mode_args);
+        $duration = microtime(true) - $start;
+        
+        $this->logger->info("Query executed in {$duration}s: $statement");
+        
+        return $result;
+    }
+}
+?>
+```
+
+PDO provides a robust, secure, and flexible way to interact with MySQL databases in PHP. By following these patterns and best practices, you can build scalable and maintainable database-driven applications.

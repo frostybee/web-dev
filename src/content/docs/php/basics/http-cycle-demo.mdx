@@ -2,9 +2,21 @@
 title: Interactive HTTP Request-Response Cycle
 description: An interactive Svelte 5 component demonstrating HTTP request-response cycles for educational purposes
 label: Demo
+draft: true
 ---
 
 import HttpCycleSvelte from '../../../../components/diagrams/HttpCycleSvelte.svelte';
+import HttpCycleModal from '../../../../components/ui/HttpCycleModal.astro';
+import FullScreenModal from '../../../../components/ui/FullScreenModal.astro';
+
+
+  
+ <FullScreenModal 
+    buttonText="View Full Screen" 
+    showHeader={false}
+    buttonClass="custom-button-class"
+  >
+</FullScreenModal>
 
 # Interactive HTTP Request-Response Cycle
 
@@ -24,6 +36,14 @@ This interactive diagram helps students understand the HTTP request-response cyc
 2. **Choose a Scenario**: Pick from success, error, timeout, or redirect scenarios  
 3. **Control the Animation**: Use play/pause/reset controls or step through manually
 4. **Learn**: Read the method descriptions and status code references
+
+### Full-Screen Modal Version
+
+For a better learning experience, you can open the interactive demo in full-screen mode:
+
+<HttpCycleModal buttonText="🚀 Open Full-Screen HTTP Demo" />
+
+### Embedded Version
 
 <HttpCycleSvelte client:load />
 
