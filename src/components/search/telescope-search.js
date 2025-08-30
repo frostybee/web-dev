@@ -481,7 +481,7 @@ export default class TelescopeSearch {
     this.resultsContainerElement.appendChild(resultsList);
   }
 
-  createResultItem(page, index, isRecent) {
+  createResultItem(page, index) {
     const listItem = document.createElement('li');
     listItem.className = `telescope-result-item ${index === this.selectedIndex ? 'telescope-selected' : ''}`;
     listItem.setAttribute('data-index', index);

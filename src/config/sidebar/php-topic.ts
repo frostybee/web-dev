@@ -43,6 +43,12 @@ export default
           autogenerate: {
             directory: "php/functions",
           }
+        },
+        {
+          label: "PDO",
+          autogenerate: {
+            directory: "php/pdo",
+          }
         }
       ],
     }
