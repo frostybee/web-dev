@@ -8,19 +8,19 @@ export interface Props extends HTMLAttributes<'div'> {
   showHeader?: boolean
 }
 
-const { 
-  buttonText = "Open Modal", 
+const {
+  buttonText = "Open Modal",
   buttonClass = "",
   modalTitle = "Modal",
   showHeader = true,
-  ...rest 
+  ...rest
 } = Astro.props
 ---
 
 <div class="fullscreen-modal-wrapper" {...rest}>
   <!-- Trigger Button -->
-  <button 
-    type="button" 
+  <button
+    type="button"
     class={`modal-trigger-btn ${buttonClass}`}
     aria-haspopup="dialog"
     aria-label={`Open ${modalTitle}`}
@@ -34,11 +34,11 @@ const {
   </button>
 
   <!-- Modal Overlay -->
-  <div 
-    class="modal-overlay hidden" 
-    role="dialog" 
-    aria-modal="true" 
-    aria-labelledby="modal-title" 
+  <div
+    class="modal-overlay hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
     tabindex="-1"
   >
     <!-- Modal Container -->
@@ -47,8 +47,8 @@ const {
       {showHeader && (
         <header class="modal-header">
           <h2 id="modal-title" class="modal-title">{modalTitle}</h2>
-          <button 
-            type="button" 
+          <button
+            type="button"
             class="modal-close-btn"
             aria-label="Close modal"
           >
@@ -59,7 +59,7 @@ const {
           </button>
         </header>
       )}
-      
+
       <!-- Modal Content -->
       <main class="modal-content">
         <slot />
@@ -67,8 +67,8 @@ const {
 
       <!-- Close button for headerless modal -->
       {!showHeader && (
-        <button 
-          type="button" 
+        <button
+          type="button"
           class="modal-close-btn modal-close-btn--floating"
           aria-label="Close modal"
         >
@@ -338,7 +338,7 @@ const {
       this.wrapper = wrapper
       this.trigger = wrapper.querySelector('.modal-trigger-btn') as HTMLButtonElement
       this.overlay = wrapper.querySelector('.modal-overlay') as HTMLElement
-      
+
       this.init()
     }
 
@@ -348,7 +348,7 @@ const {
 
       // Event listeners
       this.trigger.addEventListener('click', () => this.openModal())
-      
+
       // Handle multiple close buttons (header and floating)
       const closeBtns = this.wrapper.querySelectorAll('.modal-close-btn')
       closeBtns.forEach(btn => {
@@ -367,14 +367,14 @@ const {
 
     private openModal() {
       this.lastFocusedElement = document.activeElement as HTMLElement
-      
+
       // Add scrollbar width compensation
       document.documentElement.style.setProperty('--scrollbar-width', `${this.scrollbarWidth}px`)
       document.body.classList.add('modal-open')
-      
+
       this.overlay.classList.remove('hidden')
       this.overlay.classList.add('active')
-      
+
       // Focus the modal for accessibility
       requestAnimationFrame(() => {
         this.overlay.focus()
@@ -386,7 +386,7 @@ const {
       this.overlay.classList.remove('active')
       document.body.classList.remove('modal-open')
       document.documentElement.style.removeProperty('--scrollbar-width')
-      
+
       // Return focus to trigger element
       if (this.lastFocusedElement) {
         this.lastFocusedElement.focus()
@@ -404,7 +404,7 @@ const {
         const focusableElements = this.overlay.querySelectorAll(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         ) as NodeListOf<HTMLElement>
-        
+
         const firstFocusable = focusableElements[0]
         const lastFocusable = focusableElements[focusableElements.length - 1]
 

@@ -35,6 +35,7 @@ export default defineConfig({
         //  TableOfContents: './src/components/ui/CustomToC.astro',
         //  Head: './src/components/search/TelescopeProvider.astro',
          Header: './src/components/ui/CustomHeader.astro',
+         Sidebar: './src/components/ui/SideBar.astro',
       },
 
       // Load and apply the default custom styles.
@@ -94,6 +95,3 @@ export default defineConfig({
     service: passthroughImageService()
   }
 });
-
-
-
