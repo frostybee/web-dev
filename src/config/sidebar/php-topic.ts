@@ -16,15 +16,23 @@ export default
         },
         {
           label: "PHP Basics",
-          autogenerate: {
-            directory: "php/basics",
-          }
-        },
-        {
-          label: "Variables and Data Types",
-          autogenerate: {
-            directory: "php/Data-Types",
-          }
+          collapsed: true,
+          items: [
+            {
+              label: "Getting Started",
+              autogenerate: {
+                directory: "php/basics",
+                collapsed: false,
+              }
+            },
+            {
+              label: "Variables and Data Types",
+              autogenerate: {
+                directory: "php/data-types",
+                collapsed: false,
+              }
+            }
+          ]
         },
         {
           label: "Strings",

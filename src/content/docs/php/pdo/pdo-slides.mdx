@@ -1,0 +1,451 @@
+---
+title: PHP PDO Slides
+description: Working with PHP PDO Slides
+sidebar:
+  label: 'PHP PDO Slides'
+  order: 1
+---
+
+## What is PDO?
+
+**PHP Data Objects (PDO)** is a database abstraction layer providing a uniform method of access to multiple databases.
+
+- Interface for accessing databases in PHP
+- Database-agnostic (MySQL, PostgreSQL, SQLite, etc.)
+- Object-oriented approach
+- Built-in prepared statements
+
+---
+
+## Benefits of PDO
+
+✅ **Database Independence**
+- Switch between database systems easily
+- Same code works with different databases
+
+✅ **Security**
+- Built-in protection against SQL injection
+- Prepared statements by default
+
+✅ **Performance**
+- Prepared statements can be reused
+- Better memory management
+
+✅ **Error Handling**
+- Consistent exception handling
+- Multiple error reporting modes
+
+---
+
+## Creating a PDO Connection
+
+```php
+<?php
+$host = 'localhost';
+$dbname = 'your_database';
+$username = 'your_username';
+$password = 'your_password';
+
+try {
+    $pdo = new PDO(
+        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+        $username,
+        $password,
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]
+    );
+    echo "Connected successfully";
+} catch (PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+?>
+```
+
+---
+
+## Reading Data from Database
+
+### Simple Query
+```php
+<?php
+$sql = "SELECT id, name, email FROM users";
+$stmt = $pdo->query($sql);
+
+while ($row = $stmt->fetch()) {
+    echo "ID: " . $row['id'] . "<br>";
+    echo "Name: " . $row['name'] . "<br>";
+    echo "Email: " . $row['email'] . "<br><br>";
+}
+?>
+```
+
+### Query with Parameters
+```php
+<?php
+$sql = "SELECT * FROM users WHERE age > :min_age";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([':min_age' => 25]);
+
+$users = $stmt->fetchAll();
+foreach ($users as $user) {
+    print_r($user);
+}
+?>
+```
+
+---
+
+## Using Prepared Statements
+
+### Named Parameters
+```php
+<?php
+$sql = "INSERT INTO users (name, email, age) VALUES (:name, :email, :age)";
+$stmt = $pdo->prepare($sql);
+
+$stmt->execute([
+    ':name' => 'John Doe',
+    ':email' => 'john@example.com',
+    ':age' => 30
+]);
+
+echo "User inserted successfully";
+?>
+```
+
+### Alternative Named Syntax
+```php
+<?php
+$sql = "UPDATE users SET email = :new_email WHERE id = :user_id";
+$stmt = $pdo->prepare($sql);
+
+$stmt->execute([
+    ':new_email' => 'newemail@example.com',
+    ':user_id' => 1
+]);
+
+echo $stmt->rowCount() . " record(s) updated";
+?>
+```
+
+---
+
+## Fetching Results
+
+### fetch() - Single Row
+```php
+<?php
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id");
+$stmt->execute([':id' => 1]);
+$user = $stmt->fetch();
+
+if ($user) {
+    echo "Name: " . $user['name'];
+}
+?>
+```
+
+### fetchAll() - All Rows
+```php
+<?php
+$stmt = $pdo->query("SELECT * FROM users");
+$users = $stmt->fetchAll();
+
+foreach ($users as $user) {
+    echo $user['name'] . "<br>";
+}
+?>
+```
+
+### fetchColumn() - Single Value
+```php
+<?php
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE age > :min_age");
+$stmt->execute([':min_age' => 18]);
+$userCount = $stmt->fetchColumn();
+
+echo "Adult users: " . $userCount;
+?>
+```
+
+---
+
+## PDO Error Modes
+
+### Silent Mode (Default)
+```php
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+// Errors must be checked manually
+if (!$stmt->execute()) {
+    $error = $stmt->errorInfo();
+    echo "Error: " . $error[2];
+}
+```
+
+### Warning Mode
+```php
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
+// PHP warnings are triggered on errors
+```
+
+### Exception Mode (Recommended)
+```php
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+// Throws PDOException on errors
+try {
+    $stmt->execute();
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+}
+```
+
+---
+
+## Setting Fetch Mode
+
+### Associative Array (Default)
+```php
+$pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$user = $stmt->fetch(); // ['id' => 1, 'name' => 'John']
+```
+
+### Numeric Array
+```php
+$stmt->setFetchMode(PDO::FETCH_NUM);
+$user = $stmt->fetch(); // [1, 'John', 'john@example.com']
+```
+
+### Object
+```php
+$stmt->setFetchMode(PDO::FETCH_OBJ);
+$user = $stmt->fetch(); // $user->name, $user->email
+```
+
+### Custom Class
+```php
+class User {
+    public $id, $name, $email;
+}
+
+$stmt->setFetchMode(PDO::FETCH_CLASS, 'User');
+$user = $stmt->fetch(); // User object
+```
+
+---
+
+## Create Operations (INSERT)
+
+### Single Record Insert
+```php
+<?php
+$sql = "INSERT INTO users (name, email, age) VALUES (:name, :email, :age)";
+$stmt = $pdo->prepare($sql);
+
+$stmt->execute([
+    ':name' => 'Jane Smith',
+    ':email' => 'jane@example.com',
+    ':age' => 28
+]);
+
+echo "New user ID: " . $pdo->lastInsertId();
+echo "Rows affected: " . $stmt->rowCount();
+?>
+```
+
+### Multiple Records Insert
+```php
+<?php
+$sql = "INSERT INTO users (name, email, age) VALUES (:name, :email, :age)";
+$stmt = $pdo->prepare($sql);
+
+$users = [
+    [':name' => 'Alice Johnson', ':email' => 'alice@example.com', ':age' => 25],
+    [':name' => 'Bob Wilson', ':email' => 'bob@example.com', ':age' => 32],
+    [':name' => 'Carol Brown', ':email' => 'carol@example.com', ':age' => 29]
+];
+
+foreach ($users as $user) {
+    $stmt->execute($user);
+}
+
+echo "Inserted " . count($users) . " users";
+?>
+```
+
+---
+
+## Update Operations
+
+### Simple Update
+```php
+<?php
+$sql = "UPDATE users SET email = :email WHERE id = :id";
+$stmt = $pdo->prepare($sql);
+
+$stmt->execute([
+    ':email' => 'updated@example.com',
+    ':id' => 1
+]);
+
+if ($stmt->rowCount() > 0) {
+    echo "User updated successfully";
+} else {
+    echo "No user found with that ID";
+}
+?>
+```
+
+### Multiple Field Update
+```php
+<?php
+$sql = "UPDATE users SET name = :name, email = :email, age = :age WHERE id = :id";
+$stmt = $pdo->prepare($sql);
+
+$stmt->execute([
+    ':name' => 'John Updated',
+    ':email' => 'john.updated@example.com',
+    ':age' => 31,
+    ':id' => 1
+]);
+
+echo $stmt->rowCount() . " record(s) updated";
+?>
+```
+
+### Conditional Update
+```php
+<?php
+$sql = "UPDATE users SET age = age + 1 WHERE age < :max_age";
+$stmt = $pdo->prepare($sql);
+
+$stmt->execute([':max_age' => 30]);
+
+echo "Updated " . $stmt->rowCount() . " users under 30";
+?>
+```
+
+---
+
+## Delete Operations
+
+### Single Record Delete
+```php
+<?php
+$sql = "DELETE FROM users WHERE id = :id";
+$stmt = $pdo->prepare($sql);
+
+$stmt->execute([':id' => 5]);
+
+if ($stmt->rowCount() > 0) {
+    echo "User deleted successfully";
+} else {
+    echo "No user found with that ID";
+}
+?>
+```
+
+### Conditional Delete
+```php
+<?php
+$sql = "DELETE FROM users WHERE age > :min_age AND created_at < :cutoff_date";
+$stmt = $pdo->prepare($sql);
+
+$stmt->execute([
+    ':min_age' => 65,
+    ':cutoff_date' => '2020-01-01'
+]);
+
+echo "Deleted " . $stmt->rowCount() . " old users";
+?>
+```
+
+### Delete All Records (with confirmation)
+```php
+<?php
+$confirm = readline("Are you sure you want to delete ALL users? (yes/no): ");
+
+if ($confirm === 'yes') {
+    $sql = "DELETE FROM users";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    
+    echo "Deleted " . $stmt->rowCount() . " users";
+} else {
+    echo "Operation cancelled";
+}
+?>
+```
+
+---
+
+## Transaction Management
+
+### Basic Transaction
+```php
+<?php
+try {
+    $pdo->beginTransaction();
+    
+    // Insert user
+    $stmt1 = $pdo->prepare("INSERT INTO users (name, email) VALUES (:name, :email)");
+    $stmt1->execute([
+        ':name' => 'John Doe',
+        ':email' => 'john@example.com'
+    ]);
+    $userId = $pdo->lastInsertId();
+    
+    // Insert profile
+    $stmt2 = $pdo->prepare("INSERT INTO profiles (user_id, bio) VALUES (:user_id, :bio)");
+    $stmt2->execute([
+        ':user_id' => $userId,
+        ':bio' => 'Software developer'
+    ]);
+    
+    $pdo->commit();
+    echo "Transaction completed successfully";
+    
+} catch (Exception $e) {
+    $pdo->rollBack();
+    echo "Transaction failed: " . $e->getMessage();
+}
+?>
+```
+
+### Advanced Transaction with Savepoints
+```php
+<?php
+try {
+    $pdo->beginTransaction();
+    
+    // First operation
+    $stmt1 = $pdo->prepare("INSERT INTO orders (user_id, total) VALUES (:user_id, :total)");
+    $stmt1->execute([
+        ':user_id' => 1,
+        ':total' => 99.99
+    ]);
+    $orderId = $pdo->lastInsertId();
+    
+    // Create savepoint
+    $pdo->exec("SAVEPOINT order_items");
+    
+    // Second operation (might fail)
+    $stmt2 = $pdo->prepare("INSERT INTO order_items (order_id, product_id, quantity) VALUES (:order_id, :product_id, :quantity)");
+    $stmt2->execute([
+        ':order_id' => $orderId,
+        ':product_id' => 1,
+        ':quantity' => 2
+    ]);
+    
+    $pdo->commit();
+    echo "Order created successfully";
+    
+} catch (Exception $e) {
+    $pdo->exec("ROLLBACK TO SAVEPOINT order_items");
+    echo "Items failed, but order preserved: " . $e->getMessage();
+}
+?>
+```
+
+---

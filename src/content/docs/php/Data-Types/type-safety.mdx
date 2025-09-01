@@ -1,0 +1,541 @@
+---
+title: PHP Type Safety
+description: Working with PHP Type Safety
+sidebar:
+  label: 'Type Safety'
+  order: 2
+---
+
+## PHP Type Safety
+
+PHP has evolved significantly in terms of type safety, offering developers powerful tools to write more robust and maintainable code. This guide covers type hinting, strict typing, and best practices for implementing type safety in PHP.
+
+## Why Use Strict Types?
+
+PHP by default performs type coercion (automatic type conversion) which can lead to unexpected behavior and hard-to-debug issues:
+
+### Without Strict Types - The Problems
+
+```php
+<?php
+// Without strict types, PHP performs automatic type conversion
+function calculateTotal(int $price, int $quantity): int {
+    return $price * $quantity;
+}
+
+// These all "work" but may not behave as expected
+calculateTotal("10", "5");     // Returns 50 (strings converted to integers)
+calculateTotal(10.7, 5.3);    // Returns 56 (floats truncated to integers) 
+calculateTotal(true, false);  // Returns 0 (booleans converted: true=1, false=0)
+calculateTotal("10abc", "5");  // Returns 50 (string "10abc" converted to 10)
+calculateTotal(null, 5);      // Returns 0 (null converted to 0)
+```
+
+### Real-World Consequences
+
+These automatic conversions can cause:
+- **Silent data corruption:** `"10.5"` becomes `10`, losing precision
+- **Logic errors:** `true` becomes `1`, affecting calculations
+- **Security vulnerabilities:** Unexpected type conversions in validation
+- **Debugging nightmares:** Issues may only surface in production with specific data
+
+### The Solution: Strict Types
+
+With strict types enabled, PHP enforces exact type matching:
+
+```php
+<?php
+declare(strict_types=1);
+
+function calculateTotal(int $price, int $quantity): int {
+    return $price * $quantity;
+}
+
+calculateTotal("10", "5");    // TypeError: Argument 1 must be of type int, string given
+calculateTotal(10.7, 5.3);   // TypeError: Argument 1 must be of type int, float given
+```
+
+## Enabling Strict Types
+
+The most important step in PHP type safety is enabling strict typing mode:
+
+```php
+<?php
+declare(strict_types=1);
+
+function addNumbers(int $a, int $b): int {
+    return $a + $b;
+}
+
+// This will throw a TypeError in strict mode
+addNumbers("5", "10"); // TypeError: Argument 1 must be of type int, string given
+```
+
+### Key Points about `declare(strict_types=1)`:
+- Must be the first statement after the opening `<?php` tag
+- Only affects the file where it's declared
+- Applies to function calls made from that file
+- Does not affect calls to functions defined in that file from other files
+
+## Scalar Type Hints
+
+PHP supports type hints for scalar types since PHP 7.0:
+
+### Basic Scalar Types
+
+```php
+<?php
+declare(strict_types=1);
+
+function processData(
+    string $name,
+    int $age,
+    float $salary,
+    bool $isActive
+): array {
+    return [
+        'name' => $name,
+        'age' => $age,
+        'salary' => $salary,
+        'active' => $isActive
+    ];
+}
+
+// Usage
+$result = processData("John Doe", 30, 50000.50, true);
+```
+
+### Nullable Types
+
+```php
+<?php
+declare(strict_types=1);
+
+function greetUser(?string $name): string {
+    if ($name === null) {
+        return "Hello, Guest!";
+    }
+    return "Hello, {$name}!";
+}
+
+// Both are valid
+greetUser("Alice");  // "Hello, Alice!"
+greetUser(null);     // "Hello, Guest!"
+```
+
+## Return Type Declarations
+
+### Basic Return Types
+
+```php
+<?php
+declare(strict_types=1);
+
+function calculateTax(float $amount): float {
+    return $amount * 0.1;
+}
+
+function getUsers(): array {
+    return ['user1', 'user2', 'user3'];
+}
+
+function isValid(): bool {
+    return true;
+}
+
+function processOrder(): void {
+    // Function returns nothing
+    echo "Order processed";
+}
+```
+
+### Union Types (PHP 8.0+)
+
+```php
+<?php
+declare(strict_types=1);
+
+function formatValue(int|float $value): string {
+    return number_format($value, 2);
+}
+
+function getId(): int|string {
+    // Can return either int or string
+    return rand(0, 1) ? 123 : "ABC123";
+}
+```
+
+## Class Type Hints
+
+### Basic Class Types
+
+```php
+<?php
+declare(strict_types=1);
+
+class User {
+    public function __construct(
+        private string $name,
+        private string $email
+    ) {}
+}
+
+class UserService {
+    public function saveUser(User $user): bool {
+        // Save user logic
+        return true;
+    }
+    
+    public function getUser(int $id): User {
+        return new User("John Doe", "john@example.com");
+    }
+}
+```
+
+### Interface Type Hints
+
+```php
+<?php
+declare(strict_types=1);
+
+interface PaymentProcessorInterface {
+    public function processPayment(float $amount): bool;
+}
+
+class StripeProcessor implements PaymentProcessorInterface {
+    public function processPayment(float $amount): bool {
+        // Stripe-specific logic
+        return true;
+    }
+}
+
+class PaymentService {
+    public function __construct(
+        private PaymentProcessorInterface $processor
+    ) {}
+    
+    public function charge(float $amount): bool {
+        return $this->processor->processPayment($amount);
+    }
+}
+```
+
+## Advanced Type Features
+
+### Mixed Type (PHP 8.0+)
+
+```php
+<?php
+declare(strict_types=1);
+
+function handleData(mixed $data): mixed {
+    if (is_string($data)) {
+        return strtoupper($data);
+    }
+    if (is_array($data)) {
+        return count($data);
+    }
+    return $data;
+}
+```
+
+### Never Type (PHP 8.1+)
+
+```php
+<?php
+declare(strict_types=1);
+
+function throwError(): never {
+    throw new Exception("Something went wrong");
+}
+
+function redirect(string $url): never {
+    header("Location: {$url}");
+    exit();
+}
+```
+
+### Intersection Types (PHP 8.1+)
+
+```php
+<?php
+declare(strict_types=1);
+
+interface Readable {
+    public function read(): string;
+}
+
+interface Writable {
+    public function write(string $data): void;
+}
+
+function processFile(Readable&Writable $file): void {
+    $content = $file->read();
+    $file->write(strtoupper($content));
+}
+```
+
+## Property Type Declarations
+
+### Typed Properties (PHP 7.4+)
+
+```php
+<?php
+declare(strict_types=1);
+
+class Product {
+    public string $name;
+    public float $price;
+    public ?string $description = null;
+    public array $categories = [];
+    
+    private int $id;
+    protected DateTime $createdAt;
+    
+    public function __construct(string $name, float $price) {
+        $this->name = $name;
+        $this->price = $price;
+        $this->createdAt = new DateTime();
+    }
+}
+```
+
+### Readonly Properties (PHP 8.1+)
+
+```php
+<?php
+declare(strict_types=1);
+
+class Order {
+    public function __construct(
+        public readonly int $id,
+        public readonly string $customerEmail,
+        public readonly float $total
+    ) {}
+}
+
+$order = new Order(1, "customer@example.com", 99.99);
+// $order->id = 2; // Error: Cannot modify readonly property
+```
+
+## Error Handling with Types
+
+### Type Error Handling
+
+```php
+<?php
+declare(strict_types=1);
+
+function safelyProcessNumber(int $number): string {
+    try {
+        return "Number: " . ($number * 2);
+    } catch (TypeError $e) {
+        return "Error: Invalid type provided";
+    }
+}
+
+// Custom type validation
+function validateAndProcess(mixed $value): int {
+    if (!is_int($value)) {
+        throw new TypeError("Expected integer, got " . gettype($value));
+    }
+    
+    return $value * 2;
+}
+```
+
+## Best Practices
+
+### 1. Always Use Strict Types
+
+```php
+<?php
+declare(strict_types=1);
+// Always start your PHP files with this declaration
+```
+
+### 2. Type All Function Parameters and Returns
+
+```php
+<?php
+declare(strict_types=1);
+
+// Good
+function calculateDiscount(float $price, float $discountPercent): float {
+    return $price * ($discountPercent / 100);
+}
+
+// Avoid - no type hints
+function calculateDiscount($price, $discountPercent) {
+    return $price * ($discountPercent / 100);
+}
+```
+
+### 3. Use Nullable Types When Appropriate
+
+```php
+<?php
+declare(strict_types=1);
+
+// Good - explicit about nullable parameter
+function formatName(?string $firstName, string $lastName): string {
+    return $firstName ? "{$firstName} {$lastName}" : $lastName;
+}
+
+// Less clear - using default parameter
+function formatName(string $firstName = '', string $lastName = ''): string {
+    return $firstName ? "{$firstName} {$lastName}" : $lastName;
+}
+```
+
+### 4. Leverage Union Types for Flexibility
+
+```php
+<?php
+declare(strict_types=1);
+
+function processId(int|string $id): string {
+    return is_int($id) ? "ID: {$id}" : "Code: {$id}";
+}
+```
+
+### 5. Use Interface Type Hints for Dependency Injection
+
+```php
+<?php
+declare(strict_types=1);
+
+interface LoggerInterface {
+    public function log(string $message): void;
+}
+
+class EmailService {
+    public function __construct(
+        private LoggerInterface $logger
+    ) {}
+    
+    public function sendEmail(string $to, string $subject): bool {
+        $this->logger->log("Sending email to {$to}");
+        // Email sending logic
+        return true;
+    }
+}
+```
+
+## Common Pitfalls and Solutions
+
+### 1. Forgetting Strict Types Declaration
+
+```php
+<?php
+// Without declare(strict_types=1);
+function addNumbers(int $a, int $b): int {
+    return $a + $b;
+}
+
+addNumbers("5", "10"); // Returns 15 (strings converted to integers)
+
+// With declare(strict_types=1);
+declare(strict_types=1);
+function addNumbers(int $a, int $b): int {
+    return $a + $b;
+}
+
+addNumbers("5", "10"); // TypeError thrown
+```
+
+### 2. Inconsistent Type Usage
+
+```php
+<?php
+declare(strict_types=1);
+
+// Inconsistent - mixing typed and untyped
+class UserService {
+    public function createUser(string $name, $email): User { // $email should be typed
+        // ...
+    }
+    
+    public function updateUser($user, string $name): bool { // $user should be typed
+        // ...
+    }
+}
+
+// Consistent - all parameters typed
+class UserService {
+    public function createUser(string $name, string $email): User {
+        // ...
+    }
+    
+    public function updateUser(User $user, string $name): bool {
+        // ...
+    }
+}
+```
+
+### 3. Not Handling Nullable Types Properly
+
+```php
+<?php
+declare(strict_types=1);
+
+// Problematic - not checking for null
+function processUser(?User $user): string {
+    return $user->getName(); // Potential null pointer error
+}
+
+// Better - proper null handling
+function processUser(?User $user): string {
+    if ($user === null) {
+        return "Guest User";
+    }
+    
+    return $user->getName();
+}
+
+// Even better - using null coalescing
+function processUser(?User $user): string {
+    return $user?->getName() ?? "Guest User";
+}
+```
+
+## Testing Type Safety
+
+### Unit Testing with Types
+
+```php
+<?php
+declare(strict_types=1);
+
+use PHPUnit\Framework\TestCase;
+
+class MathServiceTest extends TestCase {
+    private MathService $mathService;
+    
+    protected function setUp(): void {
+        $this->mathService = new MathService();
+    }
+    
+    public function testAdditionWithIntegers(): void {
+        $result = $this->mathService->add(5, 3);
+        $this->assertSame(8, $result);
+    }
+    
+    public function testAdditionThrowsTypeError(): void {
+        $this->expectException(TypeError::class);
+        $this->mathService->add("5", "3");
+    }
+}
+```
+
+## Conclusion
+
+Type safety in PHP provides numerous benefits:
+- **Early error detection** - Catch type-related bugs at runtime rather than in production
+- **Better IDE support** - Enhanced autocomplete and refactoring capabilities  
+- **Improved documentation** - Function signatures serve as documentation
+- **Easier maintenance** - Type hints make code intentions clearer
+- **Better performance** - PHP engine can optimize typed code better
+
+By consistently using `declare(strict_types=1)`, implementing comprehensive type hints, and following best practices, you can write more robust and maintainable PHP applications.
+
