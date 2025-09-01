@@ -28,7 +28,7 @@ export default
             {
               label: "Variables and Data Types",
               autogenerate: {
-                directory: "php/data-types",
+                directory: "php/Data-Types",
                 collapsed: false,
               }
             }

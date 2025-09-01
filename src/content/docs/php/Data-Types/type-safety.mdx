@@ -3,7 +3,10 @@ title: PHP Type Safety
 description: Working with PHP Type Safety
 sidebar:
   label: 'Type Safety'
-  order: 2
+  order: 7
+  badge: 
+    text: New!
+    variant: danger  
 ---
 
 ## PHP Type Safety
@@ -39,9 +42,11 @@ These automatic conversions can cause:
 - **Security vulnerabilities:** Unexpected type conversions in validation
 - **Debugging nightmares:** Issues may only surface in production with specific data
 
+---
+
 ### The Solution: Strict Types
 
-With strict types enabled, PHP enforces exact type matching:
+With `strict types` enabled, PHP enforces exact **type matching**:
 
 ```php
 <?php
@@ -50,25 +55,9 @@ declare(strict_types=1);
 function calculateTotal(int $price, int $quantity): int {
     return $price * $quantity;
 }
-
+// This will throw a TypeError in strict mode
 calculateTotal("10", "5");    // TypeError: Argument 1 must be of type int, string given
 calculateTotal(10.7, 5.3);   // TypeError: Argument 1 must be of type int, float given
-```
-
-## Enabling Strict Types
-
-The most important step in PHP type safety is enabling strict typing mode:
-
-```php
-<?php
-declare(strict_types=1);
-
-function addNumbers(int $a, int $b): int {
-    return $a + $b;
-}
-
-// This will throw a TypeError in strict mode
-addNumbers("5", "10"); // TypeError: Argument 1 must be of type int, string given
 ```
 
 ### Key Points about `declare(strict_types=1)`:
@@ -76,6 +65,8 @@ addNumbers("5", "10"); // TypeError: Argument 1 must be of type int, string give
 - Only affects the file where it's declared
 - Applies to function calls made from that file
 - Does not affect calls to functions defined in that file from other files
+
+---
 
 ## Scalar Type Hints
 
@@ -87,12 +78,7 @@ PHP supports type hints for scalar types since PHP 7.0:
 <?php
 declare(strict_types=1);
 
-function processData(
-    string $name,
-    int $age,
-    float $salary,
-    bool $isActive
-): array {
+function processData( string $name, int $age, float $salary, bool $isActive ): array {
     return [
         'name' => $name,
         'age' => $age,
@@ -104,6 +90,8 @@ function processData(
 // Usage
 $result = processData("John Doe", 30, 50000.50, true);
 ```
+
+---
 
 ### Nullable Types
 
@@ -122,6 +110,8 @@ function greetUser(?string $name): string {
 greetUser("Alice");  // "Hello, Alice!"
 greetUser(null);     // "Hello, Guest!"
 ```
+
+---
 
 ## Return Type Declarations
 
@@ -149,6 +139,8 @@ function processOrder(): void {
 }
 ```
 
+---
+
 ### Union Types (PHP 8.0+)
 
 ```php
@@ -164,6 +156,27 @@ function getId(): int|string {
     return rand(0, 1) ? 123 : "ABC123";
 }
 ```
+
+---
+
+## Best Practices for Using Type Safety
+
+1. **Always use `declare(strict_types=1)`** in new projects, it catches bugs early
+2. **Type all function parameters and return types**; it serves as documentation
+3. **Be explicit about nullable types** when needed:
+   ```php
+   function findUser(int $id): ?User {
+       // Returns User object or null
+   }
+   ```
+4. **Use union types** (PHP 8+) for flexibility:
+   ```php
+   function processId(int|string $id): string {
+       return (string) $id;
+   }
+   ```
+
+---
 
 ## Class Type Hints
 
@@ -191,6 +204,8 @@ class UserService {
     }
 }
 ```
+
+---
 
 ### Interface Type Hints
 
@@ -220,6 +235,8 @@ class PaymentService {
 }
 ```
 
+---
+
 ## Advanced Type Features
 
 ### Mixed Type (PHP 8.0+)
@@ -239,6 +256,8 @@ function handleData(mixed $data): mixed {
 }
 ```
 
+---
+
 ### Never Type (PHP 8.1+)
 
 ```php
@@ -254,6 +273,8 @@ function redirect(string $url): never {
     exit();
 }
 ```
+
+---
 
 ### Intersection Types (PHP 8.1+)
 
@@ -274,6 +295,8 @@ function processFile(Readable&Writable $file): void {
     $file->write(strtoupper($content));
 }
 ```
+
+---
 
 ## Property Type Declarations
 
@@ -300,6 +323,8 @@ class Product {
 }
 ```
 
+---
+
 ### Readonly Properties (PHP 8.1+)
 
 ```php
@@ -318,9 +343,12 @@ $order = new Order(1, "customer@example.com", 99.99);
 // $order->id = 2; // Error: Cannot modify readonly property
 ```
 
+---
+
 ## Error Handling with Types
 
 ### Type Error Handling
+
 
 ```php
 <?php
@@ -343,6 +371,8 @@ function validateAndProcess(mixed $value): int {
     return $value * 2;
 }
 ```
+
+---
 
 ## Best Practices
 
@@ -422,6 +452,8 @@ class EmailService {
 }
 ```
 
+---
+
 ## Common Pitfalls and Solutions
 
 ### 1. Forgetting Strict Types Declaration
@@ -443,6 +475,8 @@ function addNumbers(int $a, int $b): int {
 
 addNumbers("5", "10"); // TypeError thrown
 ```
+
+---
 
 ### 2. Inconsistent Type Usage
 
@@ -473,6 +507,8 @@ class UserService {
 }
 ```
 
+---
+
 ### 3. Not Handling Nullable Types Properly
 
 ```php
@@ -499,34 +535,7 @@ function processUser(?User $user): string {
 }
 ```
 
-## Testing Type Safety
-
-### Unit Testing with Types
-
-```php
-<?php
-declare(strict_types=1);
-
-use PHPUnit\Framework\TestCase;
-
-class MathServiceTest extends TestCase {
-    private MathService $mathService;
-    
-    protected function setUp(): void {
-        $this->mathService = new MathService();
-    }
-    
-    public function testAdditionWithIntegers(): void {
-        $result = $this->mathService->add(5, 3);
-        $this->assertSame(8, $result);
-    }
-    
-    public function testAdditionThrowsTypeError(): void {
-        $this->expectException(TypeError::class);
-        $this->mathService->add("5", "3");
-    }
-}
-```
+---
 
 ## Conclusion
 
@@ -536,6 +545,4 @@ Type safety in PHP provides numerous benefits:
 - **Improved documentation** - Function signatures serve as documentation
 - **Easier maintenance** - Type hints make code intentions clearer
 - **Better performance** - PHP engine can optimize typed code better
-
-By consistently using `declare(strict_types=1)`, implementing comprehensive type hints, and following best practices, you can write more robust and maintainable PHP applications.
 
