@@ -1,6 +1,7 @@
 ---
 title: PHP PDO
 description: Working with PHP PDO
+draft: true
 sidebar:
   label: 'PHP PDO'
   order: 1
@@ -677,170 +678,11 @@ class DatabaseManager {
 ?>
 ```
 
-## Performance Optimization
 
-### Connection Pooling and Persistent Connections
-
-```php
-<?php
-// Using persistent connections
-$options = [
-    PDO::ATTR_PERSISTENT => true,
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-];
-
-$pdo = new PDO($dsn, $username, $password, $options);
-?>
-```
-
-### Query Optimization
-
-```php
-<?php
-// Use LIMIT for pagination
-function getUsers($pdo, $page = 1, $limit = 20) {
-    $offset = ($page - 1) * $limit;
-    
-    $sql = "SELECT id, username, email FROM users 
-            ORDER BY created_at DESC 
-            LIMIT :limit OFFSET :offset";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->execute();
-    
-    return $stmt->fetchAll();
-}
-
-// Use appropriate fetch modes
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM users");
-$stmt->execute();
-$count = $stmt->fetchColumn(); // For single values
-
-$stmt = $pdo->prepare("SELECT username FROM users");
-$stmt->execute();
-$usernames = $stmt->fetchAll(PDO::FETCH_COLUMN); // For single column arrays
-?>
-```
-
-### Prepared Statement Reuse
-
-```php
-<?php
-// Reuse prepared statements for multiple executions
-function bulkInsertUsers($pdo, $users) {
-    $sql = "INSERT INTO users (username, email, password) VALUES (:username, :email, :password)";
-    $stmt = $pdo->prepare($sql);
-    
-    foreach ($users as $user) {
-        $stmt->execute([
-            ':username' => $user['username'],
-            ':email' => $user['email'],
-            ':password' => password_hash($user['password'], PASSWORD_DEFAULT)
-        ]);
-    }
-}
-?>
-```
 
 ## Best Practices
 
-### 1. Use a Database Abstraction Layer
-
-```php
-<?php
-class UserRepository {
-    private $pdo;
-    
-    public function __construct(PDO $pdo) {
-        $this->pdo = $pdo;
-    }
-    
-    public function create($userData) {
-        $sql = "INSERT INTO users (username, email, password, first_name, last_name) 
-                VALUES (:username, :email, :password, :first_name, :last_name)";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
-            ':username' => $userData['username'],
-            ':email' => $userData['email'],
-            ':password' => password_hash($userData['password'], PASSWORD_DEFAULT),
-            ':first_name' => $userData['first_name'] ?? null,
-            ':last_name' => $userData['last_name'] ?? null
-        ]);
-        
-        return $this->pdo->lastInsertId();
-    }
-    
-    public function findById($id) {
-        $sql = "SELECT id, username, email, first_name, last_name, created_at FROM users WHERE id = :id";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([':id' => $id]);
-        return $stmt->fetch();
-    }
-    
-    public function update($id, $data) {
-        $fields = [];
-        $params = [':id' => $id];
-        
-        foreach ($data as $key => $value) {
-            if (in_array($key, ['username', 'email', 'first_name', 'last_name'])) {
-                $fields[] = "$key = :$key";
-                $params[":$key"] = $value;
-            }
-        }
-        
-        if (empty($fields)) {
-            return 0;
-        }
-        
-        $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = :id";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        
-        return $stmt->rowCount();
-    }
-    
-    public function delete($id) {
-        $sql = "DELETE FROM users WHERE id = :id";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([':id' => $id]);
-        return $stmt->rowCount();
-    }
-}
-?>
-```
-
-### 2. Environment-based Configuration
-
-```php
-<?php
-class DatabaseConfig {
-    public static function getConnection() {
-        $config = [
-            'host' => $_ENV['DB_HOST'] ?? 'localhost',
-            'dbname' => $_ENV['DB_NAME'] ?? 'ecommerce',
-            'username' => $_ENV['DB_USER'] ?? 'root',
-            'password' => $_ENV['DB_PASS'] ?? '',
-            'charset' => 'utf8mb4'
-        ];
-        
-        $dsn = "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}";
-        
-        $options = [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ];
-        
-        return new PDO($dsn, $config['username'], $config['password'], $options);
-    }
-}
-?>
-```
-
-### 3. Logging and Monitoring
+### 1. Logging and Monitoring
 
 ```php
 <?php
@@ -870,4 +712,3 @@ class LoggedPDO extends PDO {
 ?>
 ```
 
-PDO provides a robust, secure, and flexible way to interact with MySQL databases in PHP. By following these patterns and best practices, you can build scalable and maintainable database-driven applications.

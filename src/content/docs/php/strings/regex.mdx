@@ -1,0 +1,210 @@
+---
+title: Regular Expressions in PHP
+description: Working with Regular Expressions in PHP
+sidebar:
+  label: 'Regular Expressions'
+  order: 3
+---
+
+[PHP Regular Expressions - Full Documentation](https://www.php.net/manual/en/ref.pcre.php)
+
+## What are Regular Expressions?
+
+Regular expressions (regex) are patterns used to match, search, and manipulate character combinations in strings. They're useful for validation, data extraction, and text processing.
+
+PHP uses **PCRE (Perl Compatible Regular Expressions)** with functions starting with `preg_`.
+
+---
+
+## Basic Syntax
+
+Patterns are enclosed in delimiters (usually `/`):
+
+```php title="Syntax for creating a regular expression:"
+$pattern = '/your-pattern-here/';     // Basic
+$pattern = '/your-pattern-here/i';    // With modifier (case-insensitive)
+```
+
+### Essential Metacharacters
+
+| Character | Meaning | Example |
+|-----------|---------|---------|
+| `.` | Any character | `/c.t/` matches "cat", "cut" |
+| `*` | Zero or more | `/ca*t/` matches "ct", "cat", "caat" |
+| `+` | One or more | `/ca+t/` matches "cat", "caat" |
+| `?` | Zero or one | `/colou?r/` matches "color", "colour" |
+| `^` | Start of string | `/^Hello/` |
+| `$` | End of string | `/world$/` |
+| `\d` | Any digit | `/\d+/` matches numbers |
+| `\w` | Word character | `/\w+/` matches letters/digits |
+| `\s` | Whitespace | `/\s+/` matches spaces |
+
+---
+
+## Core Functions
+
+### Find First Match - `preg_match()` 
+
+Searches for the first occurrence of a pattern in a string and stops after finding it.
+
+**Syntax:** `preg_match(string $pattern, string $subject, array &$matches = null, int $flags = 0, int $offset = 0)`
+
+**Parameters:**
+- `$pattern` - The regex pattern to search for
+- `$subject` - The input string to search in
+- `$matches` - Optional array to store captured matches
+- `$flags` - Optional flags (PREG_OFFSET_CAPTURE, etc.)
+- `$offset` - Optional starting position
+
+**Returns:** 
+- `1` if pattern matches
+- `0` if no match found
+- `false` on error
+
+```php title="Example of string matching:"
+$text = "The year is 2023";
+$result = preg_match('/\d{4}/', $text, $matches);
+// $result = 1, $matches[0] = "2023"
+```
+---
+
+### Find All Matches - `preg_match_all()` 
+
+Searches for all occurrences of a pattern in a string.
+
+**Syntax:** `preg_match_all(string $pattern, string $subject, array &$matches = null, int $flags = PREG_PATTERN_ORDER, int $offset = 0)`
+
+**Parameters:**
+- `$pattern` - The regex pattern to search for
+- `$subject` - The input string to search in
+- `$matches` - Array to store all captured matches
+- `$flags` - How to order results (PREG_PATTERN_ORDER, PREG_SET_ORDER, etc.)
+- `$offset` - Optional starting position
+
+**Returns:**
+- Number of full pattern matches (0 or more)
+- `false` on error
+
+```php
+$text = "Email: user@site.com or admin@site.com";
+$count = preg_match_all('/[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}/', $text, $matches);
+// $count = 2, $matches[0] = ["user@site.com", "admin@site.com"]
+```
+
+---
+
+### Replace Patterns - `preg_replace()` 
+
+Replaces all occurrences of a pattern in a string.
+
+**Syntax:** `preg_replace(string|array $pattern, string|array $replacement, string|array $subject, int $limit = -1, int &$count = null)`
+
+**Parameters:**
+- `$pattern` - The regex pattern(s) to search for
+- `$replacement` - The replacement string(s)
+- `$subject` - The input string(s) to search and replace in
+- `$limit` - Maximum replacements per pattern (default: -1 = no limit)
+- `$count` - Variable to store number of replacements made
+
+**Returns:**
+- String/array with replacements made
+- `null` on error
+
+```php
+$phone = "123-456-7890";
+$formatted = preg_replace('/(\d{3})-(\d{3})-(\d{4})/', '($1) $2-$3', $phone);
+// Returns: "(123) 456-7890"
+```
+
+---
+
+### Split String by Pattern - `preg_split()` 
+
+Splits a string by a pattern.
+
+**Syntax:** `preg_split(string $pattern, string $subject, int $limit = -1, int $flags = 0)`
+
+**Parameters:**
+- `$pattern` - The regex pattern to split by
+- `$subject` - The input string to split
+- `$limit` - Maximum number of pieces (default: -1 = no limit)
+- `$flags` - Optional flags (PREG_SPLIT_NO_EMPTY, etc.)
+
+**Returns:**
+- Array of string pieces
+- `false` on error
+
+```php
+$text = "apple,banana;orange:grape";
+$fruits = preg_split('/[,;:]/', $text);
+// Returns: ["apple", "banana", "orange", "grape"]
+```
+
+---
+
+## Common Patterns
+
+```php title="Common patterns:"
+// Email validation
+$email = '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/';
+
+// Phone number (US)
+$phone = '/^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/';
+
+// URL
+$url = '/^https?:\/\/[\w\.-]+\.[a-zA-Z]{2,}(\/.*)?$/';
+
+// Date (YYYY-MM-DD)
+$date = '/^\d{4}-\d{2}-\d{2}$/';
+
+// Password (8+ chars, mixed case, number, special)
+$password = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/';
+```
+
+---
+
+## Modifiers
+
+```php title="Modifiers:"
+'/pattern/i'    // Case-insensitive
+'/pattern/m'    // Multiline (^ and $ match line starts/ends)
+'/pattern/s'    // Dot matches newlines
+'/pattern/x'    // Ignore whitespace in pattern
+```
+
+---
+
+## Capturing Groups
+
+```php title="Capturing groups:"
+$date = "2023-12-25";
+$pattern = '/(\d{4})-(\d{2})-(\d{2})/';
+
+if (preg_match($pattern, $date, $matches)) {
+    echo $matches[1]; // Year: 2023
+    echo $matches[2]; // Month: 12
+    echo $matches[3]; // Day: 25
+}
+
+// Named groups
+$pattern = '/(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})/';
+if (preg_match($pattern, $date, $matches)) {
+    echo $matches['year']; // 2023
+}
+```
+
+---
+
+## Best Practices
+
+- **Escape special characters**: Use `preg_quote()` for user input,
+- **Be specific**: Use `[^"]*` instead of `.*?` when possible,  
+- **Validate patterns**: Check `preg_last_error()` for debugging,
+- **Use non-capturing groups**: `(?:...)` when you don't need the match.
+
+```php title="Best practices:"
+// Safe pattern creation
+$userInput = "$29.99";
+$escaped = preg_quote($userInput, '/');
+$pattern = '/' . $escaped . '/';
+```

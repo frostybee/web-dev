@@ -11,7 +11,7 @@ sidebar:
 
 ## PHP Type Safety
 
-PHP has evolved significantly in terms of type safety, offering developers tools to write more robust and maintainable code. This guide covers type hinting, strict typing, and best practices for implementing type safety in PHP.
+PHP has evolved significantly in terms of **type safety**, offering developers tools to write more robust and maintainable code. This guide covers type hinting, **strict typing**, and best practices for implementing type safety in PHP.
 
 ## Why Use Strict Types?
 
@@ -61,11 +61,12 @@ calculateTotal("10", "5");    // TypeError: Argument 1 must be of type int, stri
 calculateTotal(10.7, 5.3);   // TypeError: Argument 1 must be of type int, float given
 ```
 
-### Key Points about `declare(strict_types=1)`:
+:::note[Key Points about `declare(strict_types=1)`]
 - Must be the first statement after the opening `<?php` tag
 - Only affects the file where it's declared
 - Applies to function calls made from that file
 - Does not affect calls to functions defined in that file from other files
+:::
 
 ---
 

@@ -1,0 +1,247 @@
+---
+title: Introduction to PHP PDO
+description: Working with PHP PDO
+draft: true
+sidebar:
+  label: 'PHP PDO'
+  order: 1
+--- 
+
+
+## What is PDO?
+
+- **PDO (PHP Data Objects)** is a database **abstraction layer** providing a uniform interface for accessing databases.
+
+```php title="Creating a PDO Connection"
+// PDO Connection Syntax
+$pdo = new PDO($dsn, $username, $password, $options);
+```
+
+:::note[Key Benefits of PDO]
+- **Database Independence**: Write code once, run on multiple database systems
+- **Security**: Built-in protection against [SQL injection attacks](../../security/sql-injection) through prepared statements
+- **Performance**: Prepared statements can improve performance for repeated queries
+- **Object-Oriented Interface**: Modern, clean API design
+- **Error Handling**: Robust exception-based error handling
+:::
+
+---
+
+## Database Connection
+
+**Connection String Structure:**
+```php
+// MySQL DSN (Data Source Name) Format
+$dsn = "mysql:host=hostname;dbname=database_name;charset=utf8mb4";
+
+// Complete connection example
+$pdo = new PDO(
+    "mysql:host=localhost;dbname=myapp;charset=utf8mb4",
+    $username,
+    $password,
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+```
+
+**Essential Connection Options:**
+- `PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION` - Enable exceptions
+- `PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC` - Return associative arrays
+
+---
+
+## Prepared Statements
+
+**Prepared Statement Syntax:**
+```php
+// With named placeholders
+$stmt = $pdo->prepare("SELECT * FROM users WHERE age > :age");
+
+// With positional placeholders  
+$stmt = $pdo->prepare("SELECT * FROM users WHERE age > ?");
+```
+
+**Why Use Prepared Statements?**
+- **Security**: Prevents SQL injection
+- **Performance**: Query plan cached for repeated execution
+- **Clarity**: Separates SQL logic from data
+
+---
+
+## Step-by-Step Guide to Reading Data
+
+### Step 1: Establish Database Connection
+- Create PDO instance with connection string
+- Set error mode to exceptions
+- Configure default fetch mode
+
+### Step 2: Prepare the SQL Query
+- Write SELECT statement with placeholders
+- Use `prepare()` method to create statement object
+
+### Step 3: Bind Parameters (if needed)
+- Use `bindParam()` or `bindValue()` for individual parameters
+- Or pass array to `execute()` method
+
+---
+
+## Reading Data Steps (Continued)
+
+### Step 4: Execute the Query
+- Call `execute()` on prepared statement
+- Pass parameter values as array (optional)
+
+### Step 5: Fetch Results
+- `fetch()` - Single row
+- `fetchAll()` - All rows at once
+- `fetchColumn()` - Single column value
+
+### Step 6: Process Results
+- Iterate through data using loops
+- Access columns by name or index
+- Handle empty result sets
+
+---
+
+## Fetch Methods
+
+**Different Ways to Retrieve Data:**
+```php
+// Fetch single row
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Fetch all rows
+$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch single column value
+$count = $stmt->fetchColumn();
+```
+
+**Fetch Modes:**
+- `PDO::FETCH_ASSOC` - Associative array
+- `PDO::FETCH_NUM` - Numeric array
+- `PDO::FETCH_BOTH` - Both numeric and associative
+- `PDO::FETCH_OBJ` - Object with column names as properties
+
+---
+
+## Complete Reading Example
+
+```php
+try {
+    // Step 1: Connect
+    $pdo = new PDO($dsn, $user, $pass, $options);
+    
+    // Step 2: Prepare
+    $stmt = $pdo->prepare("SELECT name, email FROM users WHERE active = ?");
+    
+    // Step 3 & 4: Execute with parameter
+    $stmt->execute([1]);
+    
+    // Step 5: Fetch results
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        // Step 6: Process each row
+        echo $row['name'] . ': ' . $row['email'] . "\n";
+    }
+} catch (PDOException $e) {
+    echo 'Database error: ' . $e->getMessage();
+}
+```
+
+---
+
+## PDO Error Modes
+
+**PDO provides three different error handling modes:**
+
+### 1. Silent Mode (PDO::ERRMODE_SILENT)
+```php
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+```
+- **Default mode** - PDO will not report errors
+- You must check for errors manually using `errorCode()` and `errorInfo()`
+- Similar to traditional PHP database extensions
+
+### 2. Warning Mode (PDO::ERRMODE_WARNING)  
+```php
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
+```
+- PDO will emit PHP warnings for database errors
+- Script continues execution after warnings
+- Useful for development debugging
+
+### 3. Exception Mode (PDO::ERRMODE_EXCEPTION)
+```php
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+```
+- **Recommended mode** - Throws `PDOException` objects
+- Provides detailed error information
+- Allows proper error handling with try-catch blocks
+
+**Best Practice Example:**
+```php
+$options = [
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+];
+$pdo = new PDO($dsn, $username, $password, $options);
+```
+
+---
+
+## Error Handling
+
+**PDO Exception Handling:**
+```php
+try {
+    // Database operations
+} catch (PDOException $e) {
+    // Handle database errors
+    error_log($e->getMessage());
+    // Don't expose sensitive info to users
+}
+```
+
+**Common Error Scenarios:**
+- Connection failures
+- SQL syntax errors
+- Constraint violations
+- Missing tables/columns
+
+**Best Practice:** Always wrap database operations in try-catch blocks.
+
+---
+
+## Security Best Practices
+
+**Always Use Prepared Statements:**
+```php
+// ❌ Vulnerable to SQL injection
+$query = "SELECT * FROM users WHERE id = " . $_GET['id'];
+
+// ✅ Safe with prepared statement
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$_GET['id']]);
+```
+
+**Additional Security Measures:**
+- Validate and sanitize input data
+- Use appropriate fetch modes
+- Limit database user privileges
+- Never display raw error messages to end users
+
+---
+
+## Summary
+
+**PDO Reading Data Workflow:**
+1. **Connect** → Create PDO instance
+2. **Prepare** → Create prepared statement
+3. **Execute** → Run query with parameters
+4. **Fetch** → Retrieve results
+5. **Process** → Handle data appropriately
+
+**Key Advantages:**
+- Secure against SQL injection
+- Database portability
+- Consistent error handling
+- Better performance for repeated queries

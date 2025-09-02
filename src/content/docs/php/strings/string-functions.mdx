@@ -1,0 +1,374 @@
+---
+title: String Functions 
+description: Working with PHP Strings
+sidebar:
+  label: 'String Functions'
+  order: 2
+---
+
+Official PHP Documentation:
+- [PHP String Functions](https://www.php.net/manual/en/book.strings.php)    
+
+## String Length and Character Access
+
+### String Length
+```php
+$text = "Hello World";
+$length = strlen($text); // 11
+
+// For multibyte strings
+$text = "Héllo Wörld";
+$length = mb_strlen($text, 'UTF-8'); // 11
+```
+
+### Character Access
+```php
+$text = "Hello";
+$firstChar = $text[0]; // 'H'
+$lastChar = $text[strlen($text) - 1]; // 'o'
+$thirdChar = $text{2}; // 'l' (curly braces syntax, deprecated)
+```
+
+---
+
+## String Manipulation Functions
+
+### Case Conversion
+```php
+$text = "Hello World";
+
+$upper = strtoupper($text); // "HELLO WORLD"
+$lower = strtolower($text); // "hello world"
+$title = ucwords($text); // "Hello World"
+$sentence = ucfirst(strtolower($text)); // "Hello world"
+```
+
+### Trimming
+```php
+$text = "  Hello World  ";
+
+$trimmed = trim($text); // "Hello World"
+$leftTrimmed = ltrim($text); // "Hello World  "
+$rightTrimmed = rtrim($text); // "  Hello World"
+
+// Trim specific characters
+$text = "...Hello World...";
+$cleaned = trim($text, '.'); // "Hello World"
+```
+
+### String Searching
+```php
+$text = "The quick brown fox jumps over the lazy dog";
+
+// Find position of substring
+$pos = strpos($text, "fox"); // 16
+$pos = stripos($text, "FOX"); // 16 (case-insensitive)
+
+// Check if string contains substring
+if (str_contains($text, "fox")) { // PHP 8+
+    echo "Found fox!";
+}
+
+// Count occurrences
+$count = substr_count($text, "the"); // 1
+$count = substr_count(strtolower($text), "the"); // 2 (case-insensitive)
+```
+
+---
+
+## String Formatting
+
+### sprintf Function
+```php
+$name = "John";
+$age = 25;
+$formatted = sprintf("Hello, %s! You are %d years old.", $name, $age);
+// "Hello, John! You are 25 years old."
+
+// Number formatting
+$price = 1234.567;
+$formatted = sprintf("Price: $%.2f", $price); // "Price: $1234.57"
+```
+
+### printf Function
+```php
+$name = "Alice";
+$score = 95.5;
+printf("Student: %-10s Score: %6.2f%%\n", $name, $score);
+// Output: "Student: Alice      Score:  95.50%"
+```
+
+### Number Formatting
+```php
+$number = 1234567.89;
+
+$formatted = number_format($number); // "1,234,568"
+$formatted = number_format($number, 2); // "1,234,567.89"
+$formatted = number_format($number, 2, ",", "."); // "1.234.567,89"
+```
+
+---
+
+### String Replacement
+```php
+$text = "The quick brown fox";
+
+// Replace all occurrences
+$newText = str_replace("fox", "dog", $text); // "The quick brown dog"
+
+// Case-insensitive replacement
+$newText = str_ireplace("QUICK", "slow", $text); // "The slow brown fox"
+
+// Replace multiple values
+$search = ["quick", "brown"];
+$replace = ["slow", "black"];
+$newText = str_replace($search, $replace, $text); // "The slow black fox"
+
+// Count replacements
+$newText = str_replace("fox", "dog", $text, $count);
+echo "Made $count replacements";
+```
+
+### Substring Operations
+```php
+$text = "Hello World";
+
+// Extract substring
+$sub = substr($text, 0, 5); // "Hello"
+$sub = substr($text, 6); // "World"
+$sub = substr($text, -5); // "World" (from end)
+$sub = substr($text, -5, 3); // "Wor"
+
+// Multibyte substring
+$text = "Héllo Wörld";
+$sub = mb_substr($text, 0, 5, 'UTF-8'); // "Héllo"
+```
+
+---
+
+## String Splitting and Joining
+
+### Explode and Implode
+```php
+// Split string into array
+$csv = "apple,banana,orange";
+$fruits = explode(",", $csv); // ["apple", "banana", "orange"]
+
+// Join array into string
+$joined = implode(" | ", $fruits); // "apple | banana | orange"
+
+// Limit splits
+$text = "one-two-three-four";
+$parts = explode("-", $text, 2); // ["one", "two-three-four"]
+```
+
+### String Tokenization
+```php
+$text = "apple,banana;orange:grape";
+$token = strtok($text, ",;:");
+
+while ($token !== false) {
+    echo $token . "\n";
+    $token = strtok(",;:");
+}
+// Outputs: apple, banana, orange, grape
+```
+
+---
+
+## String Encoding and Security
+
+### HTML Escaping
+```php
+$userInput = '<script>alert("XSS")</script>';
+$safe = htmlspecialchars($userInput, ENT_QUOTES, 'UTF-8');
+// "&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;"
+
+$decoded = htmlspecialchars_decode($safe);
+// Back to original string
+```
+
+### URL Encoding
+```php
+$url = "Hello World & More";
+$encoded = urlencode($url); // "Hello+World+%26+More"
+$rawEncoded = rawurlencode($url); // "Hello%20World%20%26%20More"
+
+$decoded = urldecode($encoded); // Back to original
+```
+
+### Base64 Encoding
+```php
+$data = "Hello World";
+$encoded = base64_encode($data); // "SGVsbG8gV29ybGQ="
+$decoded = base64_decode($encoded); // "Hello World"
+```
+
+---
+
+## Multibyte String Handling
+
+### UTF-8 Support
+```php
+// Set internal encoding
+mb_internal_encoding('UTF-8');
+
+$text = "Héllo Wörld";
+$length = mb_strlen($text); // Correct length for multibyte
+$upper = mb_strtoupper($text); // "HÉLLO WÖRLD"
+$sub = mb_substr($text, 0, 5); // "Héllo"
+```
+
+### Character Encoding Conversion
+```php
+$text = "Hello World";
+$converted = mb_convert_encoding($text, 'UTF-8', 'ISO-8859-1');
+
+// Detect encoding
+$encoding = mb_detect_encoding($text, ['UTF-8', 'ISO-8859-1']);
+```
+
+---
+
+## String Comparison
+
+### Basic Comparison
+```php
+$str1 = "apple";
+$str2 = "Apple";
+
+// Case-sensitive comparison
+$result = strcmp($str1, $str2); // > 0 (str1 > str2)
+
+// Case-insensitive comparison
+$result = strcasecmp($str1, $str2); // 0 (equal)
+
+// Natural order comparison
+$files = ["file1.txt", "file10.txt", "file2.txt"];
+usort($files, 'strnatcmp');
+// Result: ["file1.txt", "file2.txt", "file10.txt"]
+```
+
+### String Similarity
+```php
+$str1 = "programming";
+$str2 = "programing";
+
+similar_text($str1, $str2, $percent);
+echo "Similarity: " . round($percent, 2) . "%";
+
+// Levenshtein distance
+$distance = levenshtein($str1, $str2); // Number of edits needed
+```
+
+---
+
+## Advanced String Operations
+
+### String Hashing
+```php
+$password = "mySecretPassword";
+
+// Simple hash (not secure for passwords)
+$md5 = md5($password);
+$sha1 = sha1($password);
+
+// Secure password hashing
+$hash = password_hash($password, PASSWORD_DEFAULT);
+$isValid = password_verify($password, $hash);
+```
+
+### String Parsing
+```php
+// Parse URL
+$url = "https://example.com/path?param=value";
+$parsed = parse_url($url);
+/*
+Array(
+    [scheme] => https
+    [host] => example.com
+    [path] => /path
+    [query] => param=value
+)
+*/
+
+// Parse query string
+$query = "name=John&age=25&city=New+York";
+parse_str($query, $params);
+// $params = ["name" => "John", "age" => "25", "city" => "New York"]
+```
+
+### String Templating
+```php
+class StringTemplate {
+    public static function render($template, $vars) {
+        return preg_replace_callback('/\{\{(\w+)\}\}/', function($matches) use ($vars) {
+            return isset($vars[$matches[1]]) ? $vars[$matches[1]] : $matches[0];
+        }, $template);
+    }
+}
+
+$template = "Hello, {{name}}! You are {{age}} years old.";
+$vars = ["name" => "John", "age" => 25];
+$result = StringTemplate::render($template, $vars);
+// "Hello, John! You are 25 years old."
+```
+
+---
+
+## Common String Patterns
+
+### CSV Handling
+```php
+// Reading CSV data
+$csvLine = '"John Doe","25","Engineer","New York"';
+$data = str_getcsv($csvLine);
+// ["John Doe", "25", "Engineer", "New York"]
+
+// Creating CSV data
+$data = ["John Doe", "25", "Engineer", "New York"];
+$csvLine = '"' . implode('","', $data) . '"';
+```
+
+### Path Operations
+```php
+$path = "/var/www/html/index.php";
+
+$dirname = dirname($path); // "/var/www/html"
+$basename = basename($path); // "index.php"
+$filename = pathinfo($path, PATHINFO_FILENAME); // "index"
+$extension = pathinfo($path, PATHINFO_EXTENSION); // "php"
+
+// Build path
+$newPath = $dirname . DIRECTORY_SEPARATOR . "config.php";
+```
+
+### JSON String Handling
+```php
+$data = ["name" => "John", "age" => 25];
+$json = json_encode($data); // '{"name":"John","age":25}'
+
+$decoded = json_decode($json, true); // Back to array
+$object = json_decode($json); // As stdClass object
+```
+
+---
+
+## Performance Considerations
+
+### String Concatenation Performance
+```php
+// Inefficient for many concatenations
+$result = "";
+for ($i = 0; $i < 1000; $i++) {
+    $result .= "item $i ";
+}
+
+// More efficient approach
+$items = [];
+for ($i = 0; $i < 1000; $i++) {
+    $items[] = "item $i";
+}
+$result = implode(" ", $items);
+```
+

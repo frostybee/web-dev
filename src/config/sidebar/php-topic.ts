@@ -35,12 +35,6 @@ export default
           ]
         },
         {
-          label: "Security",
-          autogenerate: {
-            directory: "php/security",
-          }
-        },
-        {
           label: "Strings",
           autogenerate: {
             directory: "php/strings",
@@ -63,7 +57,13 @@ export default
           autogenerate: {
             directory: "php/pdo",
           }
-        }
+        },
+        {
+          label: "Security",
+          autogenerate: {
+            directory: "php/security",
+          }
+        },
       ],
     }
   ];
