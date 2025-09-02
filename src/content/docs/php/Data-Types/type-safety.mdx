@@ -11,7 +11,7 @@ sidebar:
 
 ## PHP Type Safety
 
-PHP has evolved significantly in terms of type safety, offering developers powerful tools to write more robust and maintainable code. This guide covers type hinting, strict typing, and best practices for implementing type safety in PHP.
+PHP has evolved significantly in terms of type safety, offering developers tools to write more robust and maintainable code. This guide covers type hinting, strict typing, and best practices for implementing type safety in PHP.
 
 ## Why Use Strict Types?
 
@@ -33,6 +33,7 @@ calculateTotal(true, false);  // Returns 0 (booleans converted: true=1, false=0)
 calculateTotal("10abc", "5");  // Returns 50 (string "10abc" converted to 10)
 calculateTotal(null, 5);      // Returns 0 (null converted to 0)
 ```
+---
 
 ### Real-World Consequences
 
@@ -70,7 +71,9 @@ calculateTotal(10.7, 5.3);   // TypeError: Argument 1 must be of type int, float
 
 ## Scalar Type Hints
 
-PHP supports type hints for scalar types since PHP 7.0:
+- Scalar types are the basic data types in PHP: string, int, float, and bool. 
+- Type hinting these parameters ensures your functions receive exactly the **data types they expect**, preventing unexpected behavior from automatic type conversion.
+- PHP supports type hints for scalar types since PHP 7.0:
 
 ### Basic Scalar Types
 
@@ -115,6 +118,8 @@ greetUser(null);     // "Hello, Guest!"
 
 ## Return Type Declarations
 
+Return type declarations specify what type of data a function will return. This helps both developers and IDEs understand function behavior and catches return type mismatches early.
+
 ### Basic Return Types
 
 ```php
@@ -143,6 +148,8 @@ function processOrder(): void {
 
 ### Union Types (PHP 8.0+)
 
+Union types allow a parameter or return value to accept **multiple specific types** using the pipe (`|`) operator. This provides flexibility while maintaining type safety by explicitly defining which types are acceptable.
+
 ```php
 <?php
 declare(strict_types=1);
@@ -160,6 +167,8 @@ function getId(): int|string {
 ---
 
 ## Best Practices for Using Type Safety
+
+Following these practices will help you write more reliable and maintainable PHP code with proper type safety implementation.
 
 1. **Always use `declare(strict_types=1)`** in new projects, it catches bugs early
 2. **Type all function parameters and return types**; it serves as documentation
@@ -179,6 +188,8 @@ function getId(): int|string {
 ---
 
 ## Class Type Hints
+
+Class type hints ensure that function parameters are instances of specific classes or implement certain interfaces. This is crucial for object-oriented programming and dependency injection patterns.
 
 ### Basic Class Types
 
@@ -241,6 +252,8 @@ class PaymentService {
 
 ### Mixed Type (PHP 8.0+)
 
+The `mixed` type accepts values of **any type**. It's equivalent to combining **all possible types** into one union type. Use `mixed` when a function legitimately needs to handle multiple different types, but be cautious as it reduces type safety benefits.
+
 ```php
 <?php
 declare(strict_types=1);
@@ -260,6 +273,8 @@ function handleData(mixed $data): mixed {
 
 ### Never Type (PHP 8.1+)
 
+The `never` type indicates that a function will never return normally. It either throws an exception, calls `exit()`, or enters an infinite loop. This helps static analysis tools understand that code after such function calls is unreachable.
+
 ```php
 <?php
 declare(strict_types=1);
@@ -277,6 +292,8 @@ function redirect(string $url): never {
 ---
 
 ### Intersection Types (PHP 8.1+)
+
+Intersection types require a value to satisfy **all specified types simultaneously** using the ampersand (`&`) operator. This is commonly used with interfaces where an object must implement multiple interfaces.
 
 ```php
 <?php
@@ -299,6 +316,8 @@ function processFile(Readable&Writable $file): void {
 ---
 
 ## Property Type Declarations
+
+Property type declarations ensure that class properties can only hold values of specific types. This prevents accidental assignment of wrong data types and makes your classes more predictable and secure.
 
 ### Typed Properties (PHP 7.4+)
 
@@ -327,6 +346,10 @@ class Product {
 
 ### Readonly Properties (PHP 8.1+)
 
+The `readonly` modifier makes a property read-only, meaning it can **only be assigned** a value once during initialization. This prevents accidental modification of properties after object creation.
+
+This is particularly useful for immutable objects or security-critical data.
+
 ```php
 <?php
 declare(strict_types=1);
@@ -346,6 +369,8 @@ $order = new Order(1, "customer@example.com", 99.99);
 ---
 
 ## Error Handling with Types
+
+When working with strict types, it's important to handle TypeError exceptions gracefully and provide meaningful error messages to help debug type-related issues.
 
 ### Type Error Handling
 
@@ -376,6 +401,8 @@ function validateAndProcess(mixed $value): int {
 
 ## Best Practices
 
+These comprehensive best practices will help you implement type safety effectively across your PHP projects, leading to more robust and maintainable code.
+
 ### 1. Always Use Strict Types
 
 ```php
@@ -400,6 +427,8 @@ function calculateDiscount($price, $discountPercent) {
     return $price * ($discountPercent / 100);
 }
 ```
+
+---
 
 ### 3. Use Nullable Types When Appropriate
 
@@ -429,6 +458,9 @@ function processId(int|string $id): string {
 }
 ```
 
+---
+
+
 ### 5. Use Interface Type Hints for Dependency Injection
 
 ```php
@@ -455,6 +487,8 @@ class EmailService {
 ---
 
 ## Common Pitfalls and Solutions
+
+Learn from these common mistakes that developers make when implementing type safety in PHP, along with practical solutions to avoid them.
 
 ### 1. Forgetting Strict Types Declaration
 
