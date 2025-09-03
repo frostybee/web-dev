@@ -17,7 +17,6 @@ sidebar:
 - **DSN Format:** `mysql:host=HOST;dbname=DATABASE;charset=CHARSET`
 - **Always set:** Error mode to exceptions for better debugging
 
-
 ```php
 // Basic connection
 $dsn = "mysql:host=localhost;dbname=myapp;charset=utf8mb4";
@@ -32,27 +31,7 @@ try {
 }
 ```
 
-
 ---
-
-## Prepared Statements - The Foundation
-- **Why prepare?** Prevents SQL injection, improves performance for repeated queries
-- **Two styles:** Named (`:placeholder`) or positional (`?`) placeholders
-
-```php
-// Prepared statement with named placeholders
-$stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email");
-$stmt->execute(['email' => $userEmail]);
-
-// Prepared statement with positional placeholders  
-$stmt = $pdo->prepare("SELECT * FROM users WHERE age > ? AND city = ?");
-$stmt->execute([$minAge, $city]);
-```
-
-
-
----
-
 
 ## Connection Best Practices
 - **Security:** Store credentials in environment variables, not code
@@ -72,12 +51,28 @@ $pdo = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], [
 // Or explicitly: $pdo = null;
 ```
 
+---
+
+
+## Prepared Statements: The Foundation
+- **Why prepare?** Prevents SQL injection, improves performance for repeated queries
+- **Using named placeholders:** More readable and maintainable than positional placeholders
+
+```php
+// Prepared statement with named placeholders
+$stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email");
+$stmt->execute(['email' => $userEmail]);
+
+// Prepared statement with named placeholders  
+$stmt = $pdo->prepare("SELECT * FROM users WHERE age > :age AND city = :city");
+$stmt->execute(['age' => $minAge, 'city' => $city]);
+```
+
 
 
 ---
 
-
-## SELECT Queries - Fetching Data
+## SELECT Queries: Fetching Data
 
 - **fetch()** = One row
 - **fetchAll()** = All rows
@@ -85,8 +80,8 @@ $pdo = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], [
 
 ```php
 // Fetch single row
-$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->execute([$userId]);
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id");
+$stmt->execute(['id' => $userId]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Fetch multiple rows
@@ -153,8 +148,8 @@ echo "Pending orders: " . $count;
 
 ```php
 // Insert single record
-$stmt = $pdo->prepare("INSERT INTO users (name, email, age) VALUES (?, ?, ?)");
-$stmt->execute([$name, $email, $age]);
+$stmt = $pdo->prepare("INSERT INTO users (name, email, age) VALUES (:name, :email, :age)");
+$stmt->execute(['name' => $name, 'email' => $email, 'age' => $age]);
 
 // Get the inserted ID
 $newUserId = $pdo->lastInsertId();
@@ -216,8 +211,8 @@ try {
 
 ```php
 // Update single record
-$stmt = $pdo->prepare("UPDATE users SET email = ?, age = ? WHERE id = ?");
-$stmt->execute([$newEmail, $newAge, $userId]);
+$stmt = $pdo->prepare("UPDATE users SET email = :email, age = :age WHERE id = :id");
+$stmt->execute(['email' => $newEmail, 'age' => $newAge, 'id' => $userId]);
 
 // Check affected rows
 $affectedRows = $stmt->rowCount();
@@ -226,8 +221,8 @@ if ($affectedRows > 0) {
 }
 
 // Update with conditions
-$stmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE last_login > ?");
-$stmt->execute([$cutoffDate]);
+$stmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE last_login > :cutoff_date");
+$stmt->execute(['cutoff_date' => $cutoffDate]);
 ```
 
 ---
@@ -277,12 +272,12 @@ echo "Updated " . $stmt->rowCount() . " users";
 
 ```php
 // Delete single record
-$stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
-$stmt->execute([$userId]);
+$stmt = $pdo->prepare("DELETE FROM users WHERE id = :id");
+$stmt->execute(['id' => $userId]);
 
 // Delete with multiple conditions
-$stmt = $pdo->prepare("DELETE FROM sessions WHERE user_id = ? AND expires < ?");
-$stmt->execute([$userId, time()]);
+$stmt = $pdo->prepare("DELETE FROM sessions WHERE user_id = :user_id AND expires < :expires");
+$stmt->execute(['user_id' => $userId, 'expires' => time()]);
 
 // Check if anything was deleted
 if ($stmt->rowCount() > 0) {
@@ -336,8 +331,8 @@ $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 // Catch database errors
 try {
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id");
+    $stmt->execute(['id' => $userId]);
     $user = $stmt->fetch();
 } catch (PDOException $e) {
     error_log("Database error: " . $e->getMessage());
@@ -358,11 +353,11 @@ try {
     $pdo->beginTransaction();
     
     // Multiple related operations
-    $stmt1 = $pdo->prepare("UPDATE accounts SET balance = balance - ? WHERE id = ?");
-    $stmt1->execute([$amount, $fromAccount]);
+    $stmt1 = $pdo->prepare("UPDATE accounts SET balance = balance - :amount WHERE id = :from_account");
+    $stmt1->execute(['amount' => $amount, 'from_account' => $fromAccount]);
     
-    $stmt2 = $pdo->prepare("UPDATE accounts SET balance = balance + ? WHERE id = ?");  
-    $stmt2->execute([$amount, $toAccount]);
+    $stmt2 = $pdo->prepare("UPDATE accounts SET balance = balance + :amount WHERE id = :to_account");  
+    $stmt2->execute(['amount' => $amount, 'to_account' => $toAccount]);
     
     $pdo->commit(); // Save all changes
 } catch (Exception $e) {
@@ -426,18 +421,18 @@ $pdo = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], [
 
 ```php
 // Check if record exists
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE email = ?");
-$stmt->execute([$email]);
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
+$stmt->execute(['email' => $email]);
 $exists = $stmt->fetchColumn() > 0;
 
 // Get single value safely
-$stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
-$stmt->execute([$id]);
+$stmt = $pdo->prepare("SELECT name FROM users WHERE id = :id");
+$stmt->execute(['id' => $id]);
 $name = $stmt->fetchColumn() ?: 'Unknown';
 
 // Loop through results
-$stmt = $pdo->prepare("SELECT * FROM products WHERE category = ?");
-$stmt->execute([$category]);
+$stmt = $pdo->prepare("SELECT * FROM products WHERE category = :category");
+$stmt->execute(['category' => $category]);
 while ($product = $stmt->fetch()) {
     echo $product['name'] . "\n";
 }
@@ -452,7 +447,7 @@ while ($product = $stmt->fetch()) {
 - **INSERT/UPDATE/DELETE:** `prepare() → execute() → rowCount()`
 - **Single value:** `prepare() → execute() → fetchColumn()`
 - **Error handling:** Always set `PDO::ERRMODE_EXCEPTION`
-- **Security:** Always use placeholders (`?` or `:name`)
+- **Security:** Always use named placeholders (`:name`)
 - **Transactions:** `beginTransaction() → commit()/rollBack()`
 :::
 
