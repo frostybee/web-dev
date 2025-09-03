@@ -1,0 +1,470 @@
+---
+title: CRUD Operations?
+description: Working with CRUD Operations - Complete Guide
+sidebar:
+  label: 'CRUD Operations'
+  order: 1
+---
+
+## What are CRUD Operations?
+
+- **CRUD operations** (Create, Read, Update, Delete) are the four basic functions for persistent storage. 
+- PDO provides secure, prepared statement methods for all CRUD operations.
+
+---
+
+## Database Connection
+- **DSN Format:** `mysql:host=HOST;dbname=DATABASE;charset=CHARSET`
+- **Always set:** Error mode to exceptions for better debugging
+
+
+```php
+// Basic connection
+$dsn = "mysql:host=localhost;dbname=myapp;charset=utf8mb4";
+$username = "root";
+$password = "secret";
+
+try {
+    $pdo = new PDO($dsn, $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+```
+
+
+---
+
+## Prepared Statements - The Foundation
+- **Why prepare?** Prevents SQL injection, improves performance for repeated queries
+- **Two styles:** Named (`:placeholder`) or positional (`?`) placeholders
+
+```php
+// Prepared statement with named placeholders
+$stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email");
+$stmt->execute(['email' => $userEmail]);
+
+// Prepared statement with positional placeholders  
+$stmt = $pdo->prepare("SELECT * FROM users WHERE age > ? AND city = ?");
+$stmt->execute([$minAge, $city]);
+```
+
+
+
+---
+
+
+## Connection Best Practices
+- **Security:** Store credentials in environment variables, not code
+- **Performance:** Set default fetch mode and disable emulated prepares
+
+```php
+// Use environment variables for credentials
+$dsn = "mysql:host=" . $_ENV['DB_HOST'] . ";dbname=" . $_ENV['DB_NAME'];
+$pdo = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], [
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES => false, // Use real prepared statements
+    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+]);
+
+// Connection is automatically closed when $pdo goes out of scope
+// Or explicitly: $pdo = null;
+```
+
+
+
+---
+
+
+## SELECT Queries - Fetching Data
+
+- **fetch()** = One row
+- **fetchAll()** = All rows
+- **fetchColumn()** = Single value
+
+```php
+// Fetch single row
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$userId]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Fetch multiple rows
+$stmt = $pdo->prepare("SELECT name, email FROM users WHERE active = 1");
+$stmt->execute();
+$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch single value
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM users");
+$stmt->execute();
+$count = $stmt->fetchColumn();
+```
+---
+
+## READ Operations (Detailed Examples)
+
+### Fetch Single Record
+
+```php
+<?php
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :user_id");
+$stmt->execute([':user_id' => $userId]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if ($user) {
+    echo "User: " . $user['name'] . " (" . $user['email'] . ")";
+} else {
+    echo "User not found";
+}
+?>
+```
+
+### Fetch Multiple Records
+
+```php
+<?php
+$stmt = $pdo->prepare("SELECT * FROM products WHERE category = :category ORDER BY name");
+$stmt->execute([':category' => 'electronics']);
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+foreach ($products as $product) {
+    echo $product['name'] . " - $" . $product['price'] . "\n";
+}
+?>
+```
+
+### Count Records
+
+```php
+<?php
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE status = :status");
+$stmt->execute([':status' => 'pending']);
+$count = $stmt->fetchColumn();
+echo "Pending orders: " . $count;
+?>
+```
+
+---
+
+## INSERT Operations
+
+- **Use:** `lastInsertId()` to get the auto-generated ID of inserted record
+- **Security:** Always use placeholders, never concatenate user input
+
+```php
+// Insert single record
+$stmt = $pdo->prepare("INSERT INTO users (name, email, age) VALUES (?, ?, ?)");
+$stmt->execute([$name, $email, $age]);
+
+// Get the inserted ID
+$newUserId = $pdo->lastInsertId();
+
+// Insert with named placeholders
+$stmt = $pdo->prepare("INSERT INTO users (name, email) VALUES (:name, :email)");
+$stmt->execute([
+    'name' => $userName,
+    'email' => $userEmail
+]);
+```
+
+
+
+---
+
+## CREATE Operations (Detailed Examples)
+
+### Insert Single Record
+
+```php
+<?php
+$stmt = $pdo->prepare("INSERT INTO users (name, email, age) VALUES (:name, :email, :age)");
+$stmt->execute([
+    ':name' => $userName,
+    ':email' => $userEmail,
+    ':age' => $userAge
+]);
+
+$newUserId = $pdo->lastInsertId();
+echo "User created with ID: " . $newUserId;
+?>
+```
+
+### Insert with Error Handling
+
+```php
+<?php
+try {
+    $stmt = $pdo->prepare("INSERT INTO products (name, price, category) VALUES (:name, :price, :category)");
+    $stmt->execute([
+        ':name' => $productName,
+        ':price' => $productPrice,
+        ':category' => $category
+    ]);
+    echo "Product added successfully";
+} catch (PDOException $e) {
+    echo "Error adding product: " . $e->getMessage();
+}
+?>
+```
+
+---
+
+## UPDATE Operations
+
+- **Use:** `rowCount()` to check how many records were modified
+- **Pattern:** Always include WHERE clause to avoid updating entire table
+
+```php
+// Update single record
+$stmt = $pdo->prepare("UPDATE users SET email = ?, age = ? WHERE id = ?");
+$stmt->execute([$newEmail, $newAge, $userId]);
+
+// Check affected rows
+$affectedRows = $stmt->rowCount();
+if ($affectedRows > 0) {
+    echo "User updated successfully";
+}
+
+// Update with conditions
+$stmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE last_login > ?");
+$stmt->execute([$cutoffDate]);
+```
+
+---
+
+## UPDATE Operations (Detailed Examples)
+
+### Update Single Record
+
+```php
+<?php
+$stmt = $pdo->prepare("UPDATE users SET email = :email, age = :age WHERE id = :user_id");
+$stmt->execute([
+    ':email' => $newEmail,
+    ':age' => $newAge,
+    ':user_id' => $userId
+]);
+
+$affectedRows = $stmt->rowCount();
+if ($affectedRows > 0) {
+    echo "User updated successfully";
+} else {
+    echo "No user found or no changes made";
+}
+?>
+```
+
+### Update with Conditions
+
+```php
+<?php
+$stmt = $pdo->prepare("UPDATE users SET status = :status WHERE last_login > :cutoff_date");
+$stmt->execute([
+    ':status' => 'active',
+    ':cutoff_date' => $cutoffDate
+]);
+
+echo "Updated " . $stmt->rowCount() . " users";
+?>
+```
+
+---
+
+## DELETE Operations
+
+- **Safety tip:** Always use WHERE clause to avoid deleting entire table
+- **Best practice:** Consider soft deletes (status flags) instead of hard deletes
+
+```php
+// Delete single record
+$stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+$stmt->execute([$userId]);
+
+// Delete with multiple conditions
+$stmt = $pdo->prepare("DELETE FROM sessions WHERE user_id = ? AND expires < ?");
+$stmt->execute([$userId, time()]);
+
+// Check if anything was deleted
+if ($stmt->rowCount() > 0) {
+    echo "Records deleted: " . $stmt->rowCount();
+}
+```
+
+---
+
+## DELETE Operations (Detailed Examples)
+
+### Delete Single Record
+
+```php
+<?php
+$stmt = $pdo->prepare("DELETE FROM users WHERE id = :user_id");
+$stmt->execute([':user_id' => $userId]);
+
+if ($stmt->rowCount() > 0) {
+    echo "User deleted successfully";
+} else {
+    echo "User not found";
+}
+?>
+```
+
+### Delete with Multiple Conditions
+
+```php
+<?php
+$stmt = $pdo->prepare("DELETE FROM sessions WHERE user_id = :user_id AND expires < :current_time");
+$stmt->execute([
+    ':user_id' => $userId,
+    ':current_time' => time()
+]);
+
+echo "Deleted " . $stmt->rowCount() . " expired sessions";
+?>
+```
+
+---
+
+## Error Handling
+
+- **Exception mode:** Throws exceptions on errors (recommended)
+- **Security:** Log detailed errors, show generic messages to users
+
+```php
+// Set error mode (do this once after connection)
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+// Catch database errors
+try {
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch();
+} catch (PDOException $e) {
+    error_log("Database error: " . $e->getMessage());
+    // Show user-friendly message
+    echo "Sorry, something went wrong";
+}
+```
+
+---
+
+## Transactions
+
+- **Use for:** Operations that must succeed or fail together (bank transfers, order processing)
+- **Pattern:** beginTransaction() → operations → commit() or rollBack()
+
+```php
+try {
+    $pdo->beginTransaction();
+    
+    // Multiple related operations
+    $stmt1 = $pdo->prepare("UPDATE accounts SET balance = balance - ? WHERE id = ?");
+    $stmt1->execute([$amount, $fromAccount]);
+    
+    $stmt2 = $pdo->prepare("UPDATE accounts SET balance = balance + ? WHERE id = ?");  
+    $stmt2->execute([$amount, $toAccount]);
+    
+    $pdo->commit(); // Save all changes
+} catch (Exception $e) {
+    $pdo->rollBack(); // Undo all changes
+    throw $e;
+}
+```
+
+---
+
+## Fetch Modes
+
+- **Most used:** `FETCH_ASSOC` for arrays, `FETCH_OBJ` for objects
+- **Performance tip:** Choose the mode that matches your needs
+
+```php
+// Associative array (most common)
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+// Result: ['id' => 1, 'name' => 'John', 'email' => 'john@example.com']
+
+// Object with properties
+$user = $stmt->fetch(PDO::FETCH_OBJ);
+// Access: $user->name, $user->email
+
+// Custom class instance
+class User { public $name, $email; }
+$stmt->setFetchMode(PDO::FETCH_CLASS, 'User');
+$user = $stmt->fetch();
+
+// Both numeric and associative keys
+$user = $stmt->fetch(PDO::FETCH_BOTH);
+```
+
+---
+
+
+## Connection Best Practices
+
+- **Security:** Store credentials in environment variables, not code
+- **Performance:** Set default fetch mode and disable emulated prepares
+
+```php
+// Use environment variables for credentials
+$dsn = "mysql:host=" . $_ENV['DB_HOST'] . ";dbname=" . $_ENV['DB_NAME'];
+$pdo = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], [
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES => false, // Use real prepared statements
+    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+]);
+
+// Connection is automatically closed when $pdo goes out of scope
+// Or explicitly: $pdo = null;
+```
+
+---
+
+## Common Patterns
+- **Patterns:** Existence checks, safe single values, result iteration
+- **Tip:** Use `fetchColumn()` for single values, it's more efficient
+
+```php
+// Check if record exists
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE email = ?");
+$stmt->execute([$email]);
+$exists = $stmt->fetchColumn() > 0;
+
+// Get single value safely
+$stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+$stmt->execute([$id]);
+$name = $stmt->fetchColumn() ?: 'Unknown';
+
+// Loop through results
+$stmt = $pdo->prepare("SELECT * FROM products WHERE category = ?");
+$stmt->execute([$category]);
+while ($product = $stmt->fetch()) {
+    echo $product['name'] . "\n";
+}
+```
+
+---
+
+## Quick Reference
+
+:::note[Query Patterns]
+- **SELECT:** `prepare() → execute() → fetch()/fetchAll()`
+- **INSERT/UPDATE/DELETE:** `prepare() → execute() → rowCount()`
+- **Single value:** `prepare() → execute() → fetchColumn()`
+- **Error handling:** Always set `PDO::ERRMODE_EXCEPTION`
+- **Security:** Always use placeholders (`?` or `:name`)
+- **Transactions:** `beginTransaction() → commit()/rollBack()`
+:::
+
+---
+
+## Security Essentials
+
+- **Always use prepared statements:**  Never concatenate user input into SQL,
+- **Validate input data:** Check data types and formats before database operations,
+- **Use least privilege:** Database user should only have necessary permissions,    
+- **Escape output:** Use `htmlspecialchars()` when displaying data in HTML,
+- **Store credentials securely:** Environment variables, not in source code,
+- **Enable error reporting in development:** Disable detailed errors in production.
+
+**Remember:** PDO prepared statements prevent SQL injection automatically when used correctly.
