@@ -1,5 +1,5 @@
 import phpTopics from "./php-topic.ts";
-import implementationTopics from "./implementation-topic.ts";
+// import implementationTopics from "./implementation-topic.ts";
 import resourcesTopic from "./resources-topic.ts";
 
 /*
@@ -15,7 +15,7 @@ import resourcesTopic from "./resources-topic.ts";
 */
 
 export default [
-  ...implementationTopics,
+  // ...implementationTopics,
   ...phpTopics,
   ...resourcesTopic,
 
