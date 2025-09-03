@@ -6,7 +6,7 @@ sidebar:
   order: 1
 ---
 
-## What are functions?
+## What are Functions?
 - Functions are reusable blocks of code that perform specific tasks. 
 - They help organize code, reduce repetition, and make programs more modular and maintainable. 
 - PHP provides both **built-in** functions and the ability to create **custom user-defined** functions.
@@ -229,6 +229,18 @@ echo $globalVar; // Outputs: I'm global
 ---
 
 ### Using Global Variables
+
+The `global` keyword allows functions to access variables defined outside their scope. Without it, functions cannot see or modify global variables.
+
+**Why we need `global`:**
+- Functions have their own **local scope**: they can't access variables from outside by default,
+- The `global` keyword creates a reference to the global variable inside the function,
+- This allows the function to read and modify the global variable.
+
+:::caution[Important]
+Using global variables is generally discouraged in modern programming as it makes code harder to test and maintain. Consider passing variables as parameters instead.
+:::
+
 ```php
 <?php
 $counter = 0;
@@ -265,98 +277,23 @@ countCalls(); // Function called 2 times
 countCalls(); // Function called 3 times
 ?>
 ```
-
----
-
-## Type Declarations
-
-### Parameter Type Declarations
-```php
-<?php
-// Scalar type declarations
-function addIntegers(int $a, int $b): int {
-    return $a + $b;
-}
-
-function processString(string $text): string {
-    return strtoupper($text);
-}
-
-function toggleBoolean(bool $value): bool {
-    return !$value;
-}
-
-// Array and callable types
-function processArray(array $data): array {
-    return array_reverse($data);
-}
-
-function executeCallback(callable $callback): mixed {
-    return $callback();
-}
-
-// Usage
-echo addIntegers(5, 3);           // 8
-echo processString("hello");      // HELLO
-var_dump(toggleBoolean(true));    // bool(false)
-?>
-```
----
-
-### Union Types (PHP 8.0+)
-```php
-<?php
-function processValue(int|string $value): string {
-    if (is_int($value)) {
-        return "Number: $value";
-    }
-    return "String: $value";
-}
-
-echo processValue(42);     // Number: 42
-echo processValue("test"); // String: test
-
-// Nullable types
-function getName(?string $name): string {
-    return $name ?? 'Anonymous';
-}
-
-echo getName(null);    // Anonymous
-echo getName('John');  // John
-?>
-```
-
----
-
-### Return Type Declarations
-```php
-<?php
-function getUser(int $id): array {
-    return [
-        'id' => $id,
-        'name' => 'User ' . $id
-    ];
-}
-
-function calculateAverage(array $numbers): float {
-    return array_sum($numbers) / count($numbers);
-}
-
-function isValid(string $input): bool {
-    return strlen($input) > 0;
-}
-
-// Void return type
-function logMessage(string $message): void {
-    error_log($message);
-}
-?>
-```
 --- 
 
 ## Function Arguments
 
 ### Pass by Reference
+
+**Pass by reference** allows a function to modify the original variable instead of working with a copy. When you pass a variable by reference using the `&` symbol, the function receives direct access to the original variable's memory location.
+
+**Key Differences:**
+- **Pass by value (default)** - Function gets a copy of the variable
+- **Pass by reference** - Function gets direct access to the original variable
+
+This is useful when you need to:
+- Modify the original variable inside the function
+- Avoid copying large data structures (performance)
+- Return multiple values from a function
+
 ```php
 <?php
 // Pass by reference with &

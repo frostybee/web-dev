@@ -1,0 +1,459 @@
+---
+title: Login System
+description: Building a secure user login system with PHP
+draft: true
+sidebar:
+  label: 'Login System'
+  order: 3
+---
+
+## What is a Login System?
+
+A login system allows users to **create accounts** and **authenticate themselves** to access protected areas of your application. It combines user registration, password security, session management, and access control.
+
+**Core Components:**
+- User registration with secure password storage
+- Login form with authentication
+- Session-based user state management
+- Protected pages and logout functionality
+
+---
+
+## Database Setup
+
+First, create a users table to store user accounts:
+
+```sql
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+:::note[Password Storage]
+Never store plain text passwords! Always use `password_hash()` to create secure hashes.
+:::
+
+---
+
+## User Registration
+
+### Registration Form (register.html)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+</head>
+<body>
+    <h2>Create Account</h2>
+    <form method="POST" action="register.php">
+        <div>
+            <label>Username:</label>
+            <input type="text" name="username" required>
+        </div>
+        <div>
+            <label>Email:</label>
+            <input type="email" name="email" required>
+        </div>
+        <div>
+            <label>Password:</label>
+            <input type="password" name="password" required>
+        </div>
+        <div>
+            <label>Confirm Password:</label>
+            <input type="password" name="confirm_password" required>
+        </div>
+        <button type="submit">Register</button>
+    </form>
+    <p><a href="login.html">Already have an account? Login</a></p>
+</body>
+</html>
+```
+
+### Registration Processing (register.php)
+
+```php
+<?php
+session_start();
+
+// Database connection
+$pdo = new PDO('mysql:host=localhost;dbname=your_database', $username, $password);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username']);
+    $email = trim($_POST['email']);
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+    
+    // Validation
+    $errors = [];
+    
+    // Check if fields are empty
+    if (empty($username) || empty($email) || empty($password)) {
+        $errors[] = "All fields are required";
+    }
+    
+    // Check password match
+    if ($password !== $confirm_password) {
+        $errors[] = "Passwords do not match";
+    }
+    
+    // Check password strength
+    if (strlen($password) < 8) {
+        $errors[] = "Password must be at least 8 characters";
+    }
+    
+    // Check if username/email already exists
+    if (empty($errors)) {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
+        $stmt->execute([$username, $email]);
+        
+        if ($stmt->rowCount() > 0) {
+            $errors[] = "Username or email already exists";
+        }
+    }
+    
+    // If no errors, create user
+    if (empty($errors)) {
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+        
+        $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)");
+        
+        if ($stmt->execute([$username, $email, $password_hash])) {
+            $_SESSION['success'] = "Account created successfully! Please login.";
+            header('Location: login.html');
+            exit;
+        } else {
+            $errors[] = "Registration failed. Please try again.";
+        }
+    }
+    
+    // Store errors in session and redirect back
+    if (!empty($errors)) {
+        $_SESSION['errors'] = $errors;
+        header('Location: register.html');
+        exit;
+    }
+}
+?>
+```
+
+---
+
+## User Login
+
+### Login Form (login.html)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+</head>
+<body>
+    <h2>Login</h2>
+    
+    <?php
+    session_start();
+    // Display errors
+    if (isset($_SESSION['errors'])) {
+        foreach ($_SESSION['errors'] as $error) {
+            echo "<p style='color: red;'>$error</p>";
+        }
+        unset($_SESSION['errors']);
+    }
+    
+    // Display success message
+    if (isset($_SESSION['success'])) {
+        echo "<p style='color: green;'>" . $_SESSION['success'] . "</p>";
+        unset($_SESSION['success']);
+    }
+    ?>
+    
+    <form method="POST" action="login.php">
+        <div>
+            <label>Username or Email:</label>
+            <input type="text" name="username" required>
+        </div>
+        <div>
+            <label>Password:</label>
+            <input type="password" name="password" required>
+        </div>
+        <button type="submit">Login</button>
+    </form>
+    
+    <p><a href="register.html">Don't have an account? Register</a></p>
+</body>
+</html>
+```
+
+### Login Processing (login.php)
+
+```php
+<?php
+session_start();
+
+// Database connection
+$pdo = new PDO('mysql:host=localhost;dbname=your_database', $username, $password);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username']);
+    $password = $_POST['password'];
+    
+    if (empty($username) || empty($password)) {
+        $_SESSION['errors'] = ["Username and password are required"];
+        header('Location: login.html');
+        exit;
+    }
+    
+    // Find user by username or email
+    $stmt = $pdo->prepare("SELECT id, username, email, password_hash FROM users WHERE username = ? OR email = ?");
+    $stmt->execute([$username, $username]);
+    $user = $stmt->fetch();
+    
+    // Verify password
+    if ($user && password_verify($password, $user['password_hash'])) {
+        // Login successful - create session
+        session_regenerate_id(true); // Security: new session ID
+        
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['username'] = $user['username'];
+        $_SESSION['email'] = $user['email'];
+        $_SESSION['is_logged_in'] = true;
+        $_SESSION['last_activity'] = time();
+        
+        header('Location: dashboard.php');
+        exit;
+    } else {
+        // Login failed
+        $_SESSION['errors'] = ["Invalid username or password"];
+        header('Location: login.html');
+        exit;
+    }
+}
+?>
+```
+
+---
+
+## Protected Pages
+
+### Dashboard (dashboard.php)
+
+```php
+<?php
+session_start();
+
+// Check if user is logged in
+if (!isset($_SESSION['is_logged_in']) || !$_SESSION['is_logged_in']) {
+    header('Location: login.html');
+    exit;
+}
+
+// Check session timeout (30 minutes)
+if (time() - $_SESSION['last_activity'] > 1800) {
+    session_unset();
+    session_destroy();
+    header('Location: login.html');
+    exit;
+}
+
+// Update last activity
+$_SESSION['last_activity'] = time();
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Welcome, <?= htmlspecialchars($_SESSION['username'], ENT_QUOTES, 'UTF-8') ?>!</h1>
+    
+    <p>Email: <?= htmlspecialchars($_SESSION['email'], ENT_QUOTES, 'UTF-8') ?></p>
+    
+    <nav>
+        <a href="profile.php">Profile</a>
+        <a href="settings.php">Settings</a>
+        <a href="logout.php">Logout</a>
+    </nav>
+    
+    <h2>Dashboard Content</h2>
+    <p>This is a protected page that only logged-in users can see.</p>
+</body>
+</html>
+```
+
+### Authentication Helper (auth_check.php)
+
+Create a reusable authentication check:
+
+```php
+<?php
+function requireLogin() {
+    session_start();
+    
+    // Check if user is logged in
+    if (!isset($_SESSION['is_logged_in']) || !$_SESSION['is_logged_in']) {
+        header('Location: login.html');
+        exit;
+    }
+    
+    // Check session timeout (30 minutes)
+    if (time() - $_SESSION['last_activity'] > 1800) {
+        session_unset();
+        session_destroy();
+        header('Location: login.html');
+        exit;
+    }
+    
+    // Update last activity
+    $_SESSION['last_activity'] = time();
+}
+
+// Usage in protected pages:
+// require_once 'auth_check.php';
+// requireLogin();
+?>
+```
+
+---
+
+## User Logout
+
+### Logout Process (logout.php)
+
+```php
+<?php
+session_start();
+
+// Destroy all session data
+$_SESSION = [];
+
+// Delete the session cookie
+if (isset($_COOKIE[session_name()])) {
+    setcookie(session_name(), '', time() - 3600, '/');
+}
+
+// Destroy the session
+session_destroy();
+
+// Redirect to login with message
+session_start(); // Start new session for message
+$_SESSION['success'] = "You have been logged out successfully";
+header('Location: login.html');
+exit;
+?>
+```
+
+---
+
+## Security Best Practices
+
+### 1. Password Security
+
+```php
+// Always hash passwords
+$password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+// Always verify with hash
+if (password_verify($password, $stored_hash)) {
+    // Password is correct
+}
+
+// Strong password requirements
+function validatePassword($password) {
+    return strlen($password) >= 8 && 
+           preg_match('/[A-Z]/', $password) && 
+           preg_match('/[a-z]/', $password) && 
+           preg_match('/\d/', $password);
+}
+```
+
+### 2. Session Security
+
+```php
+// Regenerate session ID after login
+session_regenerate_id(true);
+
+// Set secure session settings
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_secure', 1); // Only if using HTTPS
+ini_set('session.use_strict_mode', 1);
+
+// Implement session timeout
+$timeout = 1800; // 30 minutes
+if (time() - $_SESSION['last_activity'] > $timeout) {
+    // Session expired
+    session_unset();
+    session_destroy();
+}
+```
+
+### 3. Input Validation & Sanitization
+
+```php
+// Validate and sanitize inputs
+$username = filter_var(trim($_POST['username']), FILTER_SANITIZE_STRING);
+$email = filter_var(trim($_POST['email']), FILTER_VALIDATE_EMAIL);
+
+// Always escape output
+echo htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
+```
+
+### 4. Rate Limiting (Basic)
+
+```php
+// Simple login attempt tracking
+function checkLoginAttempts($username) {
+    if (!isset($_SESSION['login_attempts'][$username])) {
+        $_SESSION['login_attempts'][$username] = 0;
+    }
+    
+    if ($_SESSION['login_attempts'][$username] >= 5) {
+        die("Too many login attempts. Please try again later.");
+    }
+}
+
+// On failed login
+$_SESSION['login_attempts'][$username]++;
+
+// On successful login
+unset($_SESSION['login_attempts'][$username]);
+```
+
+---
+
+## Complete File Structure
+
+```
+login-system/
+├── register.html          # Registration form
+├── register.php          # Registration processing
+├── login.html            # Login form  
+├── login.php             # Login processing
+├── dashboard.php         # Protected dashboard page
+├── logout.php            # Logout processing
+├── auth_check.php        # Reusable authentication helper
+└── config/
+    └── database.php      # Database connection
+```
+
+---
+
+## Key Takeaways
+
+1. **Never store plain text passwords** - Always use `password_hash()`
+2. **Validate all inputs** - Check for required fields, format, and security
+3. **Use sessions securely** - Regenerate IDs, implement timeouts, secure settings
+4. **Escape all output** - Prevent XSS with `htmlspecialchars()`
+5. **Protect all sensitive pages** - Check authentication on every protected page
+6. **Implement proper logout** - Clear sessions and cookies completely
+
+This login system provides a solid foundation for user authentication while following security best practices.
+

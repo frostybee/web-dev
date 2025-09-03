@@ -1,0 +1,190 @@
+---
+title: PHP Input Methods
+description: Complete guide to working with PHP Input Methods
+sidebar:
+  label: 'Input Methods'
+  order: 1
+---
+
+## Superglobals Overview
+
+PHP automatically collects input data into special arrays called **superglobals**. These arrays are available everywhere in your script without any setup.
+
+Think of superglobals as **different mailboxes** where PHP sorts **incoming data** based on how it arrived.
+
+Key superglobals: `$_GET`, `$_POST`, `$_FILES`, `$_COOKIE`, `$_SESSION`, `$_ENV`
+
+---
+
+## 1. GET Parameters
+
+- **Use for:** Search queries, pagination, filters, shareable URLs
+- **Limitation:** Visible in URL, size restricted, not secure for sensitive data
+
+```php
+// URL: script.php?name=John&age=25
+$name = $_GET['name'];    // "John" 
+$age = $_GET['age'];      // "25"
+
+// Always check if parameter exists
+$search = $_GET['query'] ?? 'default';
+```
+---
+
+## 2. POST Data
+
+- **Use for:** Form submissions, user registration, login, data modification
+- **Advantage:** Hidden from URL, handles large amounts of data
+
+```php
+// From HTML form with method="POST"
+$username = $_POST['username'];
+$email = $_POST['email'];
+
+// Validate before using
+if (!empty($_POST['username'])) {
+    echo htmlspecialchars($_POST['username']);
+}
+```
+
+---
+
+## 3. Command Line Arguments
+
+- **Use for:** Automation scripts, batch processing, system utilities
+- **Perfect for:** Cron jobs and developer tools
+
+```php
+// Command: php script.php file.txt backup
+$scriptName = $argv[0];   // "script.php"
+$filename = $argv[1];     // "file.txt" 
+$action = $argv[2];       // "backup"
+$argCount = $argc;        // 3
+```
+
+
+---
+
+## 4. File Uploads
+
+- **Use for:** User file uploads, attachments, documents
+- **Best practice:** Implement security checks (size, type, location)
+
+```php
+// HTML: <input type="file" name="document">
+$file = $_FILES['document'];
+$name = $file['name'];        // Original filename
+$tmpPath = $file['tmp_name']; // Temporary location
+$size = $file['size'];        // File size in bytes
+
+if ($file['error'] === UPLOAD_ERR_OK) {
+    move_uploaded_file($tmpPath, "uploads/" . $name);
+}
+```
+
+
+
+---
+
+## 5. Cookies
+
+- **Use for:** User preferences, shopping cart, remember settings
+- **Limitation:** 4KB size limit, can be disabled by users
+
+```php
+// Set cookie (before any output)
+setcookie('theme', 'dark', time() + 3600); // 1 hour
+
+// Read cookie
+$theme = $_COOKIE['theme'] ?? 'light'; // Default to light
+```
+
+
+---
+
+## 6. Sessions
+
+- **Use for:** User authentication, shopping carts, multi-step forms
+- **Advantage:** Server-side storage, secure, larger data capacity
+
+```php
+session_start(); // Always call first
+
+// Store data
+$_SESSION['user_id'] = 123;
+$_SESSION['username'] = 'alice';
+
+// Read data
+if (isset($_SESSION['user_id'])) {
+    echo "Welcome, " . $_SESSION['username'];
+}
+```
+
+
+---
+
+## 7. Environment Variables
+
+- **Use for:** Configuration, API keys, database credentials
+- **Best practice:** Keep sensitive data out of source code
+
+```php
+// Read configuration from environment
+$dbUrl = $_ENV['DATABASE_URL'];
+$apiKey = getenv('API_SECRET');
+$debug = $_SERVER['APP_DEBUG'] ?? 'false';
+
+// Set environment variable
+putenv('TEMP_PATH=/tmp/myapp');
+```
+
+
+---
+
+## 8. Standard Input (STDIN)
+
+- **Use for:** Interactive CLI scripts, data processing pipelines
+- **Works with:** Pipes (`echo "data" | php script.php`) and file redirection
+
+```php
+// Interactive command line input
+echo "Enter your name: ";
+$name = trim(fgets(STDIN));
+
+// Read until end of file
+$allInput = stream_get_contents(STDIN);
+```
+
+
+---
+
+## Security Essentials
+
+Every external input is potentially dangerous until validated.
+
+- **Golden Rule:** Never trust user input directly
+
+- Validate all input data (type, length, format)
+- Use `htmlspecialchars()` for output
+- Use prepared statements for database queries  
+- Check file uploads carefully
+- Implement input filtering early in your application
+
+
+---
+
+## Choosing the Right Method
+
+Match the input method to your specific needs and security requirements.
+
+:::note[Quick Decision Guide]
+- **Sensitive data?** → POST or Sessions
+- **Shareable URLs?** → GET parameters  
+- **Persist across visits?** → Cookies or Sessions
+- **System configuration?** → Environment variables
+- **File uploads?** → $_FILES with POST
+- **Command line tools?** → $argv or STDIN
+- **Interactive scripts?** → STDIN
+:::
+
+---

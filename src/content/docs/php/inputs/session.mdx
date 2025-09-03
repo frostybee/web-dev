@@ -1,0 +1,309 @@
+--- 
+title: PHP Sessions
+description: Working with PHP Sessions
+sidebar:
+  label: 'PHP Sessions'
+  order: 1
+---
+
+## What are PHP Sessions?
+
+PHP sessions allow you to **store user data across multiple pages** during a user's visit to your website. Unlike cookies, session data is stored on the server and only a session ID is sent to the user's browser.
+
+**Common uses:**
+- User login status
+- Shopping cart contents  
+- User preferences
+- Form data across multiple steps
+
+---
+
+## How Sessions Work
+
+1. **Server creates** a unique session ID
+2. **Session ID sent** to browser as a cookie
+3. **Browser sends** session ID with each request
+4. **Server uses** session ID to retrieve stored data
+
+---
+
+## Starting a Session
+
+
+Always start sessions at the very beginning of your PHP file, before any HTML output:
+
+
+```php
+<?php
+session_start(); // Must be first thing in your PHP file
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Page</title>
+</head>
+```
+
+:::caution[Important]
+`session_start()` must be called **before any HTML, whitespace, or output**. Otherwise, you'll get a "headers already sent" error.
+:::
+
+---
+
+## Adding Session Data
+
+```php
+<?php
+session_start();
+
+// Add single values
+$_SESSION['username'] = 'john_doe';
+$_SESSION['user_id'] = 123;
+$_SESSION['is_logged_in'] = true;
+
+// Add arrays
+$_SESSION['cart'] = ['product1', 'product2'];
+$_SESSION['user_preferences'] = [
+    'theme' => 'dark',
+    'language' => 'en'
+];
+?>
+```
+
+---
+
+## Reading Session Data
+
+```php
+<?php
+session_start();
+
+// Check if session data exists
+if (isset($_SESSION['username'])) {
+    echo "Welcome, " . $_SESSION['username'];
+} else {
+    echo "Please log in";
+}
+
+// Get data with default value
+$theme = $_SESSION['theme'] ?? 'light';
+?>
+```
+
+---
+
+## Removing Session Data
+
+### Remove Specific Items
+```php
+<?php
+session_start();
+
+// Remove single item
+unset($_SESSION['cart']);
+unset($_SESSION['temp_data']);
+?>
+```
+
+### Remove All Session Data
+```php
+<?php
+session_start();
+
+// Method 1: Clear all session variables
+$_SESSION = [];
+
+// Method 2: Destroy the entire session
+session_destroy();
+?>
+```
+
+---
+
+## Common Session Functions
+
+| Function | Purpose |
+|----------|---------|
+| `session_start()` | Start or resume a session |
+| `session_destroy()` | Destroy all session data |
+| `session_regenerate_id()` | Generate new session ID |
+| `session_unset()` | Clear all session variables |
+| `isset($_SESSION['key'])` | Check if session variable exists |
+| `unset($_SESSION['key'])` | Remove specific session variable |
+
+---
+
+## Session Configuration
+
+### Setting Session Timeout
+
+Configure how long sessions should last before expiring:
+
+```php
+<?php
+// Set session timeout to 30 minutes (1800 seconds)
+ini_set('session.gc_maxlifetime', 1800);
+
+// Set session cookie lifetime (0 = until browser closes)
+ini_set('session.cookie_lifetime', 0);
+
+session_start();
+
+// Manual timeout check
+$timeout = 1800; // 30 minutes in seconds
+
+if (isset($_SESSION['last_activity'])) {
+    if (time() - $_SESSION['last_activity'] > $timeout) {
+        // Session expired
+        session_unset();
+        session_destroy();
+        header('Location: login.php');
+        exit;
+    }
+}
+
+// Update last activity time
+$_SESSION['last_activity'] = time();
+?>
+```
+
+---
+
+### Session Cookie Configuration
+
+Control how session cookies behave:
+
+```php
+<?php
+// Configure session cookies before starting session
+ini_set('session.cookie_httponly', 1);    // Prevent JavaScript access
+ini_set('session.cookie_secure', 1);      // HTTPS only (use only with SSL)
+ini_set('session.cookie_samesite', 'Strict'); // CSRF protection
+ini_set('session.use_strict_mode', 1);    // Prevent session fixation
+
+session_start();
+?>
+```
+
+---
+
+### Session Storage Configuration
+
+```php
+<?php
+// Set session save path (where sessions are stored)
+ini_set('session.save_path', '/tmp/sessions');
+
+// Set session name (default is PHPSESSID)
+ini_set('session.name', 'MY_APP_SESSION');
+
+// Set how often garbage collection runs (1% chance)
+ini_set('session.gc_probability', 1);
+ini_set('session.gc_divisor', 100);
+
+session_start();
+?>
+```
+---
+
+### Complete Configuration Example
+
+```php
+<?php
+// config/session_config.php
+
+function configureSession() {
+    // Security settings
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.cookie_secure', 1);      // Only if using HTTPS
+    ini_set('session.cookie_samesite', 'Strict');
+    ini_set('session.use_strict_mode', 1);
+    
+    // Timeout settings
+    ini_set('session.gc_maxlifetime', 1800);  // 30 minutes
+    ini_set('session.cookie_lifetime', 0);    // Until browser closes
+    
+    // Cleanup settings
+    ini_set('session.gc_probability', 1);
+    ini_set('session.gc_divisor', 100);
+    
+    // Custom session name
+    ini_set('session.name', 'SECURE_SESSION');
+}
+
+// Usage in your files:
+configureSession();
+session_start();
+?>
+```
+
+---
+
+## Session Security Tips
+
+1. **Always regenerate session ID** after login:
+   ```php
+   session_regenerate_id(true);
+   ```
+
+2. **Set secure session settings** in php.ini or code:
+   ```php
+   ini_set('session.cookie_httponly', 1);
+   ini_set('session.cookie_secure', 1);
+   ```
+
+3. **Implement session timeout**:
+   ```php
+   // Check if session has expired (30 minutes)
+   if (time() - $_SESSION['last_activity'] > 1800) {
+       session_unset();
+       session_destroy();
+   }
+   $_SESSION['last_activity'] = time();
+   ```
+
+---
+
+## Quick Session Examples
+
+### Basic Usage
+```php
+<?php
+session_start();
+
+// Store data
+$_SESSION['username'] = 'john_doe';
+
+// Read data
+if (isset($_SESSION['username'])) {
+    echo "Hello, " . $_SESSION['username'];
+}
+
+// Remove data
+unset($_SESSION['username']);
+?>
+```
+
+### Shopping Cart
+```php
+<?php
+session_start();
+
+// Initialize cart
+if (!isset($_SESSION['cart'])) {
+    $_SESSION['cart'] = [];
+}
+
+// Add product
+$_SESSION['cart'][] = $product_id;
+
+// Count items
+$item_count = count($_SESSION['cart']);
+?>
+```
+
+:::tip[Need a Complete Login System?]
+For a comprehensive guide on implementing user authentication with sessions, including login forms, password hashing, and security best practices, see our **[User Login System Guide](../../security/login-system)**.
+:::
+
+---

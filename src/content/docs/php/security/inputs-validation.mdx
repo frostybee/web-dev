@@ -1,0 +1,293 @@
+---
+title: Inputs Validation
+description: Working with Inputs Validation
+draft: true
+sidebar:
+  label: 'Inputs Validation'
+  order: 1
+---
+
+## What is Input Validation?
+
+Input validation is the process of **checking and cleaning user data** before your application uses it. This ensures that data meets your expected format, type, and business requirements.
+
+Input validation serves two critical purposes:
+1. **Application Integrity** - Ensures data meets your business rules and system requirements
+2. **Security Protection** - Prevents malicious or malformed data from entering your system
+
+For example, validating that an age is between 1-120 ensures both **business logic** (realistic age ranges) and **security** (prevents injection attacks through unexpected values).
+
+---
+
+## Why Validate Input?
+
+Without proper validation, attackers can:
+- **Inject malicious code** (SQL injection, XSS)
+- **Crash your application** with unexpected data types
+- **Bypass business logic** with invalid values
+- **Corrupt your database** with malformed data
+
+---
+
+## Types of Validation
+
+### 1. Format Validation
+
+Format validation ensures data follows expected patterns and structures. This is critical for:
+
+**Email Addresses:**
+- Prevents invalid email formats from breaking email functionality
+- Ensures proper communication with users
+- Reduces bounce rates and delivery failures
+
+**Phone Numbers:**
+- Standardizes contact information storage
+- Enables automated calling/SMS features
+- Ensures compatibility with telephony systems
+
+**Credit Card Numbers:**
+- Validates card number structure before payment processing
+- Prevents obvious fraud attempts
+- Reduces payment gateway errors
+
+**Postal Codes/ZIP Codes:**
+- Ensures shipping calculations work correctly
+- Validates geographic regions for tax/shipping rules
+- Prevents delivery failures
+
+### 2. Type Validation
+
+Type validation ensures data is the correct data type your application expects. This prevents:
+
+**Application Crashes:**
+- Mathematical operations on non-numeric data
+- Database errors from incorrect data types
+- Function calls with wrong parameter types
+
+**Business Logic Errors:**
+- Age calculations with text values
+- Price calculations with invalid numbers
+- Date operations with malformed dates
+
+**Common Type Validations:**
+- **Integers** - IDs, quantities, ages, ratings
+- **Floats** - Prices, measurements, percentages
+- **URLs** - Website links, profile URLs, API endpoints
+- **Dates** - Birth dates, appointment times, expiration dates
+- **Booleans** - Settings, preferences, flags
+
+### 3. Length Validation
+
+Length validation prevents both technical issues and business rule violations:
+
+**Database Protection:**
+- Prevents data truncation in database fields
+- Avoids database errors from oversized data
+- Maintains data integrity across systems
+
+**Performance Considerations:**
+- Large text inputs can slow down processing
+- Excessive data increases bandwidth usage
+- Storage costs increase with larger data
+
+**User Experience:**
+- Provides clear feedback on input limits
+- Prevents form submission failures
+- Guides users to appropriate input sizes
+
+**Security Benefits:**
+- Prevents buffer overflow attacks
+- Limits resource consumption from large inputs
+- Reduces denial-of-service attack vectors
+
+**Common Length Requirements:**
+- **Usernames** - 3-20 characters (readability vs uniqueness)
+- **Passwords** - Minimum 8+ characters (security requirement)
+- **Product Names** - 1-100 characters (display constraints)
+- **Comments** - Maximum 500-2000 characters (spam prevention)
+- **Addresses** - Field-specific limits based on postal standards
+
+---
+
+## PHP's Filter Functions
+
+### filter_var() Function
+
+```php
+filter_var(
+    mixed $value,           // Value to filter
+    int $filter,           // Filter to apply
+    array|int $options = 0  // Filter options
+): mixed                   // Returns filtered value or false
+```
+
+**Common filters:**
+- `FILTER_VALIDATE_EMAIL` - Validates email addresses
+- `FILTER_VALIDATE_INT` - Validates integers with optional range
+- `FILTER_VALIDATE_URL` - Validates URLs
+- `FILTER_SANITIZE_STRING` - Removes/encodes special characters
+
+### Sanitization vs Validation
+
+```php
+// SANITIZATION - Clean the data
+$name = filter_var($_POST['name'], FILTER_SANITIZE_STRING);
+
+// VALIDATION - Check if data is acceptable
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    // Reject invalid data
+    die("Invalid email");
+}
+```
+
+---
+
+## Whitelist vs Blacklist
+
+### ✅ Whitelist Approach (Recommended)
+Only allow known good values:
+
+```php
+$allowedCountries = ['US', 'CA', 'UK', 'AU'];
+$country = $_POST['country'];
+
+if (!in_array($country, $allowedCountries)) {
+    die("Invalid country selection");
+}
+```
+
+### ❌ Blacklist Approach (Avoid)
+Try to block known bad values:
+
+```php
+// DON'T DO THIS - easily bypassed
+$badWords = ['script', 'select', 'drop'];
+$input = $_POST['comment'];
+
+foreach ($badWords as $word) {
+    if (strpos(strtolower($input), $word) !== false) {
+        die("Invalid input detected");
+    }
+}
+```
+
+---
+
+## Practical Validation Examples
+
+### User Registration Form
+
+```php
+function validateUserRegistration($data) {
+    $errors = [];
+    
+    // Username validation
+    if (empty($data['username'])) {
+        $errors[] = "Username is required";
+    } elseif (!preg_match('/^[a-zA-Z0-9_]{3,20}$/', $data['username'])) {
+        $errors[] = "Username must be 3-20 characters, letters/numbers/underscore only";
+    }
+    
+    // Email validation
+    if (empty($data['email'])) {
+        $errors[] = "Email is required";
+    } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        $errors[] = "Invalid email format";
+    }
+    
+    // Password validation
+    if (empty($data['password'])) {
+        $errors[] = "Password is required";
+    } elseif (strlen($data['password']) < 8) {
+        $errors[] = "Password must be at least 8 characters";
+    }
+    
+    return $errors;
+}
+
+// Usage
+$errors = validateUserRegistration($_POST);
+if (!empty($errors)) {
+    foreach ($errors as $error) {
+        echo "<p style='color: red;'>$error</p>";
+    }
+    exit;
+}
+```
+
+### Product Form Validation
+
+```php
+function validateProduct($data) {
+    $errors = [];
+    
+    // Product name
+    if (empty($data['name'])) {
+        $errors[] = "Product name is required";
+    } elseif (strlen($data['name']) > 100) {
+        $errors[] = "Product name cannot exceed 100 characters";
+    }
+    
+    // Price validation
+    if (empty($data['price'])) {
+        $errors[] = "Price is required";
+    } elseif (!is_numeric($data['price']) || $data['price'] <= 0) {
+        $errors[] = "Price must be a positive number";
+    }
+    
+    // Category whitelist
+    $validCategories = ['electronics', 'clothing', 'books', 'home'];
+    if (empty($data['category'])) {
+        $errors[] = "Category is required";
+    } elseif (!in_array($data['category'], $validCategories)) {
+        $errors[] = "Invalid category selected";
+    }
+    
+    return $errors;
+}
+```
+
+---
+
+## Common Mistakes
+
+### 1. Client-Side Only Validation
+```php
+// WRONG - Never trust client-side validation alone
+// JavaScript validation can be bypassed
+
+// CORRECT - Always validate on server-side
+if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+    die("Invalid email");
+}
+```
+
+### 2. Trusting "Safe" Sources
+```php
+// WRONG - Even database data can be corrupted
+$userInput = $row['user_comment']; // From database
+echo $userInput; // Still needs escaping!
+
+// CORRECT - Validate/escape all dynamic content
+echo htmlspecialchars($row['user_comment'], ENT_QUOTES, 'UTF-8');
+```
+
+---
+
+## Best Practices
+
+1. **Validate Early** - Check input as soon as it enters your application
+2. **Use Whitelists** - Define what's allowed, not what's forbidden  
+3. **Validate Everything** - Don't assume any input is safe
+4. **Provide Clear Errors** - Help users understand what went wrong
+5. **Combine with Output Escaping** - Input validation + output escaping = comprehensive protection
+
+:::note[Remember]
+Input validation **prevents bad data from entering** your system.  
+Output escaping **prevents bad data from causing harm** when displayed.  
+
+**Use both together** for complete security!
+:::
+
+
+---

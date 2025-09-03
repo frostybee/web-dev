@@ -50,6 +50,8 @@ $pdo = new PDO(
 
 ## Prepared Statements
 
+A **prepared statement** is a feature where you separate SQL code from data. Instead of directly inserting values into your SQL query, you create a template with placeholders (like `:name` or `?`) and then send the actual values separately. This approach allows the database to distinguish between SQL commands and user data, making your application more secure and efficient.
+
 **Prepared Statement Syntax:**
 ```php
 // With named placeholders
@@ -80,6 +82,55 @@ $stmt = $pdo->prepare("SELECT * FROM users WHERE age > ?");
 ### Step 3: Bind Parameters (if needed)
 - Use `bindParam()` or `bindValue()` for individual parameters
 - Or pass array to `execute()` method
+
+#### Parameter Binding Examples
+
+**Method 1: Using `bindParam()`**
+```php
+$stmt = $pdo->prepare("SELECT * FROM users WHERE age > :min_age AND city = :city");
+
+$minAge = 18;
+$city = "New York";
+
+// bindParam() binds by reference - variable changes affect the query
+$stmt->bindParam(':min_age', $minAge, PDO::PARAM_INT);
+$stmt->bindParam(':city', $city, PDO::PARAM_STR);
+
+$stmt->execute();
+```
+
+**Method 2: Using `bindValue()`**
+```php
+$stmt = $pdo->prepare("SELECT * FROM products WHERE price < :max_price AND category = :category");
+
+// bindValue() binds by value - variable changes don't affect the query
+$stmt->bindValue(':max_price', 100.00, PDO::PARAM_STR);
+$stmt->bindValue(':category', 'Electronics', PDO::PARAM_STR);
+
+$stmt->execute();
+```
+
+**Method 3: Array with Named Parameters**
+```php
+$stmt = $pdo->prepare("SELECT * FROM orders WHERE status = :status AND created_date > :date");
+
+$stmt->execute([
+    ':status' => 'pending',
+    ':date' => '2024-01-01'
+]);
+```
+
+**Method 4: Array with Positional Parameters**
+```php
+$stmt = $pdo->prepare("SELECT * FROM customers WHERE country = ? AND active = ?");
+
+$stmt->execute(['USA', 1]);
+```
+
+**Key Differences:**
+- **`bindParam()`**: Binds by reference, evaluated at `execute()` time
+- **`bindValue()`**: Binds by value, evaluated immediately
+- **Array to `execute()`**: Most common and convenient method
 
 ---
 

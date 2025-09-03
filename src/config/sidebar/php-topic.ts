@@ -36,30 +36,42 @@ export default
         },
         {
           label: "Strings",
+          collapsed: true,
           autogenerate: {
             directory: "php/strings",
           }
         },
         {
           label: "Arrays",
+          collapsed: true,
           autogenerate: {
             directory: "php/arrays",
           }
         },
         {
           label: "Functions",
+          collapsed: true,
           autogenerate: {
             directory: "php/functions",
           }
         },
         {
           label: "PHP - MySQL Integration",
+          collapsed: true,
           autogenerate: {
             directory: "php/pdo",
           }
         },
         {
+          label: "PHP Input Methods",
+          collapsed: true,
+          autogenerate: {
+            directory: "php/inputs",
+          }
+        },
+        {
           label: "Security",
+          collapsed: true,
           autogenerate: {
             directory: "php/security",
           }
