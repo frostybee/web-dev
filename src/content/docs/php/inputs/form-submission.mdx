@@ -1,0 +1,204 @@
+---
+title: Form Submission in PHP
+description: Working with Form Submission
+sidebar:
+  label: 'Form Submission'
+  order: 2
+  badge:
+    text: New!
+    variant: danger
+---
+
+## HTTP Methods for Forms
+
+### GET Method
+- Data sent in URL parameters
+- Visible in browser address bar
+- Limited data size (~2048 characters)
+- **Use for**: Search forms, filtering
+
+### POST Method  
+- Data sent in request body
+- Not visible in URL
+- No size limitations
+- **Use for**: Sensitive data, large forms
+
+## Step 1: Create the HTML Form
+Set up a form with the `POST` method and specify the action file:
+```html
+<form method="POST" action="process.php">
+    <input type="text" name="username" required>
+    <input type="email" name="email" required>
+    <button type="submit">Submit</button>
+</form>
+```
+
+:::note[Key Concepts]
+- `method`: Specifies the HTTP method to use for the form submission (GET or POST).
+- `action`: Specifies the PHP file that will process the form.
+- `name`: Identifies each form field for PHP processing
+:::
+
+---
+
+## Step 2: Check if Form was Submitted
+Use `$_POST` superglobal to detect form submission:
+```php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Form was submitted using POST method    
+}
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    // Form was submitted using GET method    
+}
+```
+
+## Step 3: Retrieve Form Data
+Access submitted data using the input's `name` attribute:
+```php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+}
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $username = $_GET['username'];
+    $email = $_GET['email'];
+}
+```
+
+---
+
+## Step 4: Validate Input Data
+Always validate user input before processing:
+```php
+if (!empty($username) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    // Data is valid
+}
+```
+
+## Step 5: Process the Data
+Perform your business logic (save to database, send email, etc.):
+```php
+// Example: Save to database or send confirmation
+echo "Thank you, " . htmlspecialchars($username);
+```
+
+---
+
+## Step 6: Handle Errors
+Provide feedback for invalid submissions:
+```php
+if (empty($username)) {
+    $error = "Username is required";
+}
+```
+
+---
+
+## Step 7: Implement Post/Redirect/Get (PRG) Pattern
+Redirect **after successful** form processing to prevent **duplicate submissions**:
+```php
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_data) {
+    // Process the form data
+    // Save to database, send email, etc.
+    
+    // Redirect to prevent resubmission
+    header('Location: success.php');
+    exit();
+}
+```
+
+:::note[Header Function Explained]
+- `header('Location: success.php')`: Sends an HTTP redirect response to the browser
+- The browser automatically navigates to the specified URL
+- `exit()`: Stops PHP execution to ensure the redirect happens immediately
+- Must be called before any output is sent to the browser
+:::
+
+---
+
+## Post/Redirect/Get (PRG) Pattern
+
+### What is PRG?
+The PRG pattern prevents duplicate form submissions when users refresh the page after submitting a form.
+
+### How PRG Works:
+1. **POST**: User submits form data via POST request
+2. **Redirect**: Server processes data and sends a redirect response
+3. **GET**: Browser makes a new GET request to the redirect URL
+
+### Benefits of PRG:
+- Prevents duplicate submissions on page refresh
+- Improves user experience
+- Maintains clean browser history
+- Separates form processing from result display
+
+---
+
+### PRG Implementation Example:
+```php
+// process_form.php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate and process data
+    if ($success) {
+        $_SESSION['message'] = 'Form submitted successfully!';
+        header('Location: thank_you.php');
+        exit();
+    }
+}
+```
+---
+
+## Handling Invalid Form Data
+
+### When NOT to Redirect
+**Never redirect when form validation fails.** Instead, keep the user on the same page to:
+- Display validation errors
+- Preserve user input data
+- Allow immediate correction and resubmission
+
+### Invalid Data Flow:
+1. **Validate**: Check form data for errors
+2. **Stay**: Keep user on the form page (no redirect)
+3. **Display**: Show specific error messages
+4. **Preserve**: Maintain form values for user convenience
+
+
+### Complete Flow Summary:
+- **Valid Data**: POST → Process → Redirect → GET (PRG Pattern)
+- **Invalid Data**: POST → Validate → Stay on Page → Show Errors
+
+---
+
+## Implementation Example:
+```php
+$errors = [];
+$username = $_POST['username'] ?? '';
+$email = $_POST['email'] ?? '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate input
+    if (empty($username)) {
+        $errors[] = 'Username is required';
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Valid email is required';
+    }
+    
+    // Only redirect if NO errors
+    if (empty($errors)) {
+        // Process data and redirect (PRG)
+        header('Location: success.php');
+        exit();
+    }
+    // If errors exist, stay on page and display them
+}
+```
+
+---
+
+## Security Best Practices
+- Always validate and sanitize input data
+- Use `htmlspecialchars()` to prevent XSS attacks
+- Never trust user input directly
+- Consider using CSRF tokens for sensitive forms
+- Implement the PRG pattern to prevent duplicate submissions 

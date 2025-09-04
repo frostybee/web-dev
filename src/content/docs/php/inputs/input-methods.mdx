@@ -4,6 +4,9 @@ description: Complete guide to working with PHP Input Methods
 sidebar:
   label: 'Input Methods'
   order: 1
+  badge:
+    text: New!
+    variant: danger
 ---
 
 ## Superglobals Overview
@@ -16,12 +19,35 @@ Key superglobals: `$_GET`, `$_POST`, `$_FILES`, `$_COOKIE`, `$_SESSION`, `$_ENV`
 
 ---
 
-## 1. GET Parameters
+## Choosing the Right Method
+
+Match the input method to your specific needs and security requirements.
+
+:::note[Quick Decision Guide]
+- **Sensitive data?** → POST or Sessions
+- **Shareable URLs?** → GET parameters  
+- **Persist across visits?** → Cookies or Sessions
+- **System configuration?** → Environment variables
+- **File uploads?** → $_FILES with POST
+- **Command line tools?** → $argv or STDIN
+- **Interactive scripts?** → STDIN
+:::
+
+---
+
+## 1. GET Query String Parameters
 
 - **Use for:** Search queries, pagination, filters, shareable URLs
 - **Limitation:** Visible in URL, size restricted, not secure for sensitive data
 
-```php
+**Syntax:**
+```php title="Passing inputs using GET Query String Parameters"
+// URL: script.php?param1=value1&param2=value2
+$param1 = $_GET['param1'];    // "value1" 
+$param2 = $_GET['param2'];      // "value2"
+```
+
+```php title="Retrieving inputs using GET Query String Parameters"
 // URL: script.php?name=John&age=25
 $name = $_GET['name'];    // "John" 
 $age = $_GET['age'];      // "25"
@@ -163,28 +189,10 @@ $allInput = stream_get_contents(STDIN);
 Every external input is potentially dangerous until validated.
 
 - **Golden Rule:** Never trust user input directly
-
 - Validate all input data (type, length, format)
 - Use `htmlspecialchars()` for output
 - Use prepared statements for database queries  
 - Check file uploads carefully
 - Implement input filtering early in your application
-
-
----
-
-## Choosing the Right Method
-
-Match the input method to your specific needs and security requirements.
-
-:::note[Quick Decision Guide]
-- **Sensitive data?** → POST or Sessions
-- **Shareable URLs?** → GET parameters  
-- **Persist across visits?** → Cookies or Sessions
-- **System configuration?** → Environment variables
-- **File uploads?** → $_FILES with POST
-- **Command line tools?** → $argv or STDIN
-- **Interactive scripts?** → STDIN
-:::
 
 ---

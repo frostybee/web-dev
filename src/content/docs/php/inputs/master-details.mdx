@@ -1,0 +1,148 @@
+---
+title: Master-Details in PHP
+description: Working with Master-Details in PHP
+sidebar:
+  label: 'Master-Details'
+  order: 3
+  badge:
+    text: New!
+    variant: danger
+---
+
+## What is Master-Details?
+
+- Master-Details is a UI pattern that displays a list of items (master) alongside detailed information about a selected item (details). 
+- Common examples include email clients, product catalogs, and user management systems, etc.
+
+---
+
+## Step 1: Plan Your Database Structure
+Design tables with a **clear relationship** between master and detail records:
+```sql
+-- Master table (e.g., products)
+CREATE TABLE products (
+    id INT PRIMARY KEY,
+    name VARCHAR(255),
+    category VARCHAR(100)
+);
+
+-- Details can be in the same table or related tables
+```
+
+:::note[Key Concepts]
+- **Master**: The list view showing summary information
+- **Details**: The detailed view of a selected item
+- **Selection**: Method to choose which item's details to display
+:::
+
+---
+
+## Step 2: Create the Master List
+Display all items in a **summary format** with selection links:
+
+```php
+// Fetch all products
+$products = fetchAllProducts();
+
+foreach ($products as $product) {
+    echo "<a href='?id={$product['id']}'>{$product['name']}</a>";
+}
+```
+
+---
+
+## Step 3: Handle Item Selection
+You can use **URI parameters** or **forms** to identify which item to show details for:
+
+```php
+$selected_id = $_GET['id'] ?? null;
+
+if ($selected_id) {
+    $selected_item = fetchProductById($selected_id);
+}
+```
+:::note[Key Concepts]
+- **URI parameters**: The `id` parameter is appended to the URL to identify the selected item. Or,
+- **Forms**: The form submission includes the `id` parameter to identify the selected item.
+:::
+
+---
+
+## Step 4: Display Details Panel
+Show comprehensive information about the selected item:
+```php
+if (isset($selected_item)) {
+    echo "<h2>{$selected_item['name']}</h2>";
+    echo "<p>Category: {$selected_item['category']}</p>";
+    // Display additional details
+}
+```
+
+---
+
+## Step 5: Implement Navigation
+Allow users to easily move between items:
+```php
+// Previous/Next navigation
+$prev_id = getPreviousProductId($selected_id);
+$next_id = getNextProductId($selected_id);
+
+if ($prev_id) echo "<a href='?id=$prev_id'>Previous</a>";
+if ($next_id) echo "<a href='?id=$next_id'>Next</a>";
+```
+
+---
+
+## Step 6: Add Search and Filtering
+Enable users to filter the master list:
+```php
+$search = $_GET['search'] ?? '';
+$category = $_GET['category'] ?? '';
+
+$products = fetchProducts($search, $category);
+```
+
+---
+
+## Common Implementation Patterns
+
+### 1. Single Page Approach
+Both master list and details display on the same page:
+- Master list always visible
+- Details panel updates based on selection
+- Uses URL parameters for item selection
+
+### 2. Separate Pages Approach
+Master and details on **different pages**:
+- Master page shows the list
+- Clicking an item navigates to details page
+- Requires back navigation to return to list
+
+### 3. AJAX Approach
+Dynamic loading without page refresh:
+- Master list loads initially
+- Details load via JavaScript/AJAX
+- Smoother user experience
+
+---
+
+## Best Practices
+
+### Performance Optimization
+- Load only necessary data for the master list
+- Fetch detailed data only when item is selected
+- Implement pagination for large datasets
+- Use database indexing on frequently queried fields
+
+### User Experience
+- Highlight the currently selected item
+- Provide clear navigation between items
+- Show loading indicators for AJAX requests
+- Maintain selection state during filtering
+
+### Data Management
+- Validate item IDs to prevent unauthorized access
+- Handle cases where selected item doesn't exist
+- Implement proper error handling for database queries
+- Use prepared statements to prevent SQL injection
+
