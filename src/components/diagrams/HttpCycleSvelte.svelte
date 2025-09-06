@@ -278,6 +278,12 @@
 	let authenticationStep = $state(0);
 	let tlsHandshakeStep = $state(0);
 
+	// Collapsible sections state
+	let showEducationControls = $state(false);
+	let showSecurityControls = $state(false);
+	let showMethodScenarioControls = $state(true);
+	let showAdvancedControls = $state(false);
+
 	// Derived reactive values
 	let currentMethodData = $derived(HTTP_METHODS[selectedMethod]);
 	let currentScenarioData = $derived(SCENARIOS[selectedScenario]);
@@ -665,198 +671,117 @@
 </script>
 
 <div class="http-container">
-	<!-- Control Panel -->
-	<div class="controls">
-		<h3>Interactive HTTP Request-Response Cycle</h3>
-
-		<!-- Animation Controls -->
-		<div class="animation-controls">
-			<button
-				class="control-btn play"
-				onclick={playAnimation}
-				disabled={isPlaying && !isPaused}
-				title="Play animation"
-			>
-				{#if isPlaying && !isPaused}⏸{:else}▶️{/if}
-			</button>
-			<button class="control-btn" onclick={pauseAnimation} disabled={!isPlaying} title="Pause">⏸️</button>
-			<button class="control-btn" onclick={resetAnimation} title="Reset">🔄</button>
-			<button class="control-btn" onclick={stepBackward} disabled={currentStep <= ANIMATION_STEPS.IDLE} title="Previous step">⏮️</button>
-			<button class="control-btn" onclick={stepForward} disabled={currentStep >= ANIMATION_STEPS.COMPLETED} title="Next step">⏭️</button>
-		</div>
-
-		<!-- Educational Overlay Controls -->
-		<div class="education-controls">
-			<h4>📚 Learning Tools</h4>
-			<div class="education-buttons">
-				<button
-					class="education-btn {showTooltips ? 'active' : ''}"
-					onclick={() => showTooltips = !showTooltips}
-					title="Show component explanations"
-				>
-					💡 Tooltips
-				</button>
-				<button
-					class="education-btn {showBestPractices ? 'active' : ''}"
-					onclick={() => showBestPractices = !showBestPractices}
-					title="Show HTTP method best practices"
-				>
-					✅ Best Practices
-				</button>
-				<button
-					class="education-btn {showProtocolStack ? 'active' : ''}"
-					onclick={() => showProtocolStack = !showProtocolStack}
-					title="Show protocol stack layers"
-				>
-					📊 Protocol Stack
-				</button>
-				<button
-					class="education-btn {showTroubleshooting ? 'active' : ''}"
-					onclick={() => showTroubleshooting = !showTroubleshooting}
-					title="Show troubleshooting tips"
-				>
-					🔧 Troubleshooting
-				</button>
-			</div>
-		</div>
-
-		<!-- Security Controls -->
-		<div class="security-controls">
-			<h4>🔒 Security Features</h4>
-			<div class="security-buttons">
-				<button
-					class="security-btn {isHttps ? 'secure' : 'insecure'}"
-					onclick={() => isHttps = !isHttps}
-					title="Toggle between HTTP and HTTPS"
-				>
-					{#if isHttps}
-						🔒 HTTPS
-					{:else}
-						⚠️ HTTP
-					{/if}
-				</button>
-				<button
-					class="security-btn {showTlsHandshake ? 'active' : ''}"
-					onclick={() => showTlsHandshake = !showTlsHandshake}
-					title="Show TLS handshake process"
-					disabled={!isHttps}
-				>
-					🤝 TLS Handshake
-				</button>
-				<button
-					class="security-btn {showAuthentication ? 'active' : ''}"
-					onclick={() => showAuthentication = !showAuthentication}
-					title="Show authentication flow"
-				>
-					🎫 Authentication
-				</button>
-			</div>
-
-			{#if !isHttps}
-				<div class="security-warning">
-					⚠️ HTTP connections are not secure. Data is transmitted in plain text.
+	<!-- Compact Control Panel -->
+	<div class="controls-compact">
+		<h3>HTTP Request-Response Cycle</h3>
+		
+		<!-- Essential Controls - Always Visible -->
+		<div class="essential-controls">
+			<!-- Method & Scenario Selection -->
+			{#if showMethodScenarioControls}
+				<div class="method-scenario-row">
+					<div class="method-buttons-compact">
+						{#each Object.keys(HTTP_METHODS) as method (method)}
+							<button
+								class="method-btn-compact {selectedMethod === method ? 'active' : ''}"
+								style="border-color: {HTTP_METHODS[method as keyof typeof HTTP_METHODS].color}"
+								onclick={() => selectMethod(method as keyof typeof HTTP_METHODS)}
+								title={HTTP_METHODS[method as keyof typeof HTTP_METHODS].description}
+							>
+								{method}
+							</button>
+						{/each}
+					</div>
+					<div class="scenario-buttons-compact">
+						{#each Object.keys(SCENARIOS) as scenario (scenario)}
+							<button
+								class="scenario-btn-compact {selectedScenario === scenario ? 'active' : ''}"
+								onclick={() => selectScenario(scenario as keyof typeof SCENARIOS)}
+								title={SCENARIOS[scenario as keyof typeof SCENARIOS].description}
+							>
+								{scenario === 'success' ? '✅' : scenario === 'timeout' ? '⏱️' : '❌'}
+							</button>
+						{/each}
+					</div>
 				</div>
 			{/if}
+
+			<!-- Collapsible Sections Toggle -->
+			<div class="section-toggles">
+				<button class="toggle-btn {showEducationControls ? 'active' : ''}" onclick={() => showEducationControls = !showEducationControls} title="Learning Tools">
+					📚 {showEducationControls ? '▼' : '▶'}
+				</button>
+				<button class="toggle-btn {showSecurityControls ? 'active' : ''}" onclick={() => showSecurityControls = !showSecurityControls} title="Security Features">
+					🔒 {showSecurityControls ? '▼' : '▶'}
+				</button>
+				<button class="toggle-btn {showAdvancedControls ? 'active' : ''}" onclick={() => showAdvancedControls = !showAdvancedControls} title="Advanced Options">
+					⚙️ {showAdvancedControls ? '▼' : '▶'}
+				</button>
+			</div>
 		</div>
 
-		<!-- Progress Bar -->
-		<div class="progress-container">
-			<div class="progress-bar">
+		<!-- Collapsible Sections -->
+		{#if showEducationControls}
+			<div class="collapsible-section education-section">
+				<div class="section-buttons">
+					<button class="section-btn {showTooltips ? 'active' : ''}" onclick={() => showTooltips = !showTooltips}>💡</button>
+					<button class="section-btn {showBestPractices ? 'active' : ''}" onclick={() => showBestPractices = !showBestPractices}>✅</button>
+					<button class="section-btn {showProtocolStack ? 'active' : ''}" onclick={() => showProtocolStack = !showProtocolStack}>📊</button>
+					<button class="section-btn {showTroubleshooting ? 'active' : ''}" onclick={() => showTroubleshooting = !showTroubleshooting}>🔧</button>
+				</div>
+			</div>
+		{/if}
+
+		{#if showSecurityControls}
+			<div class="collapsible-section security-section">
+				<div class="section-buttons">
+					<button class="section-btn {isHttps ? 'secure' : 'insecure'}" onclick={() => isHttps = !isHttps}>
+						{isHttps ? '🔒' : '⚠️'}
+					</button>
+					<button class="section-btn {showTlsHandshake ? 'active' : ''}" onclick={() => showTlsHandshake = !showTlsHandshake} disabled={!isHttps}>🤝</button>
+					<button class="section-btn {showAuthentication ? 'active' : ''}" onclick={() => showAuthentication = !showAuthentication}>🎫</button>
+				</div>
+				{#if !isHttps}
+					<div class="security-warning-compact">⚠️ Insecure connection</div>
+				{/if}
+			</div>
+		{/if}
+
+		{#if showAdvancedControls}
+			<div class="collapsible-section advanced-section">
+				<div class="content-preview-buttons-compact">
+					<button class="preview-btn-compact" onclick={toggleRequestHeaders}>📤</button>
+					{#if currentMethodData.payload}
+						<button class="preview-btn-compact" onclick={toggleRequestPayload}>📄</button>
+					{/if}
+					<button class="preview-btn-compact" onclick={toggleResponseHeaders}>📥</button>
+					<button class="preview-btn-compact" onclick={toggleResponsePayload}>📋</button>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Compact Progress Bar -->
+		<div class="progress-compact">
+			<div class="progress-bar-compact">
 				<div class="progress-fill" style="width: {stepProgress}%"></div>
 			</div>
-			<span class="progress-text">
-				{#if currentStep === ANIMATION_STEPS.IDLE}
-					Ready to send request
-				{:else if currentStep === ANIMATION_STEPS.DNS_LOOKUP}
-					Resolving domain name...
-				{:else if currentStep === ANIMATION_STEPS.REQUEST_SENT}
-					Sending request to router...
-				{:else if currentStep === ANIMATION_STEPS.ROUTER_FORWARDING}
-					Router forwarding to server...
-				{:else if currentStep === ANIMATION_STEPS.SERVER_PROCESSING}
-					Server processing request...
-				{:else if currentStep === ANIMATION_STEPS.RESPONSE_SENT}
-					Server sending response...
-				{:else if currentStep === ANIMATION_STEPS.ROUTER_RETURN}
-					Router returning response...
-				{:else}
-					Request completed!
-				{/if}
-			</span>
 		</div>
+	</div>
 
-		<!-- HTTP Method Buttons -->
-		<div class="method-buttons">
-			{#each Object.keys(HTTP_METHODS) as method (method)}
-				<button
-					class="method-btn {selectedMethod === method ? 'active' : ''}"
-					style="border-color: {HTTP_METHODS[method as keyof typeof HTTP_METHODS].color}"
-					onclick={() => selectMethod(method as keyof typeof HTTP_METHODS)}
-					title={HTTP_METHODS[method as keyof typeof HTTP_METHODS].description}
-				>
-					{method}
-				</button>
-			{/each}
-		</div>
-
-		<!-- Scenario Buttons -->
-		<div class="scenario-buttons">
-			{#each Object.keys(SCENARIOS) as scenario (scenario)}
-				<button
-					class="scenario-btn {selectedScenario === scenario ? 'active' : ''}"
-					onclick={() => selectScenario(scenario as keyof typeof SCENARIOS)}
-					title={SCENARIOS[scenario as keyof typeof SCENARIOS].description}
-				>
-					{scenario.replace('_', ' ')}
-				</button>
-			{/each}
-		</div>
-
-		<!-- Method Information Panel -->
-		<div class="method-info">
-			<h4 style="color: {currentMethodData.color}">
-				{currentMethodData.contentIcon} {currentMethodData.title}
-			</h4>
-			<p class="method-description">{currentMethodData.description}</p>
-			<div class="method-examples">
-				<strong>Examples:</strong> {currentMethodData.examples}
-			</div>
-
-			<!-- Content Type and Size Indicators -->
-			<div class="content-indicators">
-				{#if currentMethodData.contentType}
-					<span class="content-type">
-						<strong>Content-Type:</strong> {currentMethodData.contentType}
-					</span>
-				{/if}
-				{#if currentMethodData.responseSize}
-					<span class="response-size">
-						<strong>Response Size:</strong> {currentMethodData.responseSize}
-						{#if currentMethodData.compressed}
-							<span class="compression-indicator">🗜️ Gzipped</span>
-						{/if}
-					</span>
-				{/if}
-			</div>
-
-			<!-- Interactive Content Preview Buttons -->
-			<div class="content-preview-buttons">
-				<button class="preview-btn" onclick={toggleRequestHeaders} title="View request headers">
-					📤 Request Headers
-				</button>
-				{#if currentMethodData.payload}
-					<button class="preview-btn" onclick={toggleRequestPayload} title="View request payload">
-						📄 Request Body
-					</button>
-				{/if}
-				<button class="preview-btn" onclick={toggleResponseHeaders} title="View response headers">
-					📥 Response Headers
-				</button>
-				<button class="preview-btn" onclick={toggleResponsePayload} title="View response payload">
-					📋 Response Body
-				</button>
-			</div>
-		</div>
+	<!-- Animation Controls -->
+	<div class="animation-controls-toolbar">
+		<button
+			class="control-btn play"
+			onclick={playAnimation}
+			disabled={isPlaying && !isPaused}
+			title="Play animation"
+		>
+			{#if isPlaying && !isPaused}⏸{:else}▶️{/if}
+		</button>
+		<button class="control-btn" onclick={pauseAnimation} disabled={!isPlaying} title="Pause">⏸️</button>
+		<button class="control-btn" onclick={resetAnimation} title="Reset">🔄</button>
+		<button class="control-btn" onclick={stepBackward} disabled={currentStep <= ANIMATION_STEPS.IDLE} title="Previous step">⏮️</button>
+		<button class="control-btn" onclick={stepForward} disabled={currentStep >= ANIMATION_STEPS.COMPLETED} title="Next step">⏭️</button>
 	</div>
 
 	<!-- SVG Diagram -->
@@ -1908,6 +1833,201 @@
 		margin-bottom: 24px;
 	}
 
+	/* Compact Controls Styles */
+	.controls-compact {
+		text-align: center;
+		margin-bottom: 16px;
+		background: rgba(255, 255, 255, 0.05);
+		padding: 12px;
+		border-radius: 12px;
+		backdrop-filter: blur(10px);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.controls-compact h3 {
+		color: white;
+		margin: 0 0 12px 0;
+		font-size: 20px;
+		text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+	}
+
+	.essential-controls {
+		margin-bottom: 12px;
+	}
+
+	.method-scenario-row {
+		display: flex;
+		gap: 12px;
+		justify-content: center;
+		align-items: center;
+		flex-wrap: wrap;
+		margin-bottom: 10px;
+	}
+
+	.method-buttons-compact, .scenario-buttons-compact {
+		display: flex;
+		gap: 4px;
+		flex-wrap: wrap;
+	}
+
+	.method-btn-compact, .scenario-btn-compact {
+		padding: 6px 10px;
+		border: 2px solid transparent;
+		border-radius: 20px;
+		background: rgba(255, 255, 255, 0.1);
+		color: white;
+		font-weight: 500;
+		font-size: 12px;
+		cursor: pointer;
+		transition: all 0.3s ease;
+	}
+
+	.method-btn-compact:hover, .scenario-btn-compact:hover {
+		transform: translateY(-2px);
+		background: rgba(255, 255, 255, 0.2);
+	}
+
+	.method-btn-compact.active, .scenario-btn-compact.active {
+		background: rgba(255, 255, 255, 0.3);
+		transform: scale(1.05);
+	}
+
+	.section-toggles {
+		display: flex;
+		gap: 6px;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+
+	.toggle-btn {
+		padding: 8px 12px;
+		border: none;
+		border-radius: 20px;
+		background: rgba(255, 255, 255, 0.1);
+		color: white;
+		font-size: 14px;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.toggle-btn:hover {
+		background: rgba(255, 255, 255, 0.2);
+		transform: translateY(-1px);
+	}
+
+	.toggle-btn.active {
+		background: rgba(76, 175, 80, 0.3);
+		box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+	}
+
+	.collapsible-section {
+		margin: 8px 0;
+		padding: 8px;
+		background: rgba(255, 255, 255, 0.08);
+		border-radius: 8px;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.section-buttons {
+		display: flex;
+		gap: 6px;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+
+	.section-btn {
+		padding: 8px 10px;
+		border: none;
+		border-radius: 50%;
+		background: rgba(255, 255, 255, 0.15);
+		color: white;
+		font-size: 16px;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		width: 40px;
+		height: 40px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.section-btn:hover {
+		transform: scale(1.1);
+		background: rgba(255, 255, 255, 0.25);
+	}
+
+	.section-btn.active {
+		background: rgba(76, 175, 80, 0.4);
+		box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
+	}
+
+	.section-btn.secure {
+		background: rgba(76, 175, 80, 0.4);
+	}
+
+	.section-btn.insecure {
+		background: rgba(255, 152, 0, 0.4);
+	}
+
+	.section-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		transform: none;
+	}
+
+	.content-preview-buttons-compact {
+		display: flex;
+		gap: 6px;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+
+	.preview-btn-compact {
+		padding: 6px 8px;
+		border: none;
+		border-radius: 50%;
+		background: rgba(255, 255, 255, 0.15);
+		color: white;
+		font-size: 14px;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		width: 32px;
+		height: 32px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.preview-btn-compact:hover {
+		transform: scale(1.1);
+		background: rgba(255, 255, 255, 0.25);
+	}
+
+	.security-warning-compact {
+		margin-top: 6px;
+		padding: 4px 8px;
+		background: rgba(255, 152, 0, 0.2);
+		border-radius: 16px;
+		font-size: 11px;
+		color: #ff9800;
+		border: 1px solid rgba(255, 152, 0, 0.3);
+	}
+
+	.progress-compact {
+		margin-top: 12px;
+	}
+
+	.progress-bar-compact {
+		width: 100%;
+		height: 6px;
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 3px;
+		overflow: hidden;
+	}
+
 	.controls h3 {
 		color: white;
 		margin: 0 0 20px 0;
@@ -1921,6 +2041,19 @@
 		justify-content: center;
 		margin-bottom: 16px;
 		flex-wrap: wrap;
+	}
+
+	.animation-controls-toolbar {
+		display: flex;
+		gap: 8px;
+		justify-content: center;
+		margin-bottom: 16px;
+		flex-wrap: wrap;
+		background: rgba(255, 255, 255, 0.1);
+		padding: 12px;
+		border-radius: 8px;
+		backdrop-filter: blur(10px);
+		border: 1px solid rgba(255, 255, 255, 0.2);
 	}
 
 	.control-btn {
@@ -2820,6 +2953,11 @@
 
 		.animation-controls {
 			gap: 6px;
+		}
+
+		.animation-controls-toolbar {
+			gap: 6px;
+			padding: 8px;
 		}
 
 		.control-btn {

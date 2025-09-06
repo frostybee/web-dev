@@ -6,17 +6,18 @@ draft: true
 ---
 
 import HttpCycleSvelte from '../../../../components/diagrams/HttpCycleSvelte.svelte';
-import HttpCycleModal from '../../../../components/ui/HttpCycleModal.astro';
-import FullScreenModal from '../../../../components/ui/FullScreenModal.astro';
+import FullscreenModal from '../../../../components/ui/FullscreenModal.astro';
 
-
+<FullscreenModal buttonText="🚀 Open Full-Screen HTTP Demo" modalTitle="Modal">
+<HttpCycleSvelte client:load />  
+</FullscreenModal>
   
- <FullScreenModal 
+ {/* <FullScreenModal 
     buttonText="View Full Screen" 
     showHeader={false}
     buttonClass="custom-button-class"
   >
-</FullScreenModal>
+</FullScreenModal> */}
 
 # Interactive HTTP Request-Response Cycle
 
@@ -41,7 +42,7 @@ This interactive diagram helps students understand the HTTP request-response cyc
 
 For a better learning experience, you can open the interactive demo in full-screen mode:
 
-<HttpCycleModal buttonText="🚀 Open Full-Screen HTTP Demo" />
+{/* <HttpCycleModal buttonText="🚀 Open Full-Screen HTTP Demo"  client:load/> */}
 
 ### Embedded Version
 
