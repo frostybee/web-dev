@@ -18,7 +18,8 @@ const { head } = Astro.props;
 <!-- <link rel="stylesheet" href="/src/styles/telescope.css" /> -->
 
 <script>
-  import TelescopeSearch from './telescope-search.js';
+  // Import TelescopeSearch for side effects (auto-initialization)
+  import './telescope-search.js';
 </script>
 
     <!-- Telescope Search Modal HTML Structure -->

@@ -145,30 +145,35 @@ const { buttonText = "Open Modal", modalTitle = "Modal", class: className = "" }
     const closes = document.querySelectorAll('[data-close]');
 
     triggers.forEach(trigger => {
-      trigger.addEventListener('click', function() {
+      trigger.addEventListener('click', function(this: HTMLElement) {
         const modalId = this.getAttribute('data-modal');
-        const modal = document.getElementById(modalId);
-        if (modal) {
-          modal.classList.add('active');
-          document.body.style.overflow = 'hidden';
+        if (modalId) {
+          const modal = document.getElementById(modalId);
+          if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+          }
         }
       });
     });
 
     closes.forEach(close => {
-      close.addEventListener('click', function() {
+      close.addEventListener('click', function(this: HTMLElement) {
         const modalId = this.getAttribute('data-close');
-        const modal = document.getElementById(modalId);
-        if (modal) {
-          modal.classList.remove('active');
-          document.body.style.overflow = '';
+        if (modalId) {
+          const modal = document.getElementById(modalId);
+          if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+          }
         }
       });
     });
 
-    document.addEventListener('click', function(e) {
-      if (e.target.classList.contains('fb-fullscreen__overlay')) {
-        e.target.classList.remove('active');
+    document.addEventListener('click', function(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (target && target.classList && target.classList.contains('fb-fullscreen__overlay')) {
+        target.classList.remove('active');
         document.body.style.overflow = '';
       }
     });
