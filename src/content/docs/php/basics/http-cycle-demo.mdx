@@ -2,67 +2,198 @@
 title: Interactive HTTP Request-Response Cycle
 description: An interactive Svelte 5 component demonstrating HTTP request-response cycles for educational purposes
 label: Demo
-draft: true
 ---
 
 import HttpCycleSvelte from '../../../../components/diagrams/HttpCycleSvelte.svelte';
 import FullscreenModal from '../../../../components/ui/FullscreenModal.astro';
 
-<FullscreenModal buttonText="🚀 Open Full-Screen HTTP Demo" modalTitle="Modal">
+<FullscreenModal buttonText="🚀 Open Full-Screen HTTP Demo" modalTitle="Interactive HTTP Request-Response Cycle">
 <HttpCycleSvelte client:load />  
 </FullscreenModal>
   
- {/* <FullScreenModal 
-    buttonText="View Full Screen" 
-    showHeader={false}
-    buttonClass="custom-button-class"
-  >
-</FullScreenModal> */}
 
-# Interactive HTTP Request-Response Cycle
+{/* <HttpCycleSvelte client:load /> */}
 
-This interactive diagram helps students understand the HTTP request-response cycle through hands-on exploration.
 
-## Features
+## How the Web Works: Client-Server Architecture
 
-- **Step-by-step Animation Controls**: Play, pause, reset, and manual stepping
-- **Multiple HTTP Methods**: GET, POST, PUT, DELETE, PATCH with detailed explanations
-- **Response Scenarios**: Success, error, timeout, and redirect scenarios
-- **Educational Content**: Method descriptions, status code references, and real-world examples
-- **Accessibility**: Keyboard navigation and screen reader support
+The World Wide Web operates on a **client-server model**, where two types of programs communicate with each other:
 
-## How to Use
+### HTTP Clients
+- **Definition**: Programs that request resources from servers
+- **Examples**: 
+  - Web browsers (Chrome, Firefox, Safari)
+  - Mobile applications
+  - API clients and tools (Postman, curl)
+  - Web crawlers and bots
 
-1. **Select an HTTP Method**: Click on GET, POST, PUT, DELETE, or PATCH buttons
-2. **Choose a Scenario**: Pick from success, error, timeout, or redirect scenarios  
-3. **Control the Animation**: Use play/pause/reset controls or step through manually
-4. **Learn**: Read the method descriptions and status code references
+### HTTP Servers
+- **Definition**: Programs that store resources and respond to client requests
+- **Examples**:
+  - Web servers (Apache, Nginx)
+  - Application servers (Node.js, PHP, Python)
+  - API servers and microservices
+  - Content delivery networks (CDNs)
 
-### Full-Screen Modal Version
+### The Communication Process
+1. **Client** makes a request for a resource
+2. **Server** processes the request
+3. **Server** sends back a response
+4. **Client** receives and processes the response
 
-For a better learning experience, you can open the interactive demo in full-screen mode:
 
-{/* <HttpCycleModal buttonText="🚀 Open Full-Screen HTTP Demo"  client:load/> */}
+---
 
-### Embedded Version
+## HTTP Request-Response Cycle
 
-<HttpCycleSvelte client:load />
+When you click a link or submit a form, here's what happens step by step:
 
-## Educational Value
+### Step 1: Client Initiates Request
+- User clicks a link or submits a form
+- Client (browser) constructs an HTTP request
+- Request includes: method, URI, headers, and optional body
 
-This component helps students understand:
+### Step 2: Server Receives Request
+- Server receives the HTTP request
+- Server parses the request components
+- Server determines what resource is being requested
 
-- **HTTP Methods**: Purpose and appropriate use cases for each method
-- **Request-Response Flow**: Visual representation of client-server communication
-- **Status Codes**: Common HTTP status codes and their meanings
-- **Request Lifecycle**: Step-by-step breakdown of HTTP transactions
-- **Error Handling**: Different error scenarios and their responses
+### Step 3: Server Processes Request
+- Server locates the requested resource
+- For static resources: retrieves file from disk
+- For dynamic resources: executes code, queries database, generates content
 
-## Technical Implementation
+### Step 4: Server Sends Response
+- Server constructs HTTP response
+- Response includes: status code, headers, and body (the actual content)
+- Server sends response back to client
 
-Built with:
-- **Svelte 5**: Using new runes (`$state`, `$derived`, `$effect`)
-- **TypeScript**: Full type safety and better developer experience
-- **SVG Animations**: Smooth, performant animations with CSS and SVG
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
-- **Accessibility**: ARIA labels, keyboard support, and reduced motion preferences
+### Step 5: Client Processes Response
+- Client receives the HTTP response
+- Client renders content (HTML, images, etc.)
+- Client may make additional requests for linked resources (CSS, images, scripts)
+
+---
+
+## What is a Resource?
+
+A **resource** is any information that can be **named** and **accessed** on the web. Resources are the fundamental concept in HTTP and REST architecture. They represent data or services that can be requested by clients.
+
+### Resource Identification with URIs
+
+Resources are identified by **URIs (Uniform Resource Identifiers)**. A URI is a unique address that points to a specific resource on the web.
+
+#### URI Structure
+
+A URI consists of **several components** that work together to uniquely identify a resource:
+
+```
+https://www.example.com:443/products/laptop?color=black&size=15#reviews
+└─┬─┘   └──────┬──────┘└┬┘└──────┬──────┘└──────┬──────┘└──┬──┘
+scheme      host      port    path           query      fragment
+```
+
+**Components Breakdown:**
+
+- **Scheme** (`https`): The protocol used to access the resource (http, https, ftp, etc.)
+- **Host** (`www.example.com`): The domain name or IP address of the server
+- **Port** (`:443`): The network port (optional, defaults: 80 for HTTP, 443 for HTTPS)
+- **Path** (`/products/laptop`): The specific location of the resource on the server
+- **Query** (`?color=black&size=15`): Parameters passed to the server (optional)
+- **Fragment** (`#reviews`): A specific section within the resource (optional, processed by client)
+
+**Examples of URIs:**
+- `https://api.example.com/users/123` - Points to user with ID 123
+- `https://www.example.com/products/laptop` - Points to a laptop product page
+- `https://api.shop.com/orders/456/items` - Points to items in order 456
+
+---
+
+### Types of Resources
+
+#### Static Resources
+- **Definition**: Content that doesn't change based on user input or server processing
+- **Characteristics**: Same content is returned for every request
+- **Examples**: 
+  - HTML files (`/about.html`)
+  - Images (`/images/logo.png`)
+  - CSS stylesheets (`/styles/main.css`)
+  - JavaScript files (`/scripts/app.js`)
+
+#### Dynamic Resources
+- **Definition**: Content that is generated or modified based on user input, database queries, or server processing
+- **Characteristics**: Content may vary depending on request parameters, user authentication, or real-time data
+- **Examples**:
+  - User profiles (`/users/profile` - shows different data for each logged-in user)
+  - Search results (`/search?q=laptops` - results change based on query)
+  - Shopping carts (`/cart` - contents vary per user session)
+  - Live data feeds (`/api/stock-prices` - real-time financial data)
+
+---
+
+## HTTP Methods and Their Purpose
+
+HTTP (HyperText Transfer Protocol) defines several methods that indicate the **desired action** to be performed on a resource. The two most commonly used methods are:
+
+### GET
+- **Purpose**: Retrieve data from a server
+- **Characteristics**: Safe, idempotent, cacheable
+- **Use Cases**: Fetching web pages, API data retrieval, downloading files
+- **Example**: `GET /users/123` - Retrieve user with ID 123
+
+### POST
+- **Purpose**: Submit data to create a new resource or send data to the server
+- **Characteristics**: Not safe, not idempotent, not cacheable by default
+- **Use Cases**: Form submissions, creating new records, file uploads
+- **Example**: `POST /users` - Create a new user account
+
+---
+
+## HTTP Message Structure
+
+HTTP communication consists of **requests** (sent by clients) and **responses** (sent by servers). Both have a specific structure:
+
+### HTTP Request Structure
+
+```
+GET /users/123 HTTP/1.1           ← Request Line
+Host: api.example.com             ← Headers
+Authorization: Bearer token123    
+Content-Type: application/json
+                                  ← Empty line separates headers from body
+{                                 ← Request Body (optional)
+  "name": "John Doe"
+}
+```
+
+**Components:**
+- **Request Line**: Method + URI + HTTP Version
+- **Headers**: Metadata about the request (host, content type, authentication, etc.)
+- **Body**: Data sent with the request (optional, mainly used with POST)
+
+### HTTP Response Structure
+
+```
+HTTP/1.1 200 OK                  ← Status Line
+Content-Type: application/json   ← Headers
+Content-Length: 45
+Cache-Control: no-cache
+                                 ← Empty line separates headers from body
+{                                ← Response Body
+  "id": 123,
+  "name": "John Doe"
+}
+```
+
+**Components:**
+- **Status Line**: HTTP Version + Status Code + Status Message
+- **Headers**: Metadata about the response (content type, length, caching rules, etc.)
+- **Body**: The actual content/data returned by the server
+
+---
+
+## Status Codes
+- **2xx**: Success (200 OK, 201 Created)
+- **3xx**: Redirection (301 Moved Permanently, 304 Not Modified)
+- **4xx**: Client Error (400 Bad Request, 404 Not Found, 401 Unauthorized)
+- **5xx**: Server Error (500 Internal Server Error, 503 Service Unavailable)
