@@ -1,0 +1,316 @@
+---
+title: Server-Side Input Validation in PHP
+description: Essential guide to validating user input in PHP
+sidebar:
+  label: 'Server-Side Input Validation'
+  order: 2
+---
+
+## What is Server-Side Input Validation?
+
+[Server-side input validation](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html#implementing-input-validation) is checking user input **after** it reaches your PHP script. This is different from client-side validation (JavaScript) which happens in the browser.
+
+## Why Server-Side Validation is Important
+
+### Security First
+- **Client-side validation can be bypassed** - Users can disable JavaScript or modify form data
+- **Server-side validation cannot be bypassed** - It always runs on your server
+- **Protects your database** from invalid or malicious data
+
+### The Golden Rule
+> **Never trust user input!** Always validate data on the server, even if you have client-side validation.
+
+---
+
+## Client-Side vs Server-Side
+
+| Client-Side (JavaScript) | Server-Side (PHP) |
+|---------------------------|-------------------|
+| Fast user feedback | Secure and reliable |
+| Can be bypassed | Cannot be bypassed |
+| **Optional** | **Required** |
+
+---
+
+## Types of Server-Side Validation
+
+### 1. Required Field Validation
+Check that important fields are not empty.
+
+```php
+if (empty($_POST['username'])) {
+    $errors[] = "Username is required";
+}
+
+if (empty($_POST['email'])) {
+    $errors[] = "Email is required";
+}
+```
+
+### 2. Email Validation  
+Check if email format is valid using PHP's built-in function.
+
+```php
+if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+    $errors[] = "Please enter a valid email address";
+}
+```
+---
+
+### 3. Length Validation
+Check minimum and maximum string lengths.
+
+```php
+// Username: 3-20 characters
+if (strlen($_POST['username']) < 3) {
+    $errors[] = "Username must be at least 3 characters";
+}
+if (strlen($_POST['username']) > 20) {
+    $errors[] = "Username cannot exceed 20 characters";  
+}
+
+// Password: minimum 8 characters
+if (strlen($_POST['password']) < 8) {
+    $errors[] = "Password must be at least 8 characters";
+}
+```
+---
+
+### 4. Number Validation
+Check if input is a valid number and within range.
+
+```php
+// Age must be a number
+if (!is_numeric($_POST['age'])) {
+    $errors[] = "Age must be a number";
+}
+
+// Age must be between 18 and 120
+$age = (int)$_POST['age'];
+if ($age < 18 || $age > 120) {
+    $errors[] = "Age must be between 18 and 120";
+}
+```
+
+---
+
+### 5. Pattern Validation (Advanced)
+Use patterns for complex validation like passwords.
+
+```php
+// Password must contain letters and numbers
+$password = $_POST['password'];
+if (!preg_match('/^(?=.*[A-Za-z])(?=.*\d)/', $password)) {
+    $errors[] = "Password must contain both letters and numbers";
+}
+```
+
+### 6. Custom Validation
+Check business-specific rules.
+
+```php
+// Check if username already exists (example)
+function isUsernameTaken($username) {
+    // This would check your database
+    // Return true if username exists, false if available
+}
+
+if (isUsernameTaken($_POST['username'])) {
+    $errors[] = "Username is already taken";
+}
+```
+
+---
+
+## PHP Built-in Validation Functions
+
+PHP provides many helpful functions for validation. Here are the most useful ones:
+
+### Filter Functions
+```php
+// Email validation
+filter_var($email, FILTER_VALIDATE_EMAIL)
+
+// URL validation  
+filter_var($url, FILTER_VALIDATE_URL)
+
+// Integer validation
+filter_var($number, FILTER_VALIDATE_INT)
+
+// Float/decimal validation
+filter_var($price, FILTER_VALIDATE_FLOAT)
+
+// IP address validation
+filter_var($ip, FILTER_VALIDATE_IP)
+```
+
+### Type Checking Functions
+```php
+// Check if value is numeric
+is_numeric($value)    // Returns true for "123", "12.5", etc.
+
+// Check specific data types
+is_int($value)        // Integer only
+is_string($value)     // String only  
+is_array($value)      // Array only
+is_bool($value)       // Boolean only
+```
+
+### Character Type Functions
+```php
+// Check if string contains only letters
+ctype_alpha($string)   // "abc" = true, "abc123" = false
+
+// Check if string contains only digits
+ctype_digit($string)   // "123" = true, "12.3" = false
+
+// Check if string contains only letters and numbers
+ctype_alnum($string)   // "abc123" = true, "abc-123" = false
+```
+
+### String Functions
+```php
+// Remove whitespace from start/end
+trim($string)
+
+// Get string length
+strlen($string)
+
+// Check if string is empty
+empty($string)
+```
+
+### Array Functions
+```php
+// Check if value exists in array
+$allowed_colors = ['red', 'blue', 'green'];
+in_array($user_color, $allowed_colors)
+```
+
+### Example Using Built-in Functions:
+```php
+$errors = [];
+
+// Validate email using filter_var
+if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+    $errors[] = "Invalid email format";
+}
+
+// Validate age using is_numeric and range check
+if (!is_numeric($_POST['age'])) {
+    $errors[] = "Age must be a number";
+} elseif ($_POST['age'] < 18 || $_POST['age'] > 120) {
+    $errors[] = "Age must be between 18 and 120";
+}
+
+// Validate username using ctype_alnum
+$username = trim($_POST['username']);
+if (!ctype_alnum($username)) {
+    $errors[] = "Username can only contain letters and numbers";
+}
+
+// Validate color selection using in_array
+$allowed_colors = ['red', 'blue', 'green', 'yellow'];
+if (!in_array($_POST['favorite_color'], $allowed_colors)) {
+    $errors[] = "Please select a valid color";
+}
+```
+
+---
+
+## Complete Validation Example
+
+Here's how to put it all together in a simple form processor:
+
+```php
+<?php
+$errors = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Get form data
+    $username = $_POST['username'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $age = $_POST['age'] ?? '';
+    $password = $_POST['password'] ?? '';
+    
+    // Validate each field
+    if (empty($username)) {
+        $errors[] = "Username is required";
+    } elseif (strlen($username) < 3) {
+        $errors[] = "Username must be at least 3 characters";
+    }
+    
+    if (empty($email)) {
+        $errors[] = "Email is required";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = "Please enter a valid email";
+    }
+    
+    if (empty($password)) {
+        $errors[] = "Password is required";
+    } elseif (strlen($password) < 8) {
+        $errors[] = "Password must be at least 8 characters";
+    }
+    
+    if (!is_numeric($age) || $age < 18) {
+        $errors[] = "You must be at least 18 years old";
+    }
+    
+    // If no errors, process the form
+    if (empty($errors)) {
+        echo "Registration successful!";
+        // Here you would save to database, send email, etc.
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registration Form</title>
+</head>
+<body>
+    <?php if (!empty($errors)): ?>
+        <div style="color: red;">
+            <h3>Please fix these errors:</h3>
+            <ul>
+                <?php foreach ($errors as $error): ?>
+                    <li><?= htmlspecialchars($error) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
+    
+    <form method="POST">
+        <input type="text" name="username" placeholder="Username" value="<?= htmlspecialchars($username ?? '') ?>"><br>
+        <input type="email" name="email" placeholder="Email" value="<?= htmlspecialchars($email ?? '') ?>"><br>
+        <input type="number" name="age" placeholder="Age" value="<?= htmlspecialchars($age ?? '') ?>"><br>
+        <input type="password" name="password" placeholder="Password"><br>
+        <button type="submit">Register</button>
+    </form>
+</body>
+</html>
+```
+
+---
+
+## Common Mistakes to Avoid
+
+1. **Only validating on client-side:**  Always validate on the server too
+2. **Trusting user input:** Always check everything users send
+3. **Poor error messages:** Be helpful but not too specific about security
+4. **Not preserving form data:** Keep valid fields filled when showing errors
+5. **Forgetting edge cases:** Test with empty, very long, and special character inputs
+
+---
+
+## Key Takeaways
+
+- **Server-side validation is required** for security
+- **Client-side validation is optional** for user experience  
+- **Use PHP's built-in functions** like `filter_var()` when possible
+- **Always escape output** with `htmlspecialchars()`
+- **Test your validation** with different types of input
+
+### Remember
+> **Never trust user input!** Always validate on the server, even if you have JavaScript validation.

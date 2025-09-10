@@ -9,7 +9,7 @@ import rehypeSlug from 'rehype-slug';
 import starlightSidebarTopics from "starlight-sidebar-topics";
 import starlightScrollToTop from 'starlight-scroll-to-top';
 
-import leftSidebar from './src/config/sidebar/sidebar-items.ts'
+import leftSidebar from './src/config/sidebar/sidebar-main.ts'
 import appConfig from './src/config/website-config.ts'
 import starlightThemeGalaxy from 'starlight-theme-galaxy'
 
