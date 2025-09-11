@@ -64,12 +64,19 @@ export default
           }
         },
         {
-          label: "Security",
-          collapsed: true,
-          autogenerate: {
-            directory: "php/security",
-          }
-        },
+            label: "Security",
+            collapsed: true,
+            autogenerate: {
+              directory: "php/security",
+            }
+          },
+          {
+            label: "Slim Framework",
+            collapsed: true,
+            autogenerate: {
+              directory: "php/slim",
+            }
+          },
       ],
     }
   ];

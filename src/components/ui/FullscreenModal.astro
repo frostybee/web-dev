@@ -81,6 +81,56 @@ const { buttonText = "Open Modal", modalTitle = "Modal", class: className = "" }
     transition: transform 0.3s ease;
   }
 
+  /* Dark theme support */
+  @media (prefers-color-scheme: dark) {
+    .fb-fullscreen__content {
+      background: #1a1a1a;
+      color: white;
+    }
+
+    .fb-fullscreen__header {
+      background: #2a2a2a;
+      border-bottom-color: #404040;
+    }
+
+    .fb-fullscreen__title {
+      color: white;
+    }
+
+    .fb-fullscreen__close {
+      color: #ccc;
+    }
+
+    .fb-fullscreen__close:hover {
+      background: #404040;
+      color: white;
+    }
+  }
+
+  /* Starlight dark theme */
+  html[data-theme='dark'] .fb-fullscreen__content {
+    background: #1a1a1a;
+    color: white;
+  }
+
+  html[data-theme='dark'] .fb-fullscreen__header {
+    background: #2a2a2a;
+    border-bottom-color: #404040;
+  }
+
+  html[data-theme='dark'] .fb-fullscreen__title {
+    color: white;
+  }
+
+  html[data-theme='dark'] .fb-fullscreen__close {
+    color: #ccc;
+  }
+
+  html[data-theme='dark'] .fb-fullscreen__close:hover {
+    background: #404040;
+    color: white;
+  }
+
   .fb-fullscreen__overlay.active .fb-fullscreen__content {
     transform: scale(1);
   }

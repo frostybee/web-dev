@@ -1,0 +1,198 @@
+---
+title: MVC in PHP
+description: Working with MVC in PHP using Slim Framework
+sidebar:
+  label: 'MVC in PHP'
+  order: 1
+---
+
+import MvcDiagram from '../../../../components/diagrams/MvcDiagram.astro';
+import FullscreenModal from '../../../../components/ui/FullscreenModal.astro';
+
+
+<FullscreenModal buttonText="🚀 Open the MVC diagram" modalTitle="MVC Diagram">
+<MvcDiagram />
+</FullscreenModal>
+
+
+## Slide 1: Introduction to MVC
+
+### Model-View-Controller Pattern
+
+- **Architectural design pattern**
+- Separates application logic into **three interconnected** components
+- Promotes organized, maintainable code
+- Widely used in web development
+
+---
+
+## Slide 2: The Three Components
+
+### Model
+- Manages data and business logic
+- Handles database interactions
+- Contains application rules and validation
+
+### View
+- Manages the presentation layer
+- Displays data to users
+- Handles user interface elements
+
+### Controller
+- Acts as intermediary between Model and View
+- Processes user input
+- Controls application flow
+
+---
+
+## Slide 3: How MVC Works
+
+### The Flow
+1. **User interacts** with the View (clicks, forms, etc.)
+2. **Controller receives** the user input
+3. **Controller processes** the request and interacts with Model
+4. **Model performs** business logic and data operations
+5. **Model returns** data to Controller
+6. **Controller updates** the View with new data
+7. **View displays** updated information to user
+
+---
+
+## Slide 4: Benefits of MVC
+
+### Separation of Concerns
+- Each component has a specific responsibility
+- Easier to maintain and debug
+- Changes in one layer don't affect others
+
+### Reusability
+- Models can be shared across different views
+- Views can display data from multiple models
+- Controllers can be reused for similar operations
+
+---
+
+## Slide 5: MVC Benefits (Continued)
+
+### Testability
+- Each component can be tested independently
+- Mock objects can simulate dependencies
+- Unit testing becomes more straightforward
+
+### Team Development
+- Different developers can work on different layers
+- Frontend and backend development can proceed in parallel
+- Clearer code organization
+
+---
+
+## Slide 6: What is Slim Framework?
+
+### Micro-Framework for PHP
+- Lightweight and fast
+- Minimal setup required
+- Perfect for APIs and small web applications
+- Follows PSR standards
+
+### Key Features
+- Routing system
+- Middleware support
+- Dependency injection
+- HTTP message handling
+
+---
+
+## Slide 7: MVC in Slim Framework
+
+### Slim's Approach
+- Provides the foundation for MVC implementation
+- Flexible architecture
+- Developers implement their own MVC structure
+- Uses controllers as route handlers
+
+### Components in Slim
+- **Routes** define application endpoints
+- **Middleware** handles cross-cutting concerns
+- **Containers** manage dependencies
+- **Templates** render views
+
+---
+
+## Slide 8: Model Layer in Practice
+
+### Responsibilities
+- Database connections and queries
+- Data validation and sanitization
+- Business rules enforcement
+- Entity relationships
+
+### Best Practices
+- Keep models focused on single responsibility
+- Use proper validation
+- Handle errors gracefully
+- Implement proper database abstraction
+
+---
+
+## Slide 9: View Layer in Practice
+
+### Responsibilities
+- Template rendering
+- HTML/JSON output generation
+- User interface components
+- Data presentation formatting
+
+### Best Practices
+- Keep views simple and logic-free
+- Use template engines (Twig, Smarty)
+- Separate presentation from business logic
+- Ensure responsive design
+
+---
+
+## Slide 10: Controller Layer in Practice
+
+### Responsibilities
+- Handle HTTP requests
+- Coordinate between Model and View
+- Process user input
+- Manage application flow
+
+### Best Practices
+- Keep controllers thin
+- Delegate business logic to models
+- Handle one responsibility per action
+- Proper error handling and validation
+
+---
+
+## Slide 11: Common MVC Patterns
+
+### Fat Model, Thin Controller
+- Business logic lives in models
+- Controllers only coordinate
+- Easier testing and maintenance
+
+### Service Layer
+- Additional layer between Controller and Model
+- Handles complex business operations
+- Promotes code reuse
+
+---
+
+## Slide 12: MVC Best Practices
+
+### General Guidelines
+- Maintain clear separation of concerns
+- Use dependency injection
+- Implement proper error handling
+- Follow naming conventions
+- Write comprehensive tests
+
+### Performance Considerations
+- Lazy loading of data
+- Efficient database queries
+- Proper caching strategies
+- Minimize controller complexity
+
+---
