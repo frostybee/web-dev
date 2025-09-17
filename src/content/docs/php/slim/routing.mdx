@@ -1,0 +1,218 @@
+---
+title: Routing in Slim Framework
+description: Working with Routing in Slim Framework
+sidebar:
+  label: 'Routing in Slim Framework'
+  order: 2
+  badge:
+    text: New!
+    variant: danger
+---
+
+## What is Routing?
+
+Routing is like having a receptionist at a hotel who directs guests to the right room. When someone visits your website (like typing `/users` or `/products` in their browser), the router determines which piece of code should handle that request.
+
+--- 
+
+## Core Routing Concepts
+
+In server-side routing, the application defines a set of routes that map URL patterns to specific handlers. Each route typically consists of:
+
+1. **HTTP method** (GET, POST, PUT, DELETE, etc.). Modern routing systems distinguish between different HTTP methods (GET, POST, PUT, DELETE, etc.) for the same URL path.
+2. **URL pattern** (which may include parameters)
+3. **Handler function** or controller that processes the request.
+
+:::note[note]
+- Routes can capture dynamic segments from URLs (like user IDs or slugs) and pass them to handlers.
+:::
+
+---
+
+## Key Benefits of Server-Side Routing
+
+- **Clean URLs**: Routes enable friendly, semantic URLs like `/user/123` instead of `/index.php?page=user&id=123`
+- **Separation of concerns**: Each route handler focuses on a specific functionality, making code more organized and maintainable.
+- **Parameter extraction**: Routers automatically extract parameters from URLs and make them available to handlers.
+- **HTTP method handling**: Different HTTP methods (GET, POST, PUT, DELETE) can be handled by different functions for the same URL.
+- **Middleware support**: Common functionality like authentication, logging, or CORS can be applied to routes through middleware.
+
+---
+
+## Modern Routing Features
+
+- **Middleware Support**: Routes can have middleware for authentication, logging, validation, etc.
+- **Route Caching**: Production applications often cache compiled routes for better performance.
+- **Route Model Binding**: Some frameworks automatically resolve route parameters to model instances.
+- **Named Routes**: Routes can be given names for easier **URL generation** in templates and **redirects**.
+- **Route Constraints**: Parameters can have validation rules (regex patterns, type constraints).
+
+---
+
+## How Slim Routing Works
+
+When a request comes in, Slim's router:
+
+1. **Matches the HTTP method** (GET, POST, etc.),
+2. **Compares the URL path** against defined route patterns,
+3. **Extracts parameters** from the URL if the route has placeholders
+4. **Executes middleware** if any is defined for the route,
+5. **Calls the route handler** with the request, response, and extracted parameters,
+6. **Returns the response** to the client.
+
+---
+
+## Setting Up Slim Framework
+
+First, let's set up a basic Slim application:
+
+```php
+<?php
+require_once 'vendor/autoload.php';
+
+use Slim\Factory\AppFactory;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+
+// Create Slim app instance
+$app = AppFactory::create();
+
+// Your routes go here...
+
+// Run the application
+$app->run();
+```
+
+---
+
+## Basic Routes
+
+### Simple GET Route
+
+The most basic route responds to GET requests:
+
+```php
+$app->get('/', function (Request $request, Response $response, $args) {
+    $response->getBody()->write("Welcome to the homepage!");
+    return $response;
+});
+
+// Simple GET route
+$app->get('/dashboard', function (Request $request, Response $response, $args) {
+    $response->getBody()->write("Welcome to the dashboard!");
+    return $response;
+});
+```
+
+### POST Route for Form Handling
+
+Handle form submissions with POST routes:
+
+```php
+$app->post('/contact', function (Request $request, Response $response, $args) {
+    $parsedBody = $request->getParsedBody();
+    $name = $parsedBody['name'] ?? '';
+    $email = $parsedBody['email'] ?? '';
+
+    // Process form data here
+    $response->getBody()->write("Thank you " . $name . " for contacting us!");
+    return $response;
+});
+```
+
+---
+
+## Route Parameters
+
+### Required Parameters
+
+Capture dynamic parts of URLs using curly braces:
+
+```php
+$app->get('/user/{id}', function (Request $request, Response $response, $args) {
+    $userId = $args['id'];
+    $response->getBody()->write("User ID: " . $userId);
+    return $response;
+});
+```
+
+### Optional Parameters
+
+Make parameters optional using square brackets:
+
+```php
+$app->get('/products[/{category}]', function (Request $request, Response $response, $args) {
+    $category = $args['category'] ?? 'all';
+    $response->getBody()->write("Showing products in category: " . $category);
+    return $response;
+});
+```
+
+### Parameter Constraints
+
+Add validation rules using regular expressions:
+
+```php
+$app->get('/article/{id:[0-9]+}', function (Request $request, Response $response, $args) {
+    $articleId = $args['id'];
+    $response->getBody()->write("Article ID: " . $articleId);
+    return $response;
+});
+```
+
+---
+
+## Route Groups
+
+Organize related routes with common prefixes:
+
+```php
+$app->group('/api', function ($group) {
+    $group->get('/users', function (Request $request, Response $response, $args) {
+        // Return JSON list of users
+        $users = ['user1', 'user2', 'user3'];
+        $response->getBody()->write(json_encode($users));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
+    $group->get('/users/{id}', function (Request $request, Response $response, $args) {
+        $userId = $args['id'];
+        $user = ['id' => $userId, 'name' => 'John Doe'];
+        $response->getBody()->write(json_encode($user));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
+    $group->post('/users', function (Request $request, Response $response, $args) {
+        $data = $request->getParsedBody();
+        // Create new user logic here
+        $response->getBody()->write(json_encode(['status' => 'User created']));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+});
+```
+
+---
+
+## Middleware
+
+Add functionality that runs before your route handlers:
+
+```php
+$app->add(function (Request $request, Response $response, $next) {
+    $response = $next($request, $response);
+    return $response->withHeader('X-Custom-Header', 'My Custom Value');
+});
+```
+
+---
+
+## Error Handling
+
+Handle 404 errors and other unmatched routes:
+
+```php
+$app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function($request, $response) {
+    $response->getBody()->write('404 - Page not found');
+    return $response->withStatus(404);
+});
+```
