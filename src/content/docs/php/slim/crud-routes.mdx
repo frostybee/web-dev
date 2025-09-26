@@ -1,0 +1,272 @@
+--- 
+title: CRUD Operations in Slim Framework
+description: Working with CRUD Operations in Slim Framework
+sidebar:
+  label: 'CRUD Operations in Slim Framework'
+  order: 3
+  badge:
+    text: New!
+    variant: danger
+---  
+
+## What is CRUD?
+
+CRUD is an acronym for **C**reate, **R**ead, **U**pdate, and **D**elete. It is a set of operations that are used to manage data in a database.
+
+This guide walks you through creating a new resource with complete CRUD operations in your Slim MVC application.
+
+## Prerequisites
+- Familiar with MVC pattern and the provided [Slim Skeleton Project](https://github.com/frostybee/slim-mvc)- 
+- Understand the BaseController methods (`render()` and `redirect()`) 
+- Familiar with PSR-7 Request/Response objects
+
+---
+
+## Step 1: Create the Controller
+
+1. Create a new controller class in `app/Controllers/` (if it doesn't exist)
+2. Name it using PascalCase with "Controller" suffix (e.g., `ProductController.php`)
+3. Extend `BaseController` and add constructor with proper parent call
+4. Implement these standard **callback methods**:
+   - `index()` => List all resources
+   - `show()` => Display single resource
+   - `create()` => Show creation form and handle POST
+   - `edit()` => Show edit form
+   - `update()` => Handle update POST
+   - `delete()` => Handle resource deletion
+
+:::note[Remember]
+These methods are called by the router when a request is made to the corresponding route.
+:::
+
+---
+
+### Controller Constructor and Callback Methods Signatures
+
+```php
+<?php
+
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+
+class YourController extends BaseController  // e.g., ProductsController
+{   
+    // Constructor
+    public function __construct(Container $container, private YourModel $model) // inject your model into the controller constructor
+    {
+        parent::__construct($container);
+    }
+
+    // Signatures of controller methods: (callback methods)
+    public function index(Request $request, Response $response, array $args): Response
+    public function show(Request $request, Response $response, array $args): Response
+    public function create(Request $request, Response $response, array $args): Response
+    public function edit(Request $request, Response $response, array $args): Response
+    public function update(Request $request, Response $response, array $args): Response
+    public function delete(Request $request, Response $response, array $args): Response
+}
+```
+
+:::note[Remember]
+The `$request` parameter is the PSR-7 request object, the `$response` parameter is the PSR-7 response object, and the `$args` parameter is an array of route parameters.
+:::
+
+---
+
+## Step 2: Create View Templates
+
+1. Create a folder in `app/Views/` matching your resource (e.g., `products`) name (lowercase) (if it doesn't exist)
+2. Create these view files:
+   - `index.php` => List view
+   - `show.php` => Detail view
+   - `create.php` => Creation form
+   - `edit.php` => Edit form
+
+---
+
+## Step 3: Register Routes
+
+1. Open `app/Routes/web-routes.php`
+2. Import your controller at the top with other use statements
+3. Add routes inside the return function using this pattern:
+
+### Route Naming Convention
+Follow the pattern: `[controller_name].[method_name]`
+
+---
+
+### Understanding URI Design and Resource Identification
+
+#### Why Use URIs to Identify Resources?
+
+URIs (Uniform Resource Identifiers) serve as unique addresses for your application's resources. Think of them like street addresses - each resource needs a clear, predictable location. 
+
+:::note[Remember]
+URIs are used to identify resources in your application.
+:::
+
+**Key Benefits:**
+- **Predictability**: Users and developers can guess URIs
+- **SEO-friendly**: Search engines prefer meaningful URIs
+- **Maintainability**: Consistent patterns make code easier to maintain
+- **REST Compliance**: Follows web standards and best practices
+
+---
+
+### Using RESTful URI Principles in your application
+
+#### 1. Use Nouns, Not Verbs
+✅ **Good**: `/products` (noun - represents the resource)
+❌ **Bad**: `/getProducts` (verb - describes the action)
+
+#### 2. Use Plural Nouns for Collections
+✅ **Good**: `/products` (collection of products)
+❌ **Bad**: `/product` (ambiguous - single or multiple?)
+
+#### 3. Use Hierarchical Structure
+✅ **Good**: `/products/123/reviews` (reviews for product 123)
+❌ **Bad**: `/reviews?product_id=123` (less intuitive)
+
+#### 4. Be Consistent with Casing
+✅ **Good**: `/products/categories` (all lowercase)
+❌ **Bad**: `/Products/Categories` (mixed case)
+
+---
+
+### Standard CRUD URI Patterns
+
+| Action | HTTP Method | URI Pattern | Example |
+|--------|-------------|-------------|---------|
+| **List all** | GET | `/resources` | `/products` |
+| **Show one** | GET | `/resources/{id}` | `/products/123` |
+| **Create form** | GET | `/resources/create` | `/products/create` |
+| **Store new** | POST | `/resources` | `/products` |
+| **Edit form** | GET | `/resources/{id}/edit` | `/products/123/edit` |
+| **Update** | POST | `/resources/{id}` | `/products/123` |
+| **Delete** | POST | `/resources/{id}/delete` | `/products/123/delete` |
+
+:::tip[Why This Pattern Works]
+- Users can guess URIs: if `/products` lists all products, then `/products/123` likely shows product 123,
+- Developers can quickly understand what each route does,
+- Consistency reduces bugs and improves team collaboration.
+:::
+
+---
+
+### Standard Web Routes (CRUD)
+Add these routes to your `web-routes.php` file for complete CRUD functionality:
+
+```php
+// List all resources (GET /resource-name) e.g., GET /products
+$app->get('/resource-name', [YourController::class, 'index'])
+    ->setName('resource.index');
+
+// Show single resource (GET /resource-name/{id}) e.g., GET /products/1
+$app->get('/resource-name/{id}', [YourController::class, 'show'])
+    ->setName('resource.show');
+
+// Create new resource (form + processing) (GET /resource-name/create) e.g., GET /products/create
+$app->get('/resource-name/create', [YourController::class, 'create'])
+    ->setName('resource.create');
+// Create new resource (POST /resource-name) e.g., POST /products
+$app->post('/resource-name', [YourController::class, 'create']);
+
+// Edit existing resource (form + processing) (GET /resource-name/{id}/edit) e.g., GET /products/1/edit
+$app->get('/resource-name/{id}/edit', [YourController::class, 'edit'])
+    ->setName('resource.edit');
+// Edit existing resource (POST /resource-name/{id}) e.g., POST /products/1
+$app->post('/resource-name/{id}', [YourController::class, 'update']);
+
+// Delete resource (POST /resource-name/{id}/delete) e.g., POST /products/1/delete
+$app->post('/resource-name/{id}/delete', [YourController::class, 'delete'])
+    ->setName('resource.delete');
+```
+
+---
+
+## Step 4: Create the Model
+
+1. Create a model class in `app/Domain/Models/` (e.g., `ProductsModel.php`) (if it doesn't exist)
+2. Implement methods for data operations in the model:
+   - `getAll()` => Retrieve all records
+   - `getById($id)` => Get single record
+   - `create($data)` => Insert new record
+   - `update($id, $data)` => Update existing record
+   - `delete($id)` => Remove record
+3. Follow the MVC pattern - models handle data, controllers coordinate, views display
+
+---
+
+## Step 5: Implement Controller Logic
+
+1. Inject your model into the controller constructor (if not already done)
+2. Use the model methods for all data operations
+3. Use `$this->render()` to display views with data from models
+4. Use `$this->redirect()` for navigation after form submissions
+5. Extract route parameters using `$args['parameter_name']`
+6. Get form data using `$request->getParsedBody()`
+7. Validate input data before passing to model methods
+8. Handle errors gracefully with appropriate redirects
+
+---
+
+## Step 6: Test Your Routes
+
+1. Start your development server
+2. Visit each route in your browser
+3. Test form submissions
+4. Verify redirects work correctly
+5. Check error handling
+
+---
+
+## Important Notes
+
+- **Route Order Matters**: Place specific routes (like `/create`) before parametric routes (like `/{id}`)
+- **Named Routes**: Always use `->setName()` for routes you'll redirect to
+- **URI Args vs Query Params**: Use `$uri_args` only for routes with `{placeholders}`, use `$query_params` for `?key=value`
+- **POST-Redirect-GET**: Always redirect after successful form submissions to prevent duplicate submissions
+
+---
+
+## Example File Structure
+
+After following these steps, you should have:
+
+```
+app/
+├── Controllers/
+│   └── YourController.php   👉 (e.g., ProductsController.php)
+├── Models/
+│   └── YourModel.php        👉 (e.g., ProductsModel.php)
+├── Views/
+│   └── your-resource/       👉 (e.g., products)
+│       ├── index.php
+│       ├── show.php
+│       ├── create.php
+│       └── edit.php
+└── Routes/
+    └── web-routes.php (updated)
+```
+
+---
+
+## MVC Pattern Reminder
+
+Remember to follow the MVC pattern throughout your implementation:
+- **Models**: Handle all data operations, database queries, and business logic
+- **Views**: Display data and handle user interface
+- **Controllers**: Coordinate between models and views, handle HTTP requests/responses
+
+---
+
+## Next Steps
+
+- Add validation to your controller methods
+- Implement proper model classes with database operations 
+- Add error handling and user feedback
+- Style your views with CSS
+- Add authentication/authorization if needed
+- Consider implementing advanced search features (autocomplete, faceted search)
+- Add export functionality for filtered results
+

@@ -71,7 +71,7 @@ export default
             }
           },
           {
-            label: "Slim Framework",
+            label: "Slim Framework & MVC",
             collapsed: true,
             autogenerate: {
               directory: "php/slim",

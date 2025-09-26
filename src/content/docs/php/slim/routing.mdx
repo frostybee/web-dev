@@ -19,18 +19,18 @@ sidebar:
 
 ## Core Routing Concepts
 
-Web application routes define how an application responds to client requests based on specific **URLs** and **HTTP methods**. They act as a mapping system, directing incoming requests to the appropriate code or resources for processing and generating a response.
+Web application routes define how an application responds to client requests based on specific **URIs** and **HTTP methods**. They act as a mapping system, directing incoming requests to the appropriate code or resources for processing and generating a response.
 
 In **server-side routing**, the application defines a set of routes that map URL patterns to specific handlers. Each route typically consists of:
 
 ### 1. HTTP method
 Modern routing systems distinguish between different HTTP methods (GET, POST, PUT, DELETE, etc.) for the same URL path.
-2. **URL pattern** (which may include parameters)
+2. **URI pattern** (which may include parameters)
 3. **Handler function** or controller that processes the request.
 
 ---
 
-### 2. URL Patterns
+### 2. URI Patterns
 Routes are associated with specific URL patterns. These patterns can be:
 * **Static**: Exact paths, e.g., `/about`, `/contact`.
 * **Dynamic (with parameters)**: Paths like `/users/:id`, where `:id` is a placeholder for a variable value.
@@ -44,7 +44,7 @@ Each route is linked to a **handler function** or **controller method**, which c
 * A **redirect**
 
 :::note[note]
-- Routes can capture dynamic segments from URLs (like user IDs or slugs) and pass them to handlers.
+- Routes can capture dynamic segments from URIs (like user IDs or slugs) and pass them to handlers.
 - In traditional server-side routing, each navigation typically involves a full page reload.
 :::
 
@@ -54,7 +54,7 @@ Each route is linked to a **handler function** or **controller method**, which c
 
 - **Clean URLs**: Routes enable friendly, semantic URLs like `/user/123` instead of `/index.php?page=user&id=123`
 - **Separation of concerns**: Each route handler focuses on a specific functionality, making code more organized and maintainable.
-- **Parameter extraction**: Routers automatically extract parameters from URLs and make them available to handlers.
+- **Parameter extraction**: Routers automatically extract parameters from URIs and make them available to handlers.
 - **HTTP method handling**: Different HTTP methods (GET, POST, PUT, DELETE) can be handled by different functions for the same URL.
 - **Middleware support**: Common functionality like authentication, logging, or CORS can be applied to routes through middleware.
 
@@ -64,7 +64,7 @@ Each route is linked to a **handler function** or **controller method**, which c
 
 - **Route caching**: Production applications often cache compiled routes for better performance.
 - **Route model binding**: Some frameworks automatically resolve route parameters to model instances.
-- **Named routes**: Routes can be given names for easier **URL generation** in templates and **redirects**.
+- **Named routes**: Routes can be given names for easier **URI generation** in templates and **redirects**.
 - **Route constraints**: Parameters can have validation rules (regex patterns, type constraints).
 
 ---
@@ -74,8 +74,8 @@ Each route is linked to a **handler function** or **controller method**, which c
 When a request comes in, Slim's router:
 
 1. **Matches the HTTP method** (GET, POST, etc.),
-2. **Compares the URL path** against defined route patterns,
-3. **Extracts parameters** from the URL if the route has placeholders
+2. **Compares the URI path** against defined route patterns,
+3. **Extracts parameters** from the URI if the route has placeholders
 4. **Executes middleware** if any is defined for the route,
 5. **Calls the route handler** with the request, response, and extracted parameters,
 6. **Returns the response** to the client.

@@ -1,0 +1,154 @@
+---
+title: Adding Search and Filtering 
+description: Working with Search in Slim Framework
+sidebar:
+  label: 'Adding Search and Filtering'
+  order: 4
+  badge:
+    text: New!
+    variant: danger
+---
+
+## Why Add Search and Filtering?
+
+Search is a feature that allows users to find specific information in a database or collection of data. It is a common feature in web applications and is used to help users find the information they are looking for.
+
+This guide walks you through implementing search functionality in your Slim MVC application.
+
+---
+
+## Advanced: Adding Search and Filtering
+
+### Step 1: Extend Your Model for Search
+
+1. Add search methods to your model class:
+   - `search($criteria)` => Search with multiple filters
+   - `getFiltered($filters)` => Apply specific filters
+   - `getAllPaginated($page, $limit, $search)` => Paginated results with search
+2. Keep all data logic in the model following MVC pattern
+
+### Step 2: Modify Your Index Route
+
+1. Update your controller's index method to accept search parameters
+2. Get search terms from query parameters using `$request->getQueryParams()`
+3. Pass search parameters to your model's search methods
+4. Pass current search values back to the view for form persistence
+
+---
+
+### Step 3: Create Search Form
+
+1. Add a search form to your `index.php` view
+2. Use GET method so search parameters appear in URL
+3. Make form fields retain their values using passed data
+4. Include filter options (dropdowns, checkboxes) as needed
+
+--- 
+
+### Step 4: Implement Filtering Logic
+
+**Basic Search Implementation (in Controller):**
+1. Extract search parameters from query string
+2. Validate and sanitize search inputs
+3. Pass validated parameters to your model's search methods
+4. Get filtered results from model and pass to view
+
+**Model Implementation:**
+1. Create search methods in your model that handle data filtering
+2. Keep all database queries and data logic in the model
+3. Return structured data back to the controller
+
+**Common Filter Types:**
+- **Text Search**: Search in specific fields (name, description, etc.)
+- **Category Filter**: Dropdown with predefined options
+- **Date Range**: Start and end date filtering
+- **Status Filter**: Active/inactive, published/draft, etc.
+- **Sorting**: Order by different fields (name, date, price, etc.)
+
+---
+
+### Step 5: Handle Empty Results
+
+1. Check if filtered results are empty
+2. Display appropriate message to user
+3. Provide option to clear filters
+4. Show total count of results
+
+---
+
+### Step 6: Add Pagination (Optional)
+
+1. Add pagination methods to your model (e.g., `getAllPaginated($page, $limit, $filters)`)
+2. Calculate total number of filtered results in the model
+3. Determine current page from query parameters in controller
+4. Call model's pagination methods with search filters
+5. Generate pagination links in view that preserve search parameters
+
+---
+
+### Search Route Examples
+
+```php
+// Your existing index route handles search automatically
+$app->get('/products', [ProductController::class, 'index'])
+    ->setName('products.index');
+
+// Optional: dedicated search route
+$app->get('/products/search', [ProductController::class, 'search'])
+    ->setName('products.search');
+```
+
+---
+
+### Controller Implementation Tips
+
+**Getting Search Parameters:**
+1. Use `$request->getQueryParams()` to get all query string data
+2. Provide default values for missing parameters
+3. Validate search inputs before using them
+4. Store search parameters to pass back to view
+
+**Preserving Search State:**
+1. When redirecting after operations (create/update/delete), preserve search parameters
+2. Use `$query_params` in your redirect calls to maintain current search
+3. Include current page number if using pagination
+
+**Search URL Examples:**
+- Basic search: `/products?search=laptop`
+- Multiple filters: `/products?search=laptop&category=electronics&status=active`
+- With pagination: `/products?search=laptop&page=2`
+- With sorting: `/products?search=laptop&sort=price&order=asc`
+
+---
+
+### View Implementation Tips
+
+**Search Form Best Practices:**
+1. Use GET method for search forms
+2. Include hidden fields for maintaining sort order
+3. Add "Clear Filters" link that goes to base index route
+4. Show current search criteria above results
+5. Display result count
+
+**User Experience:**
+1. Show loading states for search operations
+2. Highlight search terms in results
+3. Provide search suggestions if possible
+4. Make it clear when no results are found
+5. Allow users to easily modify their search
+
+---
+
+### Integration with Existing CRUD Operations
+
+**After Create/Update/Delete:**
+1. Redirect back to index with preserved search parameters
+2. Use flash messages to show success/error feedback
+3. Maintain user's current view state
+
+**Example Redirect After Delete:**
+```php
+// Preserve current search when redirecting
+$currentSearch = $request->getQueryParams();
+return $this->redirect($request, $response, 'products.index', [], $currentSearch);
+```
