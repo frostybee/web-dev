@@ -1,0 +1,134 @@
+---
+title: Handling Inputs in Slim Applications
+description: Working with Inputs in Slim Framework
+sidebar:
+  label: 'Handling Inputs in Slim Applications'
+  order: 5
+  badge:
+    text: New!
+    variant: danger
+--- 
+    
+This guide covers the different types of inputs your Slim application can receive and how to retrieve their values.
+
+## Types of Inputs  
+
+### 1. Route Parameters (URL Segments)
+- **What:** Dynamic segments in your route URLs (e.g., `/users/{id}`, `/products/{id}/reviews`)
+- **How to get?** Use the `$args` array parameter in your controller's callback method
+- **Example URL:** `/users/123` → `$args['id']` returns `"123"`
+
+---
+
+### 2. Query Parameters (Query String)
+- **What:** Key-value pairs after the `?` in URLs
+- **How to get?** Use `$request->getQueryParams()`
+- **Example URL:** `/search?q=laptop&page=2` → Returns array with `q` and `page` keys
+
+---
+
+### 3. Form Data (POST/PUT Body)
+- **What:** Data submitted through HTML forms or API requests
+- **How to get?** Use `$request->getParsedBody()`
+- **Content Types:**
+  1. Form submissions (`application/x-www-form-urlencoded`)
+  2. Multipart forms (`multipart/form-data`)
+  3. JSON data (`application/json`)
+
+---
+
+### 4. File Uploads
+- **What:** Files uploaded through forms with `enctype="multipart/form-data"`
+- **How to get?** Use `$request->getUploadedFiles()`
+- **Returns:** Array of `UploadedFileInterface` objects
+
+---
+
+### 5. Request Headers
+- **What:** HTTP headers sent with the request
+- **How to get?** Use `$request->getHeaders()` or `$request->getHeader('header-name')`
+- **Returns:** Array of all headers or array of values for specific header
+
+--- 
+
+### 6. Cookies
+- **What:** Data stored in browser cookies
+- **How to get?** Use `$request->getCookieParams()`
+- **Returns:** Array of cookie name-value pairs
+
+---
+
+### 7. Server Variables
+- **What:** Server environment and request information
+- **How to get?** Use `$request->getServerParams()`
+- **Contains:** IP addresses, user agents, request methods, etc.
+
+---
+
+### 8. Raw Request Body
+- **What:** Unprocessed request body content
+- **How to get?** Use `$request->getBody()->getContents()`
+- **Use cases:** Custom data formats, webhooks, API integrations
+- **Use cases:** Custom data formats, webhooks, API integrations
+
+---
+
+## Input Validation Best Practices
+
+1. **Always validate and sanitize** input data before using it
+2. **Cast types explicitly** (e.g., `(int) $args['id']`)
+3. **Provide default values** for optional parameters
+4. **Check if data exists** before using it
+5. **Handle missing or invalid data** gracefully
+
+---
+
+## Common Input Scenarios
+
+### Getting User ID from URL
+Route: `/users/{id}`
+```php
+$userId = (int) $args['id'];
+```
+---
+
+### Processing Search Form
+```php
+$searchData = $request->getQueryParams();
+$query = $searchData['q'] ?? '';
+$page = (int) ($searchData['page'] ?? 1);
+```
+
+### Handling Form Submission
+```php
+$formData = $request->getParsedBody();
+$username = $formData['username'] ?? '';
+$email = $formData['email'] ?? '';
+```
+
+---
+
+### File Upload Processing
+```php
+$uploadedFiles = $request->getUploadedFiles();
+$profileImage = $uploadedFiles['profile_image'] ?? null;
+```
+
+---
+
+### API Token Authentication
+```php
+$headers = $request->getHeaders();
+$authHeader = $request->getHeader('Authorization');
+$token = str_replace('Bearer ', '', $authHeader[0] ?? '');
+```
+
+---
+
+## Input Security Notes
+
+- Never trust user input directly
+- Always validate data types and formats
+- Sanitize data before displaying or storing
+- Use prepared statements for database operations
+- Implement proper authentication and authorization checks
