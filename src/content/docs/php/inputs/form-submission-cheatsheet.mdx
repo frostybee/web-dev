@@ -1,0 +1,554 @@
+---
+title: Form Submission Quick Reference Cheatsheet
+description: Essential form handling concepts and examples in one place
+sidebar:
+  label: 'Form Submission Cheatsheet'
+  order: 3
+  badge:
+    text: README!
+    variant: danger
+---
+
+## The Form Submission Process
+
+1. **User fills form** → Data in browser
+2. **User clicks submit** → Browser packages data
+3. **Data travels to server** → HTTP request
+4. **PHP receives data** → Via $_POST or $_GET
+5. **PHP processes data** → Validation, storage
+6. **Server sends response** → Back to browser
+
+---
+
+## Quick Workflow Reference
+
+### Valid Data Flow:
+POST → Validate → Process → **Redirect** → GET → Success Page
+
+### Invalid Data Flow:
+POST → Validate → **Stay on Page** → Show Errors → User Fixes → Resubmit
+
+
+## 📊 HTTP Methods Quick Reference
+
+| Method | Use Case | Data Location | Visible in URL | Size Limit |
+|--------|----------|---------------|----------------|------------|
+| **GET** | Search, filters | URL parameters | ✅ Yes | ~2048 chars |
+| **POST** | Forms, sensitive data | Request body | ❌ No | No limit |
+
+---
+
+## Basic HTML Form Setup
+
+### Standard PHP Forms
+```html
+<!-- POST for sensitive data (passwords, personal info) -->
+<form method="POST" action="process.php">
+    <label for="username">Username:</label>
+    <input type="text" name="username" id="username" required>
+
+    <label for="email">Email:</label>
+    <input type="email" name="email" id="email" required>
+
+    <button type="submit">Submit</button>
+</form>
+
+<!-- GET for searches/filters -->
+<form method="GET" action="search.php">
+    <input type="text" name="query" placeholder="Search...">
+    <button type="submit">Search</button>
+</form>
+```
+
+---
+
+### Form Action Examples for Slim Routes
+This is a list of examples of how to use the form action attribute to point to a Slim route. 
+
+:::note[Important]
+Note that the **action attribute** is the path to the Slim route and NOT the PHP script name.
+:::
+
+```html
+<!-- Basic routes -->
+<form method="GET" action="shops">...</form>
+<form method="POST" action="login">...</form>
+
+<!-- With route parameters -->
+<form method="POST" action="users/123/update">...</form>
+<form method="POST" action="products/456/delete">...</form>
+
+<!-- RESTful patterns -->
+<form method="POST" action="users"><!-- Create user --></form>
+<form method="POST" action="users/123"><!-- Update user (with method override) --></form>
+```
+---
+
+### Slim Framework Forms (Using Routes)
+```html
+<!-- POST to Slim route -->
+<form method="POST" action="users/register">
+    <label for="username">Username:</label>
+    <input type="text" name="username" id="username" required>
+
+    <label for="email">Email:</label>
+    <input type="email" name="email" id="email" required>
+
+    <button type="submit">Register</button>
+</form>
+
+<!-- GET to Slim route -->
+<form method="GET" action="search">
+    <input type="text" name="query" placeholder="Search...">
+    <input type="hidden" name="category" value="products">
+    <button type="submit">Search</button>
+</form>
+
+<!-- With route parameters -->
+<form method="POST" action="products/123/update">
+    <input type="text" name="name" placeholder="Product Name">
+    <input type="number" name="price" placeholder="Price">
+    <button type="submit">Update Product</button>
+</form>
+```
+
+---
+
+## PHP Form Processing Template
+
+### Standard PHP Form Processing
+```php
+<?php
+// Step 1: Check if form was submitted
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // Step 2: Get form data safely
+    $username = $_POST['username'] ?? '';
+    $email = $_POST['email'] ?? '';
+
+    // Step 3: Validate data
+    $errors = [];
+    if (empty($username)) {
+        $errors[] = 'Username is required';
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Valid email is required';
+    }
+
+    // Step 4: Process if valid
+    if (empty($errors)) {
+        // Clean data
+        $username = trim(htmlspecialchars($username, ENT_QUOTES, 'UTF-8'));
+        $email = trim(filter_var($email, FILTER_SANITIZE_EMAIL));
+
+        // Process data (save to database, send email, etc.)
+
+        // Step 5: Redirect after success (PRG pattern)
+        header('Location: success.php');
+        exit();
+    }
+    // If errors exist, stay on page and display them
+}
+?>
+```
+
+### Slim Framework Form Processing
+```php
+// routes.php - Route definitions
+$app->post('/users/register', [UserController::class, 'register']);
+$app->get('/search', [SearchController::class, 'search']);
+
+// UserController.php
+class UserController
+{
+    public function register(Request $request, Response $response): Response
+    {
+        // Step 1: Get parsed body data (handles POST automatically)
+        $data = $request->getParsedBody();
+
+        // Step 2: Get form data safely
+        $username = $data['username'] ?? '';
+        $email = $data['email'] ?? '';
+
+        // Step 3: Validate data
+        $errors = [];
+        if (empty($username)) {
+            $errors[] = 'Username is required';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Valid email is required';
+        }
+
+        // Step 4: Process if valid
+        if (empty($errors)) {
+            // Clean data
+            $username = trim(htmlspecialchars($username, ENT_QUOTES, 'UTF-8'));
+            $email = trim(filter_var($email, FILTER_SANITIZE_EMAIL));
+
+            // Process data (save to database, send email, etc.)
+
+            // Step 5: Redirect after success (PRG pattern)
+            return $response->withHeader('Location', '/success')->withStatus(302);
+        }
+
+        // If errors exist, render form with errors
+        return $this->view->render($response, 'registerView.php', [
+            'errors' => $errors,
+            'username' => $username,
+            'email' => $email
+        ]);
+    }
+}
+
+// SearchController.php
+class SearchController
+{
+    public function search(Request $request, Response $response): Response
+    {
+        // Get query parameters
+        $params = $request->getQueryParams();
+        $query = $params['query'] ?? '';
+        $category = $params['category'] ?? '';
+
+        // Process search logic here
+
+        return $this->view->render($response, 'searchResultsView.php', [
+            'query' => $query,
+            'results' => $searchResults
+        ]);
+    }
+}
+```
+
+---
+
+## Form Data Access
+
+### Standard PHP
+#### POST Data (Secure)
+```php
+// Check if POST request
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
+}
+```
+
+#### GET Data (For searches/filters)
+```php
+// Check if GET request
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $searchQuery = $_GET['query'] ?? '';
+    $category = $_GET['category'] ?? '';
+}
+```
+
+### Slim Framework
+#### POST Data (in controller method)
+```php
+// Route definition
+$app->post('/users', [UserController::class, 'create']);
+
+// Controller method
+class UserController
+{
+    public function create(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        $username = $data['username'] ?? '';
+        $password = $data['password'] ?? '';
+
+        // Process data...
+        return $response;
+    }
+}
+```
+
+#### GET Data (query parameters)
+```php
+// Route definition
+$app->get('/search', [SearchController::class, 'index']);
+
+// Controller method
+class SearchController
+{
+    public function index(Request $request, Response $response): Response
+    {
+        $params = $request->getQueryParams();
+        $searchQuery = $params['query'] ?? '';
+        $category = $params['category'] ?? '';
+
+        // Process search...
+        return $response;
+    }
+}
+```
+
+#### Route Parameters
+```php
+// Route definition
+$app->post('/users/{id}/update', [UserController::class, 'update']);
+
+// Controller method
+class UserController
+{
+    public function update(Request $request, Response $response, array $args): Response
+    {
+        $userId = $args['id']; // Route parameter
+        $data = $request->getParsedBody(); // Form data
+        $name = $data['name'] ?? '';
+
+        // Process update...
+        return $response;
+    }
+}
+```
+
+---
+
+## Validation Patterns
+
+### Required Fields
+```php
+$errors = [];
+
+if (empty($username)) {
+    $errors[] = 'Username is required';
+}
+
+if (empty($password)) {
+    $errors[] = 'Password is required';
+}
+```
+
+### Email Validation
+```php
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $errors[] = 'Valid email address is required';
+}
+```
+
+### Length Validation
+```php
+if (strlen($username) < 3) {
+    $errors[] = 'Username must be at least 3 characters';
+}
+
+if (strlen($password) < 8) {
+    $errors[] = 'Password must be at least 8 characters';
+}
+```
+
+### Number Validation
+```php
+if (!is_numeric($age) || $age < 18) {
+    $errors[] = 'Age must be a number and at least 18';
+}
+```
+
+---
+
+## Data Sanitization
+
+```php
+// Clean string data
+$username = trim($_POST['username']);
+$username = htmlspecialchars($username, ENT_QUOTES, 'UTF-8');
+
+// Clean email
+$email = trim($_POST['email']);
+$email = filter_var($email, FILTER_SANITIZE_EMAIL);
+
+// Clean numbers
+$age = filter_var($_POST['age'], FILTER_SANITIZE_NUMBER_INT);
+```
+
+---
+
+## Post/Redirect/Get (PRG) Pattern
+
+### Standard PHP
+#### Correct: Redirect After Success
+```php
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate data
+    if (empty($errors)) {
+        // Process data successfully
+
+        // Redirect to prevent duplicate submissions
+        header('Location: success.php');
+        exit();
+    }
+    // Stay on page if errors exist
+}
+```
+
+#### Wrong: No Redirect
+```php
+// Don't do this - causes duplicate submissions on refresh
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    echo "Form submitted!"; // User can resubmit by refreshing
+}
+```
+
+### Slim Framework
+#### Correct: Redirect After Success
+```php
+// Route definition
+$app->post('/submit', [FormController::class, 'submit']);
+
+// Controller method
+class FormController
+{
+    public function submit(Request $request, Response $response): Response
+    {
+        // Validate data
+        if (empty($errors)) {
+            // Process data successfully
+
+            // Redirect to prevent duplicate submissions
+            return $response->withHeader('Location', '/success')->withStatus(302);
+        }
+
+        // Stay on page if errors exist - render form with errors
+        return $this->view->render($response, 'formView.php', ['errors' => $errors]);
+    }
+}
+```
+
+#### Wrong: No Redirect
+```php
+// Route definition
+$app->post('/submit', [FormController::class, 'submitWrong']);
+
+// Controller method
+class FormController
+{
+    public function submitWrong(Request $request, Response $response): Response
+    {
+        // Don't do this - causes duplicate submissions on refresh
+        return $response->write("Form submitted!"); // User can resubmit by refreshing
+    }
+}
+```
+
+---
+
+## Security Essentials
+
+### Always Validate Server-Side
+```php
+// ✅ Always validate on server
+if (empty($username) || strlen($username) < 3) {
+    $errors[] = 'Username must be at least 3 characters';
+}
+
+// ❌ Never trust client-side validation alone
+// <input type="text" required minlength="3"> // Can be bypassed
+```
+
+### Prevent XSS Attacks
+```php
+// ✅ Escape output when displaying user data
+echo htmlspecialchars($userInput, ENT_QUOTES, 'UTF-8');
+
+// ❌ Never output raw user data
+echo $_POST['username']; // Dangerous!
+```
+--- 
+
+---
+
+## Debugging Tips
+
+### Debug Form Data
+```php
+// See what data was submitted
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    echo '<pre>';
+    var_dump($_POST);
+    echo '</pre>';
+}
+```
+
+### Check Form Field Names
+```php
+// Make sure field names match between HTML and PHP
+// HTML: <input name="username">
+// PHP: $_POST['username'] ← names must match exactly
+```
+
+### Common Issues Checklist
+- ✅ Form method matches PHP check (`POST` vs `GET`)
+- ✅ Field names match exactly between HTML and PHP
+- ✅ `action` attribute points to correct PHP file
+- ✅ No output before `header()` redirects
+- ✅ Using correct superglobal (`$_POST` vs `$_GET`)
+
+
+---
+
+## Slim Framework Route Patterns
+
+### Basic Routes
+```php
+// Route definitions with controller methods
+$app->get('/path', [MyController::class, 'index']);
+$app->post('/path', [MyController::class, 'create']);
+$app->put('/path', [MyController::class, 'update']);
+$app->delete('/path', [MyController::class, 'delete']);
+
+// Controller class
+class MyController
+{
+    public function index(Request $request, Response $response): Response { }
+    public function create(Request $request, Response $response): Response { }
+    public function update(Request $request, Response $response): Response { }
+    public function delete(Request $request, Response $response): Response { }
+}
+```
+
+### Route Parameters
+```php
+// Single parameter
+$app->get('/users/{id}', [UserController::class, 'show']);
+
+// Multiple parameters
+$app->get('/users/{id}/posts/{postId}', [PostController::class, 'show']);
+
+// Optional parameters
+$app->get('/products[/{category}]', [ProductController::class, 'index']);
+
+// Controller implementations
+class UserController
+{
+    public function show(Request $request, Response $response, array $args): Response
+    {
+        $userId = $args['id'];
+        // Process...
+        return $response;
+    }
+}
+
+class PostController
+{
+    public function show(Request $request, Response $response, array $args): Response
+    {
+        $userId = $args['id'];
+        $postId = $args['postId'];
+        // Process...
+        return $response;
+    }
+}
+
+class ProductController
+{
+    public function index(Request $request, Response $response, array $args): Response
+    {
+        $category = $args['category'] ?? 'all';
+        // Process...
+        return $response;
+    }
+}
+```
+

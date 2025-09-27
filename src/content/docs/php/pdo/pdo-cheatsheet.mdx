@@ -1,0 +1,183 @@
+---
+title: PDO Quick Reference Cheatsheet
+description: Essential PDO concepts and examples in one place
+draft: true
+sidebar:
+  label: 'PDO Cheatsheet'
+  order: 3
+---
+
+# PDO Quick Reference Cheatsheet
+
+## 🔗 Connection Setup
+
+```php
+// Basic connection
+$pdo = new PDO(
+    "mysql:host=localhost;dbname=myapp;charset=utf8mb4",
+    $username,
+    $password,
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+```
+
+## 🛡️ Security Rule #1: Always Use Prepared Statements
+
+```php
+// ❌ NEVER do this (SQL injection risk)
+$query = "SELECT * FROM users WHERE id = " . $_GET['id'];
+
+// ✅ ALWAYS do this (safe)
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id");
+$stmt->execute(['id' => $_GET['id']]);
+```
+
+## 📖 CRUD Operations
+
+### **CREATE** - Insert Data
+```php
+$stmt = $pdo->prepare("INSERT INTO users (name, email) VALUES (:name, :email)");
+$stmt->execute(['name' => $name, 'email' => $email]);
+$newId = $pdo->lastInsertId(); // Get inserted ID
+```
+
+### **READ** - Fetch Data
+```php
+// Single row
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id");
+$stmt->execute(['id' => $id]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// Multiple rows
+$stmt = $pdo->prepare("SELECT * FROM users WHERE active = 1");
+$stmt->execute();
+$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Single value
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM users");
+$stmt->execute();
+$count = $stmt->fetchColumn();
+```
+
+### **UPDATE** - Modify Data
+```php
+$stmt = $pdo->prepare("UPDATE users SET email = :email WHERE id = :id");
+$stmt->execute(['email' => $newEmail, 'id' => $userId]);
+$affectedRows = $stmt->rowCount(); // Check how many updated
+```
+
+### **DELETE** - Remove Data
+```php
+$stmt = $pdo->prepare("DELETE FROM users WHERE id = :id");
+$stmt->execute(['id' => $userId]);
+$deletedRows = $stmt->rowCount(); // Check how many deleted
+```
+
+## 🎯 Parameter Binding Methods
+
+```php
+// Method 1: Array in execute() (most common)
+$stmt->execute(['name' => $name, 'email' => $email]);
+
+// Method 2: Named placeholders
+$stmt = $pdo->prepare("SELECT * FROM users WHERE name = :name");
+$stmt->execute([':name' => $userName]);
+
+// Method 3: Named placeholders (recommended)
+$stmt = $pdo->prepare("SELECT * FROM users WHERE name = :name AND age > :age");
+$stmt->execute(['name' => $userName, 'age' => $minAge]);
+```
+
+## 🔄 Common Patterns
+
+### Check if Record Exists
+```php
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
+$stmt->execute(['email' => $email]);
+$exists = $stmt->fetchColumn() > 0;
+```
+
+### Loop Through Results
+```php
+$stmt = $pdo->prepare("SELECT * FROM products WHERE category = :category");
+$stmt->execute(['category' => $category]);
+while ($product = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    echo $product['name'] . "\n";
+}
+```
+
+## ⚠️ Error Handling
+
+```php
+try {
+    // Database operations here
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id");
+    $stmt->execute(['id' => $id]);
+    $user = $stmt->fetch();
+} catch (PDOException $e) {
+    error_log($e->getMessage()); // Log for debugging
+    echo "Something went wrong"; // User-friendly message
+}
+```
+
+## 💾 Transactions (All or Nothing)
+
+```php
+try {
+    $pdo->beginTransaction();
+
+    // Multiple operations that must all succeed
+    $stmt1 = $pdo->prepare("UPDATE accounts SET balance = balance - :amount WHERE id = :from_id");
+    $stmt1->execute(['amount' => $amount, 'from_id' => $fromAccount]);
+
+    $stmt2 = $pdo->prepare("UPDATE accounts SET balance = balance + :amount WHERE id = :to_id");
+    $stmt2->execute(['amount' => $amount, 'to_id' => $toAccount]);
+
+    $pdo->commit(); // Save all changes
+} catch (Exception $e) {
+    $pdo->rollBack(); // Undo all changes
+    throw $e;
+}
+```
+
+## 📋 Fetch Modes Quick Reference
+
+```php
+// Associative array (most common)
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+// Result: ['id' => 1, 'name' => 'John']
+
+// Object
+$user = $stmt->fetch(PDO::FETCH_OBJ);
+// Access: $user->name
+
+// Single column value
+$name = $stmt->fetchColumn();
+```
+
+## ✅ Best Practices Checklist
+
+- ✅ Always use prepared statements
+- ✅ Set error mode to exceptions: `PDO::ERRMODE_EXCEPTION`
+- ✅ Use named placeholders (`:name`) for readability
+- ✅ Check `rowCount()` after INSERT/UPDATE/DELETE
+- ✅ Use `lastInsertId()` after INSERT to get new ID
+- ✅ Wrap database operations in try-catch blocks
+- ✅ Store credentials in environment variables, not code
+- ✅ Always include WHERE clause in UPDATE/DELETE
+
+## 🚨 Common Mistakes to Avoid
+
+- ❌ Concatenating user input into SQL queries
+- ❌ Forgetting WHERE clause in UPDATE/DELETE (affects entire table!)
+- ❌ Not checking if fetch() returned data before using it
+- ❌ Exposing detailed error messages to end users
+- ❌ Not using transactions for related operations
+
+## 🔄 The PDO Workflow
+
+1. **Connect** → Create PDO instance
+2. **Prepare** → Create prepared statement with placeholders
+3. **Execute** → Run query with actual values
+4. **Fetch** → Get results (for SELECT queries)
+5. **Check** → Verify success with `rowCount()` or `lastInsertId()`

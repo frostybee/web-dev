@@ -64,19 +64,30 @@ export default
           }
         },
         {
-            label: "Security",
-            collapsed: true,
-            autogenerate: {
-              directory: "php/security",
+          label: "Security",
+          collapsed: true,
+          autogenerate: {
+            directory: "php/security",
+          }
+        },
+        {
+          label: "Slim Framework & MVC",
+          collapsed: true,
+          items: [
+            {
+              label: "Slim Framework & MVC",
+              autogenerate: {
+                directory: "php/slim",
+              }
+            },
+            {
+              label: "Slim MVC App",
+              autogenerate: {
+                directory: "php/slim-mvc",
+              }
             }
-          },
-          {
-            label: "Slim Framework & MVC",
-            collapsed: true,
-            autogenerate: {
-              directory: "php/slim",
-            }
-          },
+          ],
+        },
       ],
     }
   ];
