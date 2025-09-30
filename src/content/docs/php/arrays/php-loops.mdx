@@ -1,0 +1,341 @@
+---
+title: Working with Loops in PHP
+description: A beginner-friendly guide to using loops for processing arrays and associative arrays in PHP
+sidebar:
+  label: 'PHP Loops'
+  order: 3
+---
+
+Loops allow you to iterate over arrays and perform repetitive operations efficiently. Instead of writing 100 lines of code to process 100 items, you write one loop that repeats 100 times.
+
+---
+
+## Types of Loops in PHP
+
+### 1. The `foreach` Loop
+
+The `foreach` loop is ideal for arrays, automatically iterating through each element without manual index management.
+
+#### Indexed Arrays
+
+```php
+$fruits = ['Apple', 'Banana', 'Orange', 'Mango'];
+
+foreach ($fruits as $fruit) {
+    echo $fruit . "\n";
+}
+
+// Output:
+// Apple
+// Banana
+// Orange
+// Mango
+```
+---
+
+#### Associative Arrays
+
+Access both keys and values using `$key => $value` syntax:
+
+```php
+$student = [
+    'name' => 'John Doe',
+    'age' => 20,
+    'major' => 'Computer Science',
+    'gpa' => 3.8
+];
+
+foreach ($student as $key => $value) {
+    echo "$key: $value\n";
+}
+
+// Output:
+// name: John Doe
+// age: 20
+// major: Computer Science
+// gpa: 3.8
+```
+---
+
+#### Practical Example: Shopping Cart
+
+```php
+$cart = [
+    'laptop' => 999.99,
+    'mouse' => 25.50,
+    'keyboard' => 75.00,
+    'monitor' => 299.99
+];
+
+$total = 0;
+
+foreach ($cart as $item => $price) {
+    echo "$item: $" . number_format($price, 2) . "\n";
+    $total += $price;
+}
+
+echo "Total: $" . number_format($total, 2);
+
+// Output:
+// laptop: $999.99
+// mouse: $25.50
+// keyboard: $75.00
+// monitor: $299.99
+// Total: $1400.48
+```
+
+---
+
+### 2. The `for` Loop
+
+Use when you need index positions or precise iteration control.
+
+```php
+$colors = ['Red', 'Green', 'Blue', 'Yellow'];
+
+for ($i = 0; $i < count($colors); $i++) {
+    echo "Color $i: $colors[$i]\n";
+}
+
+// Output:
+// Color 0: Red
+// Color 1: Green
+// Color 2: Blue
+// Color 3: Yellow
+```
+
+**Example: Numbered List**
+
+```php
+$tasks = ['Read chapter 5', 'Complete assignment', 'Study for quiz'];
+
+for ($i = 0; $i < count($tasks); $i++) {
+    echo ($i + 1) . ". $tasks[$i]\n";
+}
+// Output: 1. Read chapter 5 ...
+```
+
+---
+
+### 3. The `while` Loop
+
+Continues while a condition is true—useful when iteration count is unknown.
+
+```php
+$numbers = [1, 2, 3, 4, 5];
+$index = 0;
+
+while ($index < count($numbers)) {
+    echo $numbers[$index] . "\n";
+    $index++;
+}
+```
+
+---
+
+### 4. The `do-while` Loop
+
+Executes at least once since the condition is checked after the first iteration.
+
+```php
+$index = 0;
+$fruits = ['Apple', 'Banana'];
+
+do {
+    echo $fruits[$index] . "\n";
+    $index++;
+} while ($index < count($fruits));
+```
+
+---
+
+## Multi-Dimensional Arrays
+
+Use nested loops to process arrays within arrays.
+
+**Example: Student Grades**
+
+```php
+$students = [
+    'Alice' => [
+        'Math' => 95,
+        'English' => 88,
+        'Science' => 92
+    ],
+    'Bob' => [
+        'Math' => 78,
+        'English' => 85,
+        'Science' => 80
+    ],
+    'Charlie' => [
+        'Math' => 90,
+        'English' => 92,
+        'Science' => 88
+    ]
+];
+
+foreach ($students as $name => $grades) {
+    echo "$name's Grades:\n";
+
+    $total = 0;
+    $count = 0;
+
+    foreach ($grades as $subject => $score) {
+        echo "  $subject: $score\n";
+        $total += $score;
+        $count++;
+    }
+
+    $average = $total / $count;
+    echo "  Average: " . number_format($average, 2) . "\n\n";
+}
+```
+
+---
+
+## Loop Control Statements
+
+### `break`
+
+Exits the loop immediately when a condition is met:
+
+```php
+$numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+foreach ($numbers as $num) {
+    if ($num > 5) {
+        break; // Stop when we reach a number greater than 5
+    }
+    echo $num . " ";
+}
+// Output: 1 2 3 4 5
+```
+
+### `continue`
+
+Skips the current iteration and moves to the next:
+
+```php
+$numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+foreach ($numbers as $num) {
+    if ($num % 2 == 0) {
+        continue; // Skip even numbers
+    }
+    echo $num . " ";
+}
+// Output: 1 3 5 7 9
+```
+
+---
+
+## Common Array Operations
+
+### Filtering
+
+```php
+$scores = [45, 78, 92, 65, 88, 34, 95];
+$passing_scores = [];
+
+foreach ($scores as $score) {
+    if ($score >= 60) {
+        $passing_scores[] = $score;
+    }
+}
+
+print_r($passing_scores);
+// Output: [78, 92, 65, 88, 95]
+```
+
+### Transformation
+
+```php
+$prices = [10, 20, 30, 40, 50];
+$discounted_prices = [];
+
+foreach ($prices as $price) {
+    $discounted_prices[] = $price * 0.8; // 20% discount
+}
+
+print_r($discounted_prices);
+// Output: [8, 16, 24, 32, 40]
+```
+
+### Finding Min/Max
+
+```php
+$temperatures = [72, 68, 75, 80, 65, 70];
+$max_temp = $temperatures[0];
+$min_temp = $temperatures[0];
+
+foreach ($temperatures as $temp) {
+    if ($temp > $max_temp) {
+        $max_temp = $temp;
+    }
+    if ($temp < $min_temp) {
+        $min_temp = $temp;
+    }
+}
+
+echo "Highest: $max_temp°F\n";
+echo "Lowest: $min_temp°F\n";
+```
+
+### Searching
+
+```php
+$products = [
+    ['id' => 1, 'name' => 'Laptop', 'price' => 999],
+    ['id' => 2, 'name' => 'Mouse', 'price' => 25],
+    ['id' => 3, 'name' => 'Keyboard', 'price' => 75]
+];
+
+$search_id = 2;
+$found = null;
+
+foreach ($products as $product) {
+    if ($product['id'] == $search_id) {
+        $found = $product;
+        break;
+    }
+}
+
+if ($found) {
+    echo "Found: {$found['name']} - $" . $found['price'];
+}
+```
+
+---
+
+## Best Practices
+
+1. **Choose the right loop**: Use `foreach` without index needs, `for` when you need indices.
+
+2. **Don't modify arrays during iteration**: Avoid adding/removing elements while looping.
+
+3. **Use descriptive variable names**: Prefer `$student` over `$i` in foreach loops.
+
+4. **Cache `count()` in for loops**: Calling `count()` every iteration is inefficient.
+
+```php
+// Less efficient
+for ($i = 0; $i < count($array); $i++) { }
+
+// Better
+$length = count($array);
+for ($i = 0; $i < $length; $i++) { }
+```
+5. **Prevent infinite loops**: Always ensure your loop condition can become false.
+
+```php
+// BAD - Infinite loop
+while ($i < 10) {
+    echo $i;  // Forgot to increment!
+}
+
+// GOOD
+while ($i < 10) {
+    echo $i;
+    $i++;
+}
+```
