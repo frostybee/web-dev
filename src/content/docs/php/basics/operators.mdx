@@ -1,0 +1,164 @@
+---
+title: PHP Operators
+description: A comprehensive guide to comparison and logical operators in PHP
+sidebar:
+  label: 'Operators'
+  order: 6
+  badge:
+    text: New!
+    variant: success
+---
+
+# PHP Operators
+
+Operators perform operations on variables and values.
+
+---
+
+## Comparison Operators
+
+Compare two values and return a boolean result.
+
+| Operator | Name | Example | Result |
+|----------|------|---------|--------|
+| `==` | Equal | `5 == "5"` | `true` (type coercion) |
+| `===` | Identical | `5 === "5"` | `false` (strict) |
+| `!=` | Not equal | `5 != 3` | `true` |
+| `!==` | Not identical | `5 !== "5"` | `true` (strict) |
+| `>` | Greater than | `10 > 5` | `true` |
+| `<` | Less than | `3 < 7` | `true` |
+| `>=` | Greater or equal | `5 >= 5` | `true` |
+| `<=` | Less or equal | `4 <= 3` | `false` |
+
+### Loose vs Strict Comparison
+
+```php
+$a = 10;
+$b = "10";
+
+$a == $b   // true (values equal, types ignored)
+$a === $b  // false (different types)
+
+// Common type coercion cases
+0 == false      // true
+0 === false     // false
+"0" == 0        // true
+"0" === 0       // false
+```
+
+---
+
+## Logical Operators
+
+Combine multiple conditions.
+
+| Operator | Name | Description |
+|----------|------|-------------|
+| `&&` or `and` | AND | Both conditions must be true |
+| `\|\|` or `or` | OR | At least one must be true |
+| `!` | NOT | Reverses the condition |
+| `xor` | XOR | Exactly one must be true |
+
+```php
+// AND - both must be true
+if ($age >= 21 && $income >= 30000) {
+    echo "Approved";
+}
+
+// OR - at least one must be true
+if ($age >= 65 || $income < 20000) {
+    echo "Eligible for discount";
+}
+
+// NOT - reverses boolean
+if (!$isLoggedIn) {
+    echo "Please login";
+}
+
+// XOR - exactly one must be true
+if ($useCreditCard xor $usePayPal) {
+    echo "Payment method selected";
+}
+```
+
+**Operator precedence:** `!` → `&&` → `||`. Use parentheses for clarity.
+
+---
+
+## Arithmetic Operators
+
+| Operator | Name | Example | Result |
+|----------|------|---------|--------|
+| `+` | Addition | `5 + 3` | `8` |
+| `-` | Subtraction | `10 - 4` | `6` |
+| `*` | Multiplication | `4 * 3` | `12` |
+| `/` | Division | `15 / 3` | `5` |
+| `%` | Modulus | `10 % 3` | `1` |
+| `**` | Exponentiation | `2 ** 3` | `8` |
+
+```php
+$total = $price * $quantity - $discount;
+$isEven = ($number % 2 == 0);
+```
+
+---
+
+## Assignment Operators
+
+| Operator | Example | Equivalent |
+|----------|---------|------------|
+| `=` | `$a = 5` | Assign |
+| `+=` | `$a += 3` | `$a = $a + 3` |
+| `-=` | `$a -= 2` | `$a = $a - 2` |
+| `*=` | `$a *= 4` | `$a = $a * 4` |
+| `/=` | `$a /= 2` | `$a = $a / 2` |
+| `.=` | `$a .= "x"` | `$a = $a . "x"` |
+
+```php
+$total = 0;
+$total += 50;      // 50
+$message = "Hi";
+$message .= "!";   // "Hi!"
+```
+
+---
+
+## Increment/Decrement
+
+| Operator | Description |
+|----------|-------------|
+| `++$a` | Pre-increment (increment, then return) |
+| `$a++` | Post-increment (return, then increment) |
+| `--$a` | Pre-decrement |
+| `$a--` | Post-decrement |
+
+```php
+$count = 5;
+echo $count++;  // 5, then becomes 6
+echo ++$count;  // 7, then outputs 7
+```
+
+---
+
+## String Operators
+
+| Operator | Name | Example |
+|----------|------|---------|
+| `.` | Concatenation | `"Hi" . " there"` |
+| `.=` | Append | `$a .= " more"` |
+
+```php
+$name = $firstName . " " . $lastName;
+$html = "<div>";
+$html .= "<p>Content</p>";
+$html .= "</div>";
+```
+
+---
+
+## Things to Notes
+
+1. **Use strict comparison (`===`)** unless you need type coercion.
+2. **Use parentheses** when combining multiple logical operators for clarity.
+3. **Use compound operators** (`+=`, `-=`, `.=`) for cleaner code.
+4. **Be aware of type coercion** with `==` vs `===`.

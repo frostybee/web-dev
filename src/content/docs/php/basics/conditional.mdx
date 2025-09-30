@@ -1,0 +1,148 @@
+---
+title: PHP Conditional Statements
+description: A student-friendly guide to control structures in PHP including if, else, elseif, switch, and ternary operators
+sidebar:
+  label: 'Conditional Statements'
+  order: 2
+  badge:
+    text: New!
+    variant: success
+---
+
+Conditional statements execute different code blocks based on conditions, enabling dynamic decision-making in your applications.
+
+---
+
+## The `if` Statement
+
+Executes code only when a condition is true.
+
+```php
+$age = 18;
+
+if ($age >= 18) {
+    echo "You are eligible to vote.";
+}
+
+// Multiple conditions
+if ($score >= 80 && $attendance >= 85) {
+    echo "Excellent performance!";
+}
+```
+
+---
+
+## The `if-else` Statement
+
+Provides an alternative when the condition is false.
+
+```php
+$temperature = 15;
+
+if ($temperature > 25) {
+    echo "It's hot outside.";
+} else {
+    echo "It's cool outside.";
+}
+```
+
+---
+
+## The `elseif` Statement
+
+Checks multiple conditions in sequence.
+
+```php
+$score = 75;
+
+if ($score >= 90) {
+    echo "Grade: A";
+} elseif ($score >= 80) {
+    echo "Grade: B";
+} elseif ($score >= 70) {
+    echo "Grade: C";
+} else {
+    echo "Grade: F";
+}
+```
+
+---
+
+## The `switch` Statement
+
+Cleaner alternative to multiple `elseif` when checking one variable against multiple values.
+
+```php
+$orderStatus = "shipped";
+
+switch ($orderStatus) {
+    case "pending":
+        echo "Order is being processed.";
+        break;
+    case "shipped":
+        echo "Order is on the way!";
+        break;
+    case "delivered":
+        echo "Order has been delivered.";
+        break;
+    default:
+        echo "Unknown status.";
+}
+```
+
+**Important:** Always use `break` to prevent fall-through.
+
+---
+
+## Ternary Operator
+
+Shorthand for simple `if-else` assignments.
+
+```php
+$age = 20;
+$status = ($age >= 18) ? "Adult" : "Minor";
+
+// Equivalent to:
+if ($age >= 18) {
+    $status = "Adult";
+} else {
+    $status = "Minor";
+}
+```
+
+---
+
+## Null Coalescing Operator (`??`)
+
+Returns the first non-null value; useful for handling undefined variables.
+
+```php
+// Replaces isset() ternary
+$username = $_GET['username'] ?? 'Guest';
+
+// Chain multiple fallbacks
+$config = $userConfig ?? $defaultConfig ?? 'fallback';
+```
+
+---
+
+## Things to Notes
+
+1. **Use strict comparison (`===`)** to avoid type coercion bugs.
+
+2. **Extract complex conditions** into variables for readability.
+
+```php
+// Harder to read
+if ($user['age'] >= 18 && $user['verified'] && $user['status'] !== 'banned') { }
+
+// Better
+$canAccess = $user['age'] >= 18 && $user['verified'] && $user['status'] !== 'banned';
+if ($canAccess) { }
+```
+
+3. **Use `switch` for multiple value checks** instead of many `elseif` statements.
+
+4. **Avoid deep nesting:** use early returns or logical operators.
+
+5. **Use ternary only for simple assignments:** don't nest ternary operators.
