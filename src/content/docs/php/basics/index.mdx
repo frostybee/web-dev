@@ -1,111 +1,65 @@
 ---
-title: PHP Introduction
+title: Weekly Breakdown
 description: Working with PHP Introduction
 sidebar:
-  label: 'PHP Introduction'
+  label: 'Weekly Breakdown'
   order: 2
   badge: 
-    text: New!
+    text: Week 1-14
     variant: danger  
 ---
 
-## What is PHP?
+import {CollapsiblePanel} from 'astro-nebula-ui'
 
-- **PHP** (PHP: Hypertext Preprocessor) is a popular **server-side scripting language** designed for web development.
-- It can be embedded within HTML and runs on the server to generate **dynamic web pages** before sending them to users' browsers.
+## Week 1-14
 
-```php
-<?php
-echo "Hello, World!"; // This runs on the server
-?>
-<h1>Welcome to my website</h1> <!-- This is HTML -->
-```
+<CollapsiblePanel title="Week 1: PHP Basics" defaultOpen={true} defaultExpanded={true}>
+  - [PHP Intro and Server-Side Scripting](basics/server-side)
+  - [HTTP Request-Response Cycle](basics/http-cycle)
+  - [PHP Variables](data-types/variables)
+  - [PHP Constants](data-types/php-constants)    
+  - [PHP Data Types](data-types)
+  - [PHP Strings](strings/strings)
+  - [PHP Loops](arrays/php-loops)
+  - [PHP Functions](functions)
+  - [PHP Arrays](arrays/php-arrays)
+  
+</CollapsiblePanel>
 
----
+<CollapsiblePanel title="Week 2: PHP and MySQL Integration (PDO)">
+  - [PHP PDO](pdo/pdo)  
+  - [CRUD Operations with PDO](pdo/pdo-operations)
+  - [SQL Injection](security/sql-injection)  
+  - [Master-Details in PHP](inputs/master-details)  
+</CollapsiblePanel>
 
-## History & Evolution
+<CollapsiblePanel title="Week 3: Input Methods & Web Forms">
+  - [Input Methods](inputs/input-methods)
+  - [Form Submission](inputs/form-submission)
+  - [Forms Validation](inputs/forms-validation)  
+  - [Form Submission Cheatsheet](inputs/form-submission-cheatsheet)  
+  - [Master-Details in PHP](inputs/master-details)  
+  - [Working with PHP Sessions](inputs/session)   
+</CollapsiblePanel>
 
-- **1994**: Created by Rasmus Lerdorf as "Personal Home Page"
-- **1997**: PHP 3 released, renamed to "PHP: Hypertext Preprocessor"
-- **2000**: PHP 4 with Zend Engine introduced object-oriented features
-- **2004**: PHP 5 enhanced OOP capabilities significantly
-- **2015**: PHP 7 brought major performance improvements (2x faster)
-- **2020**: PHP 8 added JIT compilation and new syntax features
+<CollapsiblePanel title="Week 4: Slim Framework & MVC">
+  - [MVC Design Pattern](slim/mvc)
+  - [Routing Concept](slim/routing-concept)  
+  - [Working with Slim Framework & MVC](https://github.com/frostybee/slim-mvc)
+</CollapsiblePanel>
 
----
+<CollapsiblePanel title="Week 5: Working with Slim Framework & MVC">  
+  - [Routing Concept](slim/routing-concept)
+  - [CRUD Operations in Slim Framework](slim/crud-routes)  
+  - [Handling Inputs in Slim Applications](slim/slim-inputs)
+  - [Search and Filtering in Slim Framework](slim/slim-search)
+</CollapsiblePanel>
 
-## Key Features
+<CollapsiblePanel title="Week 6: Work on Assignment 1">
+  - We worked on the first assignment. 
+</CollapsiblePanel>
 
-### Server-Side Processing
-- Code executes on the server, not in the browser
-- Users only see the HTML output, never the PHP source code
-- Perfect for handling databases, user authentication, and dynamic content
-
-### Easy to Learn
-```php title="Example of PHP variables and loops:"
-<?php 
-// Variables are simple - just add $
-$age = 20;
-$name = "Alice";
-$isStudent = true;
-
-// Mix PHP with HTML easily
-echo "<h1>Hi $name, you are $age years old!</h1>";
-
-// Arrays and loops are straightforward  
-$subjects = ["Math", "Science", "History"];
-foreach ($subjects as $subject) {
-    echo "<li>$subject</li>";
-}
-?>
-```
-
-### Database Integration
-- Built-in support for MySQL, PostgreSQL, SQLite, and more
-- Simple database operations with PDO or mysqli
-
-### Cross-Platform
-- Runs on Windows, Linux, macOS, and most web servers
-- Works with Apache, Nginx, IIS, and others
-
-### Open Source & Free
-- Completely free to use for any purpose
-- Large community and extensive documentation
-
----
-
-## Why Choose PHP?
-
-| Advantage | Description |
-|-----------|-------------|
-| **Rapid Development** | Quick to write and deploy web applications |
-| **Huge Community** | Millions of developers, extensive resources |
-| **Frameworks Available** | Laravel, Symfony, and Slim microframework for faster development |
-| **Web-Focused** | Built specifically for web development |
-| **Flexible** | Works with HTML, CSS, JavaScript seamlessly |
-
----
-
-## What Can You Build?
-
-- **Websites**: Personal blogs, business sites, portfolios
-- **E-commerce**: Online stores with shopping carts and payments  
-- **Content Management**: WordPress, Drupal are built with PHP
-- **Web Applications**: Social networks, forums, booking systems
-- **APIs**: RESTful services for mobile apps and integrations
-
----
-
-## PHP vs Other Languages
-
-**PHP Strengths:**
-- Designed for web development
-- Easy hosting and deployment
-- Extensive web-specific functions
-- Large ecosystem of frameworks and tools
-
-**When to Choose PHP:**
-- Building web applications or websites
-- Need rapid development and deployment
-- Working with databases and dynamic content
-- Want a gentle learning curve for web development
+<CollapsiblePanel title="Week 7: Getting Started with the Team Project">
+  - Repository and documentation setup. 
+  - Getting started with the team project implementation.
+</CollapsiblePanel>
