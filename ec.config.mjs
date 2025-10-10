@@ -2,6 +2,8 @@ import { definePlugin } from "@expressive-code/core";
 import { h } from "@expressive-code/core/hast";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
 import { pluginFullscreen } from 'expressive-code-fullscreen';
+import { pluginLanguageBadge } from 'expressive-code-language-badge';
+
 
 
 function sideBorder() {
@@ -99,9 +101,10 @@ function languageLabel() {
 export default {
   plugins: [
     sideBorder(),
-    languageLabel(),
+    // languageLabel(),
     pluginLineNumbers(),
     pluginFullscreen(),
+    pluginLanguageBadge(),
   ],
   defaultProps: {
     showLineNumbers: false,
