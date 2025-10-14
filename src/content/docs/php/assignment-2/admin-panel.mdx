@@ -1,0 +1,89 @@
+---
+title: Admin Panel
+description: Working with Admin Panel
+sidebar:
+  label: 'Admin Panel'
+  order: 1
+  badge:
+    text: assignment 2
+    variant: caution
+--- 
+
+## What is Admin Panel?
+
+Admin panel is a **protected area** of the website that **only admin** users can access. It allows admin users to manage the website's content and settings.
+
+## Step-by-Step Implementation
+
+### 1. Create Admin Authentication Middleware
+Create a middleware class to check if the user is authenticated and has admin privileges. Redirect unauthorized users to the login page. This middleware should check if the user is logged in and if the user is an admin.
+
+### 2. Create a Set of Controllers
+Create a set of controllers with methods for different admin pages (dashboard, orders, categories, products, etc.). The controllers should be responsible for handling the logic for the admin panel.
+
+### 3. Set Up Routing Group
+In your routes file, create a group with the `/admin` prefix. Add all admin routes inside this group and apply the admin authentication middleware to the entire group.
+
+#### Routing Group Example
+
+```php
+$app->group('/admin', function ($group) {
+    $group->get('/dashboard', [AdminController::class, 'dashboard']);
+    $group->get('/users', [AdminController::class, 'users']);
+    $group->get('/products', [ProductsController::class, 'index']);
+    $group->post('/products/create', [ProductsController::class, 'createProduct']);    
+    $group->get('/categories', [CategoriesController::class, 'index']);    
+    $group->post('/categories/create', [CategoriesController::class, 'create']);  
+    // TODO: Add the remaining routes for products, orders and categories, etc.
+})->add(AdminAuthMiddleware::class);
+```
+
+This creates routes accessible at:
+- `/admin/dashboard`
+- `/admin/users`
+- `/admin/products`
+- `/admin/products/create`
+
+All routes are protected by the `AdminAuthMiddleware`.
+
+### 4. Create Admin Views
+Create template files for each admin page (dashboard, user management, product management, etc.) in your views directory.
+
+## Expected File Structure
+
+After implementing the admin panel following the steps detailed below, you should have:
+
+```
+app/
+├── Controllers/
+│   ├── AdminController.php
+│   ├── DashboardController.php
+│   ├── UsersController.php
+│   ├── ProductsController.php
+│   └── OrdersController.php
+├── Models/
+│   ├── AdminModel.php
+│   ├── DashboardModel.php
+│   ├── UsersModel.php
+│   ├── ProductsModel.php
+│   └── OrdersModel.php
+├── Views/
+│   └── admin/
+│       ├── dashboardView.php
+│       ├── usersView.php
+│       ├── products/
+│       │   ├── productIndexView.php
+│       │   ├── productShowView.php
+│       │   ├── productCreateView.php
+│       │   └── productEditView.php
+│       ├── categories/
+│       │   ├── categoryIndexView.php
+│       │   ├── categoryShowView.php
+│       │   ├── categoryCreateView.php
+│       │   └── categoryEditView.php
+│       └── orders/
+│           ├── orderIndexView.php
+│           └── orderShowView.php
+└── Routes/
+    └── web-routes.php
+```
