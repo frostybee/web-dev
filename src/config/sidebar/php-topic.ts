@@ -16,14 +16,14 @@ export default
               label: "Getting Started",
               autogenerate: {
                 directory: "php/basics",
-                collapsed: false,
+                collapsed: true,
               }
             },
             {
               label: "Variables and Data Types",
               autogenerate: {
                 directory: "php/Data-Types",
-                collapsed: false,
+                collapsed: true,
               }
             }
           ]
