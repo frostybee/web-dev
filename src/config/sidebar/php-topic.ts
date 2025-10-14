@@ -71,8 +71,15 @@ export default
           }
         },
         {
+          label: "Assignment 2",
+          collapsed: false,
+          autogenerate: {
+            directory: "php/assignment-2",
+          }
+        },
+        {
           label: "Slim Framework & MVC",
-          collapsed: true,
+          collapsed: false,
           items: [
             {
               label: "Slim Framework & MVC",

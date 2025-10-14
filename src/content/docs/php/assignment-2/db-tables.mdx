@@ -1,0 +1,105 @@
+---
+title: Database Tables for Assignment 2
+description: Database Tables for Assignment 2
+sidebar:
+  label: 'Database Tables'
+  order: 1
+  badge:
+    text: assignment 2
+    variant: caution
+---
+
+## Database Schema Overview
+
+The eCommerce application in your assignment 2 should include the following core tables:
+
+| Table Name                    | Description                                                                                     |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| **users**                     | Stores user account information for both customers and administrators.                          |
+| **categories**                | Organizes products into logical groups (e.g., Electronics, Books, Clothing).                    |
+| **products**                  | Contains all product information including name, description, price, and image reference.       |
+| **product_images**            | Stores file paths or URLs for uploaded product images (supporting multiple images per product). |
+| **orders**                    | Records completed purchases after checkout.                                                     |
+| **order_items**               | Stores details of each product within an order.                                                 |
+
+---
+
+## Table Details
+
+### 1. users
+
+| Column          | Type                      | Constraints                 | Description                     |
+| --------------- | ------------------------- | --------------------------- | ------------------------------- |
+| `id`            | INT                       | PRIMARY KEY, AUTO_INCREMENT | Unique user ID                  |
+| `first_name`    | VARCHAR(100)              | NOT NULL                    | User's first name               |
+| `last_name`     | VARCHAR(100)              | NOT NULL                    | User's last name                |
+| `username`      | VARCHAR(50)               | UNIQUE, NOT NULL            | User's login name               |
+| `email`         | VARCHAR(100)              | UNIQUE, NOT NULL            | User's email address            |
+| `password_hash` | VARCHAR(255)              | NOT NULL                    | Hashed password (bcrypt) |
+| `role`          | ENUM('admin', 'customer') | DEFAULT 'customer'          | Defines user role               |
+| `created_at`    | DATETIME                  | DEFAULT CURRENT_TIMESTAMP   | Account creation date           |
+| `updated_at`    | DATETIME                  | ON UPDATE CURRENT_TIMESTAMP | Last profile update             |
+
+
+---
+
+### 3. categories
+
+| Column        | Type         | Constraints                 | Description          |
+| ------------- | ------------ | --------------------------- | -------------------- |
+| `id`          | INT          | PRIMARY KEY, AUTO_INCREMENT | Category ID          |
+| `name`        | VARCHAR(100) | UNIQUE, NOT NULL            | Category name        |
+| `description` | TEXT         | NULL                        | Category description |
+| `created_at`  | DATETIME     | DEFAULT CURRENT_TIMESTAMP   | Creation timestamp   |
+
+---
+
+### 4. products
+
+| Column           | Type          | Constraints                    | Description                      |
+| ---------------- | ------------- | ------------------------------ | -------------------------------- |
+| `id`             | INT           | PRIMARY KEY, AUTO_INCREMENT    | Product ID                       |
+| `category_id`    | INT           | FOREIGN KEY → `categories(id)` | Category this product belongs to |
+| `name`           | VARCHAR(100)  | NOT NULL                       | Product name                     |
+| `description`    | TEXT          | NULL                           | Product details                  |
+| `price`          | DECIMAL(10,2) | NOT NULL                       | Product price                    |
+| `stock_quantity` | INT           | DEFAULT 0                      | Units available                  |
+| `created_at`     | DATETIME      | DEFAULT CURRENT_TIMESTAMP      | Creation date                    |
+| `updated_at`     | DATETIME      | ON UPDATE CURRENT_TIMESTAMP    | Last update date                 |
+
+---
+
+### 5. product_images
+
+| Column       | Type         | Constraints                  | Description                        |
+| ------------ | ------------ | ---------------------------- | ---------------------------------- |
+| `id`         | INT          | PRIMARY KEY, AUTO_INCREMENT  | Image ID                           |
+| `product_id` | INT          | FOREIGN KEY → `products(id)` | Associated product                 |
+| `file_path`  | VARCHAR(255) | NOT NULL                     | Path or filename of uploaded image |
+| `is_primary` | BOOLEAN      | DEFAULT FALSE                | Marks main display image           |
+
+---
+
+### 8. orders
+
+| Column         | Type          | Constraints                 | Description                                           |
+| -------------- | ------------- | --------------------------- | ----------------------------------------------------- |
+| `id`           | INT           | PRIMARY KEY, AUTO_INCREMENT | Order ID                                              |
+| `user_id`      | INT           | FOREIGN KEY → `users(id)`   | Customer who placed the order                         |
+| `total_amount` | DECIMAL(10,2) | NOT NULL                    | Total price of order                                  |
+| `status`       | VARCHAR(50)   | DEFAULT 'Pending'           | Order status (Pending, Shipped, Completed, Cancelled) |
+| `created_at`   | DATETIME      | DEFAULT CURRENT_TIMESTAMP   | Order creation date                                   |
+
+---
+
+### 9. order_items
+
+| Column       | Type          | Constraints                  | Description                |
+| ------------ | ------------- | ---------------------------- | -------------------------- |
+| `id`         | INT           | PRIMARY KEY, AUTO_INCREMENT  | Order item ID              |
+| `order_id`   | INT           | FOREIGN KEY → `orders(id)`   | Associated order           |
+| `product_id` | INT           | FOREIGN KEY → `products(id)` | Purchased product          |
+| `quantity`   | INT           | NOT NULL                     | Quantity purchased         |
+| `unit_price` | DECIMAL(10,2) | NOT NULL                     | Price per unit at checkout |
+
+---

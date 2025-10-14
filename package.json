@@ -21,7 +21,7 @@
     "@astrojs/svelte": "^7.2.0",
     "@expressive-code/core": "^0.41.3",
     "@expressive-code/plugin-line-numbers": "^0.41.3",
-    "astro": "^5.14.3",
+    "astro": "^5.14.4",
     "astro-nebula-ui": "^0.4.2",
     "expressive-code-fullscreen": "^1.0.0",
     "expressive-code-language-badge": "^1.1.0",
@@ -38,7 +38,7 @@
     "starlight-scroll-to-top": "^0.4.0",
     "starlight-sidebar-topics": "^0.6.1",
     "starlight-theme-galaxy": "^0.5.2",
-    "svelte": "^5.39.11"
+    "svelte": "^5.39.12"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
