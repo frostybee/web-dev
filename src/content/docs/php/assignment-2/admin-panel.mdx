@@ -11,18 +11,22 @@ sidebar:
 
 ## What is Admin Panel?
 
-Admin panel is a **protected area** of the website that **only admin** users can access. It allows admin users to manage the website's content and settings.
 
+**Admin Panel** is a common feature in web applications that allows **administrators** to manage the website's content and settings. It is a **protected area** of the website that only admin users can access.
+
+:::note
+This guide will walk you through the process of **creating an admin panel** for your Slim MVC application.
+:::
 ## Step-by-Step Implementation
 
 ### 1. Create Admin Authentication Middleware
 Create a middleware class to check if the user is authenticated and has admin privileges. Redirect unauthorized users to the login page. This middleware should check if the user is logged in and if the user is an admin.
 
 ### 2. Create a Set of Controllers
-Create a set of controllers with methods for different admin pages (dashboard, orders, categories, products, etc.). The controllers should be responsible for handling the logic for the admin panel.
+Create a set of controller classes with request handler callback methods for different admin pages (dashboard, orders, categories, products, etc.). These controller classes should be responsible for handling the logic for the admin panel.
 
-### 3. Set Up Routing Group
-In your routes file, create a group with the `/admin` prefix. Add all admin routes inside this group and apply the admin authentication middleware to the entire group.
+### 3. Set Up an Admin Routes Group
+In your routes file, create a route group with the `/admin` prefix. Register all admin routes inside this group and apply the admin authentication middleware to the entire group.
 
 #### Routing Group Example
 
@@ -71,19 +75,24 @@ app/
 │   └── admin/
 │       ├── dashboardView.php
 │       ├── usersView.php
+│       ├── orders/
+│       │   ├── orderIndexView.php
+│       │   └── orderShowView.php
 │       ├── products/
 │       │   ├── productIndexView.php
 │       │   ├── productShowView.php
 │       │   ├── productCreateView.php
 │       │   └── productEditView.php
-│       ├── categories/
-│       │   ├── categoryIndexView.php
-│       │   ├── categoryShowView.php
-│       │   ├── categoryCreateView.php
-│       │   └── categoryEditView.php
-│       └── orders/
-│           ├── orderIndexView.php
-│           └── orderShowView.php
+│       └── categories/
+│       │    ├── categoryIndexView.php
+│       │    ├── categoryShowView.php
+│       │    ├── categoryCreateView.php
+│       │    └── categoryEditView.php
+│       └── cart/
+│           ├── cartItemsView.php
+│           ├── cartSummaryView.php
+│           ├── checkoutFormView.php
+│           └── checkoutConfirmationView.php
 └── Routes/
     └── web-routes.php
 ```

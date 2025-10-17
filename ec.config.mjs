@@ -104,7 +104,14 @@ export default {
     // languageLabel(),
     pluginLineNumbers(),
     pluginFullscreen(),
-    pluginLanguageBadge(),
+    pluginLanguageBadge(
+      {
+        excludeLanguages: ["plaintext"],
+        languageMap: {
+          "plaintext": " "
+        }
+      }
+    ),
   ],
   defaultProps: {
     showLineNumbers: false,
