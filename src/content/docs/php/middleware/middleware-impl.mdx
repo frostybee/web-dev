@@ -1,7 +1,6 @@
 ---
 title: Middleware Implementation
 description: Implementing Middleware in PHP
-draft: true
 sidebar:
   label: 'Middleware Implementation'
   order: 6
@@ -10,95 +9,58 @@ sidebar:
     variant: danger
 ---
 
+## How to Implement Middleware in Slim 4 Framework?
 
-## Adding Middleware: Syntax Examples
+There are **two** main ways to implement middleware in Slim 4 Framework:
 
-### Application-Level Middleware
+1. **Class-Based Middleware** (PSR-15, recommended way to implement middleware)
+2. **Function-Based Middleware** (Closure-Based)
 
-**Applies to every single route in your application.**
+```php title="Example of Function-Based Middleware"
+<?php
 
-```php
-$app->add($middlewareInstance);
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+
+$app = AppFactory::create();
+
+$middleware = function (ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface {
+
+    // Run some code before the request is handled.
+    
+    // Pass control to the next middleware or route handler.
+    $response = $handler->handle($request);
+
+    // Run some code after the request is handled.    
+    $response = $response->withHeader('X-Custom-Header', 'value');
+    
+    return $response;
+};
+
+// Add the middleware to the application
+$app->add($middleware);
 ```
-
-**Order matters**: Add from outermost to innermost layer.
 
 ---
 
-### Route-Level Middleware
-
-**Applies to one specific route only.**
-
-```php
-$app->get('/profile', function ($request, $response) {
-    // Route handler
-})->add($middlewareInstance);
-```
-
-**Multiple middleware on one route:**
-
-```php
-$app->get('/admin/dashboard', function ($request, $response) {
-    // Route handler
-})->add($authMiddleware)->add($adminMiddleware);
-```
-
-The middleware closest to the route executes first for the request.
-
----
-
-### Group-Level Middleware
-
-**Applies to all routes within a group.**
-
-```php
-$app->group('/admin', function ($group) {
-    $group->get('/dashboard', function ($request, $response) {
-        // Dashboard route
-    });
-
-    $group->get('/users', function ($request, $response) {
-        // Users route
-    });
-})->add($adminMiddleware);
-```
-
-All routes under `/admin` will use the `$adminMiddleware`.
-
-**Nested groups with multiple middleware:**
-
-```php
-$app->group('/api', function ($group) {
-
-    $group->group('/v1', function ($group) {
-        $group->get('/users', function ($request, $response) {
-            // API endpoint
-        });
-    })->add($versionMiddleware);
-
-})->add($apiAuthMiddleware);
-```
-
-Routes inherit middleware from parent groups.
-
----
 
 ## Implementing Class-Based Middleware (PSR-15)
 
-PSR-15 is the **PHP Standard Recommendation** for HTTP middleware. It provides a standardized interface that makes middleware portable and reusable across different frameworks.
+PSR-15 is the **PHP Standard Recommendation** for HTTP middleware. It provides a standardized interface that makes middleware **portable** and **reusable** across different applications and frameworks (e.g. Slim 4 Framework, Symfony, Laravel, etc.).
 
 ### What is PSR-15?
 
 PSR-15 defines how middleware should be structured:
-- **Middleware Interface** - For processing requests/responses
-- **Request Handler Interface** - For handling the request
-- **Standardized Method Signatures** - Ensures compatibility
+- **Middleware interface:** For processing requests/responses
+- **Request handler interface:** For handling the request
+- **Standardized method signatures:** Ensures compatibility
 
-**Benefits:**
-- Code reusability across projects
-- Clear, predictable structure
-- Industry best practice
-- Better IDE support and type hinting
+**Benefits of PSR-15:**
+- **Code reusability** across projects.
+- Clear, predictable structure.
+- Industry best practice.
+- Better IDE support and type hinting.
 
 ---
 
@@ -118,8 +80,8 @@ public function process(
 ```
 
 **Parameters:**
-- `$request` - The incoming HTTP request
-- `$handler` - The next middleware/handler in the chain
+- `$request` The incoming HTTP request
+- `$handler` The next middleware/handler in the chain
 
 **Returns:**
 - A response object
@@ -128,7 +90,7 @@ public function process(
 
 #### Step 2: Create Your Middleware Class
 
-Your class structure should look like this:
+Your middleware class structure should look like this:
 
 ```php
 namespace App\Middleware;
@@ -145,12 +107,14 @@ class YourMiddleware implements MiddlewareInterface
         RequestHandlerInterface $handler
     ): ResponseInterface
     {
-        // Your middleware logic here
+        // (optional:) Execute some code before the request is handled.
 
-        // Pass to next middleware
+        // (required:) Pass control to the next middleware or route handler.
         $response = $handler->handle($request);
 
-        // Optionally modify response
+        // (optional:) Execute some code after the request is handled.
+        // e.g.,:
+        //  $response = $response->withHeader('X-Custom-Header', 'value');
 
         return $response;
     }
@@ -184,7 +148,8 @@ public function process(
     // BEFORE: Check something in the request
     if ($someConditionFails) {
         // Return early, don't call next middleware
-        return $this->unauthorizedResponse();
+        $response = new Response();
+        return $response->withStatus(401)        
     }
 
     // Call the next middleware/handler
@@ -206,7 +171,7 @@ class AuthMiddleware implements MiddlewareInterface
 {
     private $sessionManager;
 
-    public function __construct($sessionManager)
+    public function __construct(SessionManager $sessionManager)
     {
         $this->sessionManager = $sessionManager;
     }
@@ -229,6 +194,7 @@ Once created, instantiate and add it to your application:
 
 ```php
 // Create instance
+$sessionManager = new SessionManager();
 $authMiddleware = new \App\Middleware\AuthMiddleware($sessionManager);
 
 // Add to application, route, or group
@@ -276,65 +242,6 @@ if (!$authenticated) {
     return $response->withStatus(401);
 }
 ```
-
----
-
-### Complete Example Structure
-
-Here's the complete thought process for building a middleware:
-
-**1. What does it do?**
-   - Check if user is authenticated
-
-**2. When should it act?**
-   - Before the route handler (check auth)
-   - After is not needed here
-
-**3. What should it return?**
-   - Continue to next middleware if authenticated
-   - Return 401 response if not authenticated
-
-**4. Does it need dependencies?**
-   - Yes, needs session manager
-
-**5. Implementation:**
-
-```php
-namespace App\Middleware;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\MiddlewareInterface;
-use Psr\Http\Server\RequestHandlerInterface;
-use Slim\Psr7\Response;
-
-class AuthMiddleware implements MiddlewareInterface
-{
-    private $session;
-
-    public function __construct($session)
-    {
-        $this->session = $session;
-    }
-
-    public function process(
-        ServerRequestInterface $request,
-        RequestHandlerInterface $handler
-    ): ResponseInterface
-    {
-        // Check if user is logged in
-        if (!$this->session->has('user_id')) {
-            // Not authenticated - return 401
-            $response = new Response();
-            return $response->withStatus(401);
-        }
-
-        // Authenticated - continue to next middleware
-        return $handler->handle($request);
-    }
-}
-```
-
 ---
 
 ### Checklist for Creating PSR-15 Middleware
@@ -352,41 +259,77 @@ Before you finish, verify:
 
 ---
 
-### Common Patterns
+## Adding Middleware: Syntax Examples
 
-#### Pattern 1: Guard Middleware
-Checks a condition and blocks access if it fails.
+### Application-Level Middleware
 
-**Use for**: Authentication, authorization, rate limiting
+- Applies to every single route in your application.
 
-#### Pattern 2: Decorator Middleware
-Adds something to the request or response without blocking.
+```php
+$middlewareInstance = new \App\Middleware\YourMiddleware();
+$app->add($middlewareInstance);
+// Or:
+$app->add(YourMiddleware::class);
+```
 
-**Use for**: Adding headers, logging, request ID generation
-
-#### Pattern 3: Transformer Middleware
-Modifies the request or response data.
-
-**Use for**: JSON parsing, data formatting, compression
+**Order matters**: Add from outermost to innermost layer.
 
 ---
 
-### Summary
+### Route-Level Middleware
 
-**PSR-15 Middleware Essentials:**
+- Applies to one specific route only.
 
-1. Implement `MiddlewareInterface`
-2. Define `process(ServerRequestInterface, RequestHandlerInterface): ResponseInterface`
-3. Call `$handler->handle($request)` to continue the chain
-4. Use immutable methods for modifying request/response
-5. Return early for blocking behavior
-6. Inject dependencies through constructor
+```php
+$app->get('/profile', function ($request, $response) {
+    // Route handler
+})->add($middlewareInstance);
+```
 
-**Next Steps:**
+**Multiple middleware on one route:**
 
-- Create your first authentication middleware
-- Practice with different middleware patterns
-- Combine multiple middleware on routes
-- Explore community PSR-15 middleware packages
+```php
+$app->get('/admin/dashboard', function ($request, $response) {
+    // Route handler
+})->add($authMiddleware)->add($adminMiddleware);
+```
+
+The middleware **closest** to the route executes first for the request.
+
+---
+
+### Group-Level Middleware
+
+- Applies to all routes within a group.
+
+```php
+$app->group('/admin', function ($group) {
+    $group->get('/dashboard', function ($request, $response) {
+        // Dashboard route
+    });
+
+    $group->get('/users', function ($request, $response) {
+        // Users route
+    });
+})->add($adminMiddleware);
+```
+
+All routes under `/admin` will use the `$adminMiddleware`.
+
+**Nested groups with multiple middleware:**
+
+```php
+$app->group('/api', function ($group) {
+
+    $group->group('/v1', function ($group) {
+        $group->get('/users', function ($request, $response) {
+            // API endpoint
+        });
+    })->add($versionMiddleware);
+
+})->add($apiAuthMiddleware);
+```
+
+Routes inherit middleware from parent groups.
 
 ---

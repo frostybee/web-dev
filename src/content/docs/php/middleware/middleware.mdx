@@ -2,7 +2,7 @@
 title: Middleware in Slim Framework
 description: Working with Middleware in Slim Framework
 sidebar:
-  label: 'Middleware in Slim Framework'
+  label: 'Middleware Concept'
   order: 6
   badge:
     text: New!
@@ -62,9 +62,9 @@ Global middleware (application-wide) is applied to **all routes** in your applic
 
 **When to use:**
 - Global authentication checks (e.g. checking if a user is logged in)
-- Setting common headers (e.g. cache headers, content type headers, etc.)
+- Setting common headers 
 - Logging all requests (e.g. logging all requests to a file)
-- CORS handling (cross-origin resource sharing)
+- Limiting the number of requests a user can make to the application
 
 ---
 
@@ -74,8 +74,8 @@ Route-specific middleware is applied to **specific routes** only.
 
 **When to use:**
 - Role-based authorization (e.g. checking if a user has the required role to access a route)
-- Validating specific inputs (e.g. validating the input data for a route)
-- Rate limiting certain endpoints (e.g. limiting the number of requests a user can make to a route)
+- Validating specific inputs 
+- Rate limiting certain endpoints 
 
 ---
 
@@ -86,7 +86,7 @@ Group-specific middleware is applied to a **group of routes** that share common 
 **When to use:**
 - Admin panel routes (e.g. routes that are only accessible to administrators)
 - API versioning (e.g. routes that are only accessible to a specific version of the API)
-- Protected sections (e.g. routes that are only accessible to users who are logged in)
+- Protected sections 
 
 ---
 
