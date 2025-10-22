@@ -1,0 +1,225 @@
+---
+title: Middleware in Slim Framework
+description: Working with Middleware in Slim Framework
+sidebar:
+  label: 'Middleware in Slim Framework'
+  order: 6
+  badge:
+    text: New!
+    variant: danger
+---
+
+## What is Middleware?
+
+- We can run code **before** and **after** a route handler to **manipulate** the Request and Response objects as you see fit. This is called **middleware**.
+- In modern web applications, middleware is a layer that sits between the client request and the server response in a web application. 
+- A middleware **intercepts**, **processes**, and potentially **alters** HTTP requests and responses as they pass through the application pipeline.
+
+---
+
+## Why Use Middleware?
+
+Middleware provides several key benefits:
+
+- **Separation of Concerns (SoC):** Keep cross-cutting concerns (authentication, authorization, logging, etc.) separate from business logic.
+- **Reusability (DRY):** Write once, use across multiple routes or applications.
+- **Modularity (LoC):** Add or remove functionality easily.
+- **Request/Response processing:** Modify requests before they reach your handlers and responses before they are sent to clients.
+- **Error handling:** Centralize error handling logic.
+
+---
+
+## Common Use Cases for Middleware
+
+A middleware can handle a variety of tasks such as:
+
+- **Authentication:**  Checking if a user is logged in.
+- **Authorization:** Verifying user permissions.
+- **Logging:** Recording information about requests and responses.
+- **Request modification:** Altering incoming data (e.g. sanitizing input data, validating input data, etc.).
+- **Response transformation:** Formatting output (e.g. JSON formatting).
+- **Error handling:** Catching and formatting errors (e.g. logging errors).
+
+:::note
+Each middleware performs its function and then **passes control to the next middleware** in the chain, enabling a modular and reusable approach to handling cross-cutting concerns in web applications.
+:::
+
+---
+
+## Types of Middleware in Slim 4 Framework
+
+There are three types of middleware in Slim 4 Framework:
+
+1. Global Middleware (application-wide)
+2. Route-Specific Middleware 
+3. Group-Specific Middleware 
+
+---
+
+### 1. Global Middleware
+
+Global middleware (application-wide) is applied to **all routes** in your application.
+
+**When to use:**
+- Global authentication checks (e.g. checking if a user is logged in)
+- Setting common headers (e.g. cache headers, content type headers, etc.)
+- Logging all requests (e.g. logging all requests to a file)
+- CORS handling (cross-origin resource sharing)
+
+---
+
+### 2. Route-Specific Middleware
+
+Route-specific middleware is applied to **specific routes** only.
+
+**When to use:**
+- Role-based authorization (e.g. checking if a user has the required role to access a route)
+- Validating specific inputs (e.g. validating the input data for a route)
+- Rate limiting certain endpoints (e.g. limiting the number of requests a user can make to a route)
+
+---
+
+### 3. Group-Specific Middleware
+
+Group-specific middleware is applied to a **group of routes** that share common logic.
+
+**When to use:**
+- Admin panel routes (e.g. routes that are only accessible to administrators)
+- API versioning (e.g. routes that are only accessible to a specific version of the API)
+- Protected sections (e.g. routes that are only accessible to users who are logged in)
+
+---
+
+## Step-by-Step: Creating Your First Middleware
+
+### Step 1: Understand the Structure
+
+Every middleware needs:
+- A callable function or class
+- Access to the request object
+- Access to the response object
+- A way to pass control to the next middleware
+
+---
+
+### Step 2: Choose Your Middleware Type
+
+Ask yourself:
+- Should this apply to ALL routes? → Application middleware
+- Should this apply to ONE route? → Route middleware
+- Should this apply to SOME related routes? → Group middleware
+
+---
+
+### Step 3: Implement the Logic
+
+Your middleware should:
+1. Check or modify the incoming request
+2. Decide whether to continue or stop
+3. Call the next middleware if continuing
+4. Optionally modify the outgoing response
+
+---
+
+### Step 4: Add to Your Application
+
+Attach your middleware at the appropriate level (application, group, or route).
+
+---
+
+## Execution Order Example
+
+In Slim 4 Framework, the execution order of middleware is **last added, first executed**.
+
+Let's say you have three middleware layers:
+
+1. **Middleware A** (added first)
+2. **Middleware B** (added second)
+3. **Middleware C** (added last) -> will be executed first
+
+**Execution flow:**
+
+```
+Request → C → B → A → Route Handler → A → B → C → Response
+```
+
+**Remember**: Last added, first executed!
+
+---
+
+## Practical Scenarios
+
+### Scenario 1: Checking Authentication
+
+**Problem**: Protect routes from unauthenticated users
+
+**Solution**: Create an authentication middleware that checks for a valid session or token before allowing access to protected routes.
+
+**Apply to**: Specific routes or groups that require login
+
+### Scenario 2: Validating Admin Access
+
+**Problem**: Admin panel should only be accessible to administrators
+
+**Solution**: Create authorization middleware that checks user roles.
+
+**Apply to**: Admin route group
+
+---
+
+## Best Practices
+
+### 1. Keep Middleware Focused
+
+Each middleware should do **one thing well**. Don't create a mega-middleware that does everything.
+
+### 2. Order Matters
+
+Place middleware in logical order:
+- Error handling → First (outer layer)
+- Logging → Early
+- Authentication → Before authorization
+- Authorization → Before business logic
+
+### 3. Use Meaningful Names
+
+Name your middleware clearly:
+- ✅ `AuthenticationMiddleware`
+- ✅ `AdminRoleMiddleware`
+- ❌ `CheckStuff`
+
+### 4. Return Early When Needed
+
+If authentication fails, return an error response immediately. Don't continue to the next middleware.
+
+### 5. Document Your Middleware
+
+Explain what each middleware does and where it should be applied.
+
+---
+
+## Common Mistakes to Avoid
+
+1. **Forgetting to call next:** If you don't pass control to the next middleware, the request stops there.
+2. **Wrong order:** Placing authorization before authentication will cause issues.
+3. **Doing too much:** Middleware should be lightweight. Heavy processing belongs in services or controllers.
+4. **Not handling errors:** Always consider what happens when something goes wrong in your middleware.
+
+---
+
+## Important Things to Remember
+
+1. Middleware processes requests **before** and responses **after** your route handlers
+2. Three types: **Application** (global), **Route** (specific), **Group** (shared)
+3. Execution order is **last added, first executed**
+4. Keep middleware **focused** and **lightweight**
+5. Common uses: authentication, logging, validation, error handling
+
+---
+
+## Additional Resources
+
+- [Slim Framework Official Documentation](https://www.slimframework.com/docs/v4/concepts/middleware.html)
+- [PSR-15 Middleware Standard](https://www.php-fig.org/psr/psr-15/)
+
+

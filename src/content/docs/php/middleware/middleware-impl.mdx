@@ -1,0 +1,392 @@
+---
+title: Middleware Implementation
+description: Implementing Middleware in PHP
+draft: true
+sidebar:
+  label: 'Middleware Implementation'
+  order: 6
+  badge:
+    text: New!
+    variant: danger
+---
+
+
+## Adding Middleware: Syntax Examples
+
+### Application-Level Middleware
+
+**Applies to every single route in your application.**
+
+```php
+$app->add($middlewareInstance);
+```
+
+**Order matters**: Add from outermost to innermost layer.
+
+---
+
+### Route-Level Middleware
+
+**Applies to one specific route only.**
+
+```php
+$app->get('/profile', function ($request, $response) {
+    // Route handler
+})->add($middlewareInstance);
+```
+
+**Multiple middleware on one route:**
+
+```php
+$app->get('/admin/dashboard', function ($request, $response) {
+    // Route handler
+})->add($authMiddleware)->add($adminMiddleware);
+```
+
+The middleware closest to the route executes first for the request.
+
+---
+
+### Group-Level Middleware
+
+**Applies to all routes within a group.**
+
+```php
+$app->group('/admin', function ($group) {
+    $group->get('/dashboard', function ($request, $response) {
+        // Dashboard route
+    });
+
+    $group->get('/users', function ($request, $response) {
+        // Users route
+    });
+})->add($adminMiddleware);
+```
+
+All routes under `/admin` will use the `$adminMiddleware`.
+
+**Nested groups with multiple middleware:**
+
+```php
+$app->group('/api', function ($group) {
+
+    $group->group('/v1', function ($group) {
+        $group->get('/users', function ($request, $response) {
+            // API endpoint
+        });
+    })->add($versionMiddleware);
+
+})->add($apiAuthMiddleware);
+```
+
+Routes inherit middleware from parent groups.
+
+---
+
+## Implementing Class-Based Middleware (PSR-15)
+
+PSR-15 is the **PHP Standard Recommendation** for HTTP middleware. It provides a standardized interface that makes middleware portable and reusable across different frameworks.
+
+### What is PSR-15?
+
+PSR-15 defines how middleware should be structured:
+- **Middleware Interface** - For processing requests/responses
+- **Request Handler Interface** - For handling the request
+- **Standardized Method Signatures** - Ensures compatibility
+
+**Benefits:**
+- Code reusability across projects
+- Clear, predictable structure
+- Industry best practice
+- Better IDE support and type hinting
+
+---
+
+### Step-by-Step: Creating PSR-15 Middleware
+
+#### Step 1: Understand the Required Interface
+
+Your middleware class must implement `Psr\Http\Server\MiddlewareInterface`.
+
+This interface requires **one method**:
+
+```php
+public function process(
+    ServerRequestInterface $request,
+    RequestHandlerInterface $handler
+): ResponseInterface
+```
+
+**Parameters:**
+- `$request` - The incoming HTTP request
+- `$handler` - The next middleware/handler in the chain
+
+**Returns:**
+- A response object
+
+---
+
+#### Step 2: Create Your Middleware Class
+
+Your class structure should look like this:
+
+```php
+namespace App\Middleware;
+
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+
+class YourMiddleware implements MiddlewareInterface
+{
+    public function process(
+        ServerRequestInterface $request,
+        RequestHandlerInterface $handler
+    ): ResponseInterface
+    {
+        // Your middleware logic here
+
+        // Pass to next middleware
+        $response = $handler->handle($request);
+
+        // Optionally modify response
+
+        return $response;
+    }
+}
+```
+
+---
+
+#### Step 3: Implement Your Logic
+
+Inside the `process()` method, you can:
+
+**Before the route handler executes:**
+1. Inspect or modify the request
+2. Check conditions (authentication, validation, etc.)
+3. Return early if needed (e.g., unauthorized)
+
+**After the route handler executes:**
+1. Modify the response
+2. Add headers
+3. Log information
+
+**Example flow:**
+
+```php
+public function process(
+    ServerRequestInterface $request,
+    RequestHandlerInterface $handler
+): ResponseInterface
+{
+    // BEFORE: Check something in the request
+    if ($someConditionFails) {
+        // Return early, don't call next middleware
+        return $this->unauthorizedResponse();
+    }
+
+    // Call the next middleware/handler
+    $response = $handler->handle($request);
+
+    // AFTER: Modify the response
+    return $response->withHeader('X-Custom-Header', 'value');
+}
+```
+
+---
+
+#### Step 4: Add Dependencies (Optional)
+
+If your middleware needs services (database, session, etc.), inject them through the constructor:
+
+```php
+class AuthMiddleware implements MiddlewareInterface
+{
+    private $sessionManager;
+
+    public function __construct($sessionManager)
+    {
+        $this->sessionManager = $sessionManager;
+    }
+
+    public function process(
+        ServerRequestInterface $request,
+        RequestHandlerInterface $handler
+    ): ResponseInterface
+    {
+        // Use $this->sessionManager here
+    }
+}
+```
+
+---
+
+#### Step 5: Register Your Middleware
+
+Once created, instantiate and add it to your application:
+
+```php
+// Create instance
+$authMiddleware = new \App\Middleware\AuthMiddleware($sessionManager);
+
+// Add to application, route, or group
+$app->add($authMiddleware);
+```
+
+---
+
+### Key Concepts for PSR-15 Middleware
+
+#### 1. The Handler Object
+
+`$handler->handle($request)` passes control to the **next middleware** in the chain or the **route handler** if this is the last middleware.
+
+**Important**: You must call this method unless you want to stop the chain (e.g., for authentication failure).
+
+#### 2. Request Immutability
+
+PSR-7 requests are **immutable**. To modify a request:
+
+```php
+// Wrong - doesn't work
+$request->setAttribute('user', $user);
+
+// Correct - creates new request object
+$request = $request->withAttribute('user', $user);
+```
+
+#### 3. Response Immutability
+
+Same applies to responses:
+
+```php
+// Correct way to add headers
+$response = $response->withHeader('X-Custom', 'value');
+```
+
+#### 4. Early Returns
+
+If you need to stop the middleware chain (e.g., authentication fails), return a response **without** calling `$handler->handle()`:
+
+```php
+if (!$authenticated) {
+    // Stop here, don't proceed to next middleware
+    return $response->withStatus(401);
+}
+```
+
+---
+
+### Complete Example Structure
+
+Here's the complete thought process for building a middleware:
+
+**1. What does it do?**
+   - Check if user is authenticated
+
+**2. When should it act?**
+   - Before the route handler (check auth)
+   - After is not needed here
+
+**3. What should it return?**
+   - Continue to next middleware if authenticated
+   - Return 401 response if not authenticated
+
+**4. Does it need dependencies?**
+   - Yes, needs session manager
+
+**5. Implementation:**
+
+```php
+namespace App\Middleware;
+
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use Slim\Psr7\Response;
+
+class AuthMiddleware implements MiddlewareInterface
+{
+    private $session;
+
+    public function __construct($session)
+    {
+        $this->session = $session;
+    }
+
+    public function process(
+        ServerRequestInterface $request,
+        RequestHandlerInterface $handler
+    ): ResponseInterface
+    {
+        // Check if user is logged in
+        if (!$this->session->has('user_id')) {
+            // Not authenticated - return 401
+            $response = new Response();
+            return $response->withStatus(401);
+        }
+
+        // Authenticated - continue to next middleware
+        return $handler->handle($request);
+    }
+}
+```
+
+---
+
+### Checklist for Creating PSR-15 Middleware
+
+Before you finish, verify:
+
+- [ ] Class implements `MiddlewareInterface`
+- [ ] Has `process()` method with correct signature
+- [ ] Calls `$handler->handle($request)` (unless stopping early)
+- [ ] Returns a `ResponseInterface` object
+- [ ] Uses immutable request/response methods (`withHeader`, `withAttribute`, etc.)
+- [ ] Handles both success and failure cases
+- [ ] Constructor accepts any needed dependencies
+- [ ] Properly namespaced in your project
+
+---
+
+### Common Patterns
+
+#### Pattern 1: Guard Middleware
+Checks a condition and blocks access if it fails.
+
+**Use for**: Authentication, authorization, rate limiting
+
+#### Pattern 2: Decorator Middleware
+Adds something to the request or response without blocking.
+
+**Use for**: Adding headers, logging, request ID generation
+
+#### Pattern 3: Transformer Middleware
+Modifies the request or response data.
+
+**Use for**: JSON parsing, data formatting, compression
+
+---
+
+### Summary
+
+**PSR-15 Middleware Essentials:**
+
+1. Implement `MiddlewareInterface`
+2. Define `process(ServerRequestInterface, RequestHandlerInterface): ResponseInterface`
+3. Call `$handler->handle($request)` to continue the chain
+4. Use immutable methods for modifying request/response
+5. Return early for blocking behavior
+6. Inject dependencies through constructor
+
+**Next Steps:**
+
+- Create your first authentication middleware
+- Practice with different middleware patterns
+- Combine multiple middleware on routes
+- Explore community PSR-15 middleware packages
+
+---

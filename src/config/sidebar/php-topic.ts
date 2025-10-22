@@ -1,5 +1,5 @@
 export default
-  [
+[
     {
       label: "PHP",
       link: "php/basics",
@@ -85,6 +85,12 @@ export default
               label: "Slim Framework & MVC",
               autogenerate: {
                 directory: "php/slim",
+              }
+            },
+            {
+              label: "Middleware",
+              autogenerate: {
+                directory: "php/middleware",
               }
             },
             {
