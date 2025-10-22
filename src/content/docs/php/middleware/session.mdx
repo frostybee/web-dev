@@ -359,46 +359,6 @@ If it always shows "Counter: 1", sessions aren't persisting (see troubleshooting
 
 ---
 
-## Common Issues
-
-### Issue 1: Sessions Not Persisting
-
-**Symptoms:** Counter always shows 1, session data disappears
-
-**Solutions:**
-- ✅ Verify middleware is registered in `config/middleware.php`
-- ✅ Check browser accepts cookies (check browser settings)
-- ✅ Ensure session save path is writable: `ls -la /tmp` (Linux/Mac) or check `C:\Windows\Temp` (Windows)
-
----
-
-### Issue 2: Fingerprint Mismatch (Session Resets)
-
-**Symptoms:** Session resets unexpectedly, user logged out randomly
-
-**Causes:**
-- Browser extensions changing headers
-- VPN switching IP addresses
-- Mobile switching between WiFi/cellular
-
-**Solutions:**
-- For development, comment out the fingerprinting code in `SessionManager::start()` (lines 85-95)
-- For production, keep it enabled for security
-
----
-
-### Issue 3: Session Expires Too Quickly
-
-**Symptoms:** Session expires before 24 hours
-
-**Solution:**
-```php
-// Change session lifetime in SessionManager.php
-$sessionLifetime = 7 * 24 * 60 * 60; // 7 days instead of 1 day
-```
-
----
-
 ## Key Best Practices
 
 ### 1. Use SessionManager Methods (Recommended)
@@ -531,4 +491,44 @@ SessionManager::destroy();
    - Makes sessions available in all routes.
 
 3. **Registered middleware** in `config/middleware.php`
+
+--- 
+
+## Common Issues
+
+### Issue 1: Sessions Not Persisting
+
+**Symptoms:** Counter always shows 1, session data disappears
+
+**Solutions:**
+- ✅ Verify middleware is registered in `config/middleware.php`
+- ✅ Check browser accepts cookies (check browser settings)
+- ✅ Ensure session save path is writable: `ls -la /tmp` (Linux/Mac) or check `C:\Windows\Temp` (Windows)
+
+---
+
+### Issue 2: Fingerprint Mismatch (Session Resets)
+
+**Symptoms:** Session resets unexpectedly, user logged out randomly
+
+**Causes:**
+- Browser extensions changing headers
+- VPN switching IP addresses
+- Mobile switching between WiFi/cellular
+
+**Solutions:**
+- For development, comment out the fingerprinting code in `SessionManager::start()` (lines 85-95)
+- For production, keep it enabled for security
+
+---
+
+### Issue 3: Session Expires Too Quickly
+
+**Symptoms:** Session expires before 24 hours
+
+**Solution:**
+```php
+// Change session lifetime in SessionManager.php
+$sessionLifetime = 7 * 24 * 60 * 60; // 7 days instead of 1 day
+```
 

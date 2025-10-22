@@ -1,0 +1,437 @@
+---
+title: Flash Messages in Slim 4 Framework
+description: Working with Flash Messages in Slim 4 Framework
+sidebar:
+  label: 'Flash Messages'
+  order: 6
+  badge:
+    text: New!
+    variant: danger
+---
+
+## What are Flash Messages?
+
+- Flash messages provide user feedback after form submissions or actions. 
+- When a user logs in, registers, or updates their profile, you redirect them to another page and show a message like "Login successful!" or "Profile updated!"
+- Flash messages are **stored in the session**, survive **one redirect**, and then **automatically disappear**.
+
+**Common use cases:**
+
+- ✅ **Success:** "Login successful!" or "Profile updated!"
+- ✅ **Error:** "Invalid password" or "Email already exists"
+- ✅ **Info:** "Check your email for verification link"
+- ✅ **Warning:** "Your session will expire in 5 minutes"
+
+:::note[Why use them?]
+Flash messages provide immediate feedback to users without requiring JavaScript or AJAX.
+:::
+
+---
+
+## Creating the FlashMessage Class
+
+Create: `app/Helpers/FlashMessage.php`
+
+```php
+<?php
+
+namespace App\Helpers;
+
+class FlashMessage
+{
+    private const FLASH_KEY = 'flash_messages';
+
+    /**
+     * Add a success message.
+     */
+    public static function success(string $message): void
+    {
+        self::add('success', $message);
+    }
+
+    /**
+     * Add an error message.
+     */
+    public static function error(string $message): void
+    {
+        self::add('error', $message);
+    }
+
+    /**
+     * Add an info message.
+     */
+    public static function info(string $message): void
+    {
+        self::add('info', $message);
+    }
+
+    /**
+     * Add a warning message.
+     */
+    public static function warning(string $message): void
+    {
+        self::add('warning', $message);
+    }
+
+    /**
+     * Add a flash message of any type.
+     */
+    public static function add(string $type, string $message): void
+    {
+        if (!isset($_SESSION[self::FLASH_KEY])) {
+            $_SESSION[self::FLASH_KEY] = [];
+        }
+
+        $_SESSION[self::FLASH_KEY][] = [
+            'type' => $type,
+            'message' => $message
+        ];
+    }
+
+    /**
+     * Get all flash messages and clear them.
+     */
+    public static function get(): array
+    {
+        $messages = $_SESSION[self::FLASH_KEY] ?? [];
+        unset($_SESSION[self::FLASH_KEY]);
+        return $messages;
+    }
+
+    /**
+     * Check if there are any flash messages.
+     */
+    public static function has(): bool
+    {
+        return !empty($_SESSION[self::FLASH_KEY]);
+    }
+
+    /**
+     * Clear all flash messages without retrieving them.
+     */
+    public static function clear(): void
+    {
+        unset($_SESSION[self::FLASH_KEY]);
+    }
+
+    /**
+     * Render all flash messages as Bootstrap alerts.
+     */
+    public static function render(bool $dismissible = true): string
+    {
+        $messages = self::get();
+        if (empty($messages)) {
+            return '';
+        }
+
+        $bootstrapTypes = [
+            'success' => 'success',
+            'error' => 'danger',
+            'info' => 'info',
+            'warning' => 'warning'
+        ];
+
+        $html = '';
+        foreach ($messages as $flash) {
+            $type = $bootstrapTypes[$flash['type']] ?? 'info';
+            $message = htmlspecialchars($flash['message']);
+
+            if ($dismissible) {
+                $html .= <<<HTML
+                <div class="alert alert-{$type} alert-dismissible fade show" role="alert">
+                    {$message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                HTML;
+            } else {
+                $html .= <<<HTML
+                <div class="alert alert-{$type}" role="alert">
+                    {$message}
+                </div>
+                HTML;
+            }
+        }
+
+        return $html;
+    }
+}
+```
+
+**Available methods:**
+
+| Method | Description |
+|--------|-------------|
+| `FlashMessage::success($msg)` | Add a success message |
+| `FlashMessage::error($msg)` | Add an error message (displays as Bootstrap `alert-danger`) |
+| `FlashMessage::info($msg)` | Add an info message |
+| `FlashMessage::warning($msg)` | Add a warning message |
+| `FlashMessage::add($type, $msg)` | Add a custom message type |
+| `FlashMessage::render($dismissible)` | Display all messages as Bootstrap alerts (dismissible by default) |
+| `FlashMessage::get()` | Retrieve and clear all messages (auto-cleanup) |
+| `FlashMessage::has()` | Check if messages exist |
+| `FlashMessage::clear()` | Clear all messages without retrieving them |
+
+---
+
+## Using Flash Messages in Routes
+
+### Setting Flash Messages
+
+```php
+use App\Helpers\FlashMessage;
+
+// After successful login
+$app->post('/login', function ($request, $response) {
+    // ... validate credentials ...
+
+    FlashMessage::success('Login successful! Welcome back.');
+
+    return $response->withHeader('Location', '/dashboard')->withStatus(302);
+});
+
+// After error
+$app->post('/register', function ($request, $response) {
+    // ... validation fails ...
+
+    FlashMessage::error('Email already exists. Please use a different email.');
+
+    return $response->withHeader('Location', '/register')->withStatus(302);
+});
+
+// Multiple types
+$app->post('/update-profile', function ($request, $response) {
+    FlashMessage::success('Profile updated successfully!');
+    FlashMessage::info('Changes will appear within 24 hours.');
+
+    return $response->withHeader('Location', '/profile')->withStatus(302);
+});
+```
+
+---
+
+## Displaying Flash Messages in Views
+
+### Using `render()` Method (Recommended)
+
+The simplest way - just one line in your view:
+
+```php
+<?= App\Helpers\FlashMessage::render() ?>
+```
+
+That's it! This will automatically:
+- Retrieve and display all flash messages
+- Map types to Bootstrap classes (`error` → `alert-danger`)
+- Create dismissible alerts with close buttons
+- Clear messages after display
+- HTML-escape messages for security
+
+**Non-dismissible alerts:**
+
+```php
+<?= App\Helpers\FlashMessage::render(false) ?>
+```
+or:
+
+```php title="Check if messages exist and display them"
+<?php if (FlashMessage::has()): ?>
+    <?php echo FlashMessage::render(); ?>
+<?php endif; ?>
+```
+---
+
+### Manual Rendering (Alternative)
+
+If you need custom styling, you can manually render:
+
+```php
+<?php
+use App\Helpers\FlashMessage;
+
+$messages = FlashMessage::get();
+$bootstrapTypes = [
+    'success' => 'success',
+    'error' => 'danger',
+    'info' => 'info',
+    'warning' => 'warning'
+];
+?>
+
+<?php foreach ($messages as $flash): ?>
+    <?php $type = $bootstrapTypes[$flash['type']] ?? 'info'; ?>
+    <div class="alert alert-<?= $type ?>" role="alert">
+        <?= htmlspecialchars($flash['message']) ?>
+    </div>
+<?php endforeach; ?>
+```
+
+---
+
+
+## Common Patterns
+
+The following are some common patterns for using flash messages in your application.
+
+### Pattern 1: Form Validation Errors
+
+```php
+$app->post('/contact', function ($request, $response) {
+    $data = $request->getParsedBody();
+
+    if (empty($data['email'])) {
+        FlashMessage::error('Email is required.');
+        return $response->withHeader('Location', '/contact')->withStatus(302);
+    }
+
+    if (empty($data['message'])) {
+        FlashMessage::error('Message cannot be empty.');
+        return $response->withHeader('Location', '/contact')->withStatus(302);
+    }
+
+    // Process form...
+    FlashMessage::success('Message sent successfully!');
+    return $response->withHeader('Location', '/')->withStatus(302);
+});
+```
+---
+
+### Pattern 2: CRUD Operations
+
+```php
+// Create
+$app->post('/products', function ($request, $response) {
+    // ... create product ...
+    FlashMessage::success('Product created successfully!');
+    return $response->withHeader('Location', '/products')->withStatus(302);
+});
+
+// Update
+$app->put('/products/{id}', function ($request, $response, $args) {
+    // ... update product ...
+    FlashMessage::info('Product updated.');
+    return $response->withHeader('Location', '/products')->withStatus(302);
+});
+
+// Delete
+$app->delete('/products/{id}', function ($request, $response, $args) {
+    // ... delete product ...
+    FlashMessage::warning('Product deleted.');
+    return $response->withHeader('Location', '/products')->withStatus(302);
+});
+```
+
+---
+
+### Pattern 3: Multi-Step Forms
+
+```php
+$app->post('/checkout/step-1', function ($request, $response) {
+    // ... save shipping info ...
+    FlashMessage::success('Shipping information saved.');
+    return $response->withHeader('Location', '/checkout/step-2')->withStatus(302);
+});
+
+$app->post('/checkout/step-2', function ($request, $response) {
+    // ... save payment info ...
+    FlashMessage::success('Payment method saved.');
+    return $response->withHeader('Location', '/checkout/confirm')->withStatus(302);
+});
+```
+
+---
+
+## Best Practices
+
+### 1. Always Redirect After Setting Flash
+
+```php
+// ✅ Good - redirect after flash message
+FlashMessage::success('Saved!');
+return $response->withHeader('Location', '/dashboard')->withStatus(302);
+
+// ❌ Bad - no redirect (message won't display properly)
+FlashMessage::success('Saved!');
+return $response->getBody()->write('Done');
+```
+
+---
+
+### 2. Use Appropriate Message Types
+
+```php
+// ✅ Good - clear message types
+FlashMessage::success('Account created successfully!');
+FlashMessage::error('Password is too weak.');
+FlashMessage::warning('Trial period ending soon.');
+FlashMessage::info('New features available.');
+
+// ❌ Bad - wrong type
+FlashMessage::success('Error: Login failed!'); // Should be error()
+```
+
+---
+
+### 3. Keep Messages Short and Clear
+
+```php
+// ✅ Good - concise and clear
+FlashMessage::success('Profile updated!');
+FlashMessage::error('Invalid email address.');
+
+// ❌ Bad - too verbose
+FlashMessage::success('Your profile has been successfully updated and all changes have been saved to the database.');
+```
+
+---
+
+## Quick Reference
+
+**Setting messages in routes:**
+
+```php
+use App\Helpers\FlashMessage;
+
+FlashMessage::success('Success message');
+FlashMessage::error('Error message');
+FlashMessage::info('Info message');
+FlashMessage::warning('Warning message');
+FlashMessage::add('custom', 'Custom type message');
+```
+
+**Displaying in views (Recommended):**
+
+```php
+<?= App\Helpers\FlashMessage::render() ?>              // Dismissible alerts
+<?= App\Helpers\FlashMessage::render(false) ?>         // Non-dismissible
+```
+
+**Other methods:**
+
+```php
+// Check if messages exist
+if (FlashMessage::has()) {
+    // Messages available
+}
+
+// Get messages manually (auto-clears)
+$messages = FlashMessage::get();
+
+// Clear without retrieving
+FlashMessage::clear();
+```
+
+---
+
+## Summary
+
+**What you learned:**
+
+- ✅ Flash messages are one-time, temporary messages
+- ✅ `FlashMessage` class provides clean API for managing messages
+- ✅ Four built-in types: success, error, info, warning
+- ✅ Use `FlashMessage::render()` for one-line display in views
+- ✅ Messages auto-clear after display
+- ✅ Always redirect after setting flash messages
+- ✅ Bootstrap uses `alert-danger` for error messages (not `alert-error`)
+
+
