@@ -8,7 +8,7 @@ sidebar:
 
 ## What are PHP Sessions?
 
-PHP sessions allow you to **store user data across multiple pages** during a user's visit to your website. Unlike cookies, session data is stored on the server and only a session ID is sent to the user's browser.
+PHP sessions allow you to store user data that can be **shared across multiple pages** during a user's visit to your website. Unlike cookies, session data is stored on the server and only a session ID is sent to the user's browser.
 
 **Common uses:**
 - User login status
@@ -29,8 +29,8 @@ PHP sessions allow you to **store user data across multiple pages** during a use
 
 ## Starting a Session
 
-
-Always start sessions at the very beginning of your PHP file, before any HTML output:
+- To be able to store data in a session, you need to **start** a session or **resume** a session by calling the `session_start()` function.
+- Always **start sessions at the very beginning** of your PHP file, before any HTML output:
 
 
 ```php
@@ -44,15 +44,21 @@ session_start(); // Must be first thing in your PHP file
 </head>
 ```
 
-:::caution[Important]
+:::caution[Common Mistake]
 `session_start()` must be called **before any HTML, whitespace, or output**. Otherwise, you'll get a "headers already sent" error.
+
+**Why?** Session IDs are sent in HTTP headers, which must be sent before any page content.
 :::
 
 ---
 
 ## Adding Session Data
 
-```php
+The `$_SESSION` superglobal array is used to store data in a session.
+- The key is the name of the data you want to store.
+- The value is the data you want to store.
+
+```php title="Adding Session Data"
 <?php
 session_start();
 
@@ -74,6 +80,8 @@ $_SESSION['user_preferences'] = [
 
 ## Reading Session Data
 
+**Always check if data exists** before using it:
+
 ```php
 <?php
 session_start();
@@ -85,7 +93,7 @@ if (isset($_SESSION['username'])) {
     echo "Please log in";
 }
 
-// Get data with default value
+// Get data with default value (if 'theme' doesn't exist, use 'light')
 $theme = $_SESSION['theme'] ?? 'light';
 ?>
 ```
@@ -121,6 +129,7 @@ session_destroy();
 ---
 
 ## Common Session Functions
+There are several functions that can be used to work with sessions. 
 
 | Function | Purpose |
 |----------|---------|
@@ -137,20 +146,19 @@ session_destroy();
 
 ### Setting Session Timeout
 
-Configure how long sessions should last before expiring:
+An expiry time can be set for a session to prevent users from accessing their session data after a certain period of time.
 
-```php
+You can set the session timeout by using the `session.gc_maxlifetime` and `session.cookie_lifetime` ini settings.
+- `session.gc_maxlifetime` is the maximum lifetime of a session in seconds.
+- `session.cookie_lifetime` is the lifetime of the session cookie in seconds.
+
+The session cookie will be deleted when the browser is closed.  
+
+```php title="Setting Session Timeout"
 <?php
 // Set session timeout to 30 minutes (1800 seconds)
-ini_set('session.gc_maxlifetime', 1800);
-
-// Set session cookie lifetime (0 = until browser closes)
-ini_set('session.cookie_lifetime', 0);
-
-session_start();
-
-// Manual timeout check
-$timeout = 1800; // 30 minutes in seconds
+ini_set('session.gc_maxlifetime', 1800); // 30 minutes in seconds
+ini_set('session.cookie_lifetime', 0); // 0 = until browser closes
 
 if (isset($_SESSION['last_activity'])) {
     if (time() - $_SESSION['last_activity'] > $timeout) {
@@ -164,76 +172,6 @@ if (isset($_SESSION['last_activity'])) {
 
 // Update last activity time
 $_SESSION['last_activity'] = time();
-?>
-```
-
----
-
-### Session Cookie Configuration
-
-Control how session cookies behave:
-
-```php
-<?php
-// Configure session cookies before starting session
-ini_set('session.cookie_httponly', 1);    // Prevent JavaScript access
-ini_set('session.cookie_secure', 1);      // HTTPS only (use only with SSL)
-ini_set('session.cookie_samesite', 'Strict'); // CSRF protection
-ini_set('session.use_strict_mode', 1);    // Prevent session fixation
-
-session_start();
-?>
-```
-
----
-
-### Session Storage Configuration
-
-```php
-<?php
-// Set session save path (where sessions are stored)
-ini_set('session.save_path', '/tmp/sessions');
-
-// Set session name (default is PHPSESSID)
-ini_set('session.name', 'MY_APP_SESSION');
-
-// Set how often garbage collection runs (1% chance)
-ini_set('session.gc_probability', 1);
-ini_set('session.gc_divisor', 100);
-
-session_start();
-?>
-```
----
-
-### Complete Configuration Example
-
-```php
-<?php
-// config/session_config.php
-
-function configureSession() {
-    // Security settings
-    ini_set('session.cookie_httponly', 1);
-    ini_set('session.cookie_secure', 1);      // Only if using HTTPS
-    ini_set('session.cookie_samesite', 'Strict');
-    ini_set('session.use_strict_mode', 1);
-    
-    // Timeout settings
-    ini_set('session.gc_maxlifetime', 1800);  // 30 minutes
-    ini_set('session.cookie_lifetime', 0);    // Until browser closes
-    
-    // Cleanup settings
-    ini_set('session.gc_probability', 1);
-    ini_set('session.gc_divisor', 100);
-    
-    // Custom session name
-    ini_set('session.name', 'SECURE_SESSION');
-}
-
-// Usage in your files:
-configureSession();
-session_start();
 ?>
 ```
 
