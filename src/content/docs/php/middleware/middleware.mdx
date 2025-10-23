@@ -133,14 +133,22 @@ In Slim 4 Framework, the execution order of middleware is **last added, first ex
 
 Let's say you have three middleware layers:
 
-1. **Middleware A** (added first)
-2. **Middleware B** (added second)
-3. **Middleware C** (added last) -> will be executed first
+1. **Middleware 1** (added first)
+2. **Middleware 2** (added second)
+3. **Middleware 3** (added last) -> will be executed first
 
 **Execution flow:**
 
 ```
-Request → C → B → A → Route Handler → A → B → C → Response
+┌────────────────────────────────────────────────────────────────┐
+│ Request Phase (Reverse Order)                                  │
+│ Request → Middleware 3 → Middleware 2 → Middleware 1 → Handler │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ Response Phase (Normal Order)                                  │
+│ Response ← Middleware 3 ← Middleware 2 ← Middleware 1 ← Handler│
+└────────────────────────────────────────────────────────────────┘
 ```
 
 **Remember**: Last added, first executed!
