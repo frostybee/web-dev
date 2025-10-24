@@ -1,0 +1,727 @@
+---
+title: File Upload Lab
+description: File Upload Lab
+draft: true
+sidebar:
+  label: 'Lab: File Upload'
+  order: 1
+  badge:
+    text: In-Class Lab
+    variant: danger
+---
+
+## Additional Resources
+
+- [PHP File Upload Documentation](https://www.php.net/manual/en/features.file-upload.php)
+- [Slim 4 File Upload Documentation](https://www.slimframework.com/docs/v4/objects/request.html#uploaded-files)
+- [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
+- [PHP `getimagesize()` Documentation](https://www.php.net/manual/en/function.getimagesize.php)
+
+## Lab Instructions: Implementing File Upload
+
+In this lab, you will implement secure file upload functionality for your Slim 4 application. File uploads are a common requirement in web applications, allowing users to share images, documents, and other files. By the end of this lab, you'll have a fully functional and secure file upload system with proper validation and error handling.
+
+---
+
+## Learning Objectives
+
+By completing this lab, you will:
+- Understand how file uploads work in PHP and Slim 4.
+- Handle uploaded files using Slim's PSR-7 request object.
+- Implement file validation (type, size, MIME type).
+- Securely store uploaded files with unique filenames.
+- Display uploaded files to users.
+- Implement proper error handling for file uploads.
+- Apply security best practices to prevent malicious file uploads.
+
+---
+
+## Prerequisites
+
+Before starting this lab, ensure you have:
+- A working Slim 4 application with the BaseController pattern.
+- Completed the Flash Messages lab (for user feedback).
+- SessionMiddleware registered for flash messages.
+- Bootstrap CSS included in your views (for styled forms and alerts).
+- A `public/` directory for serving uploaded files.
+- Your development environment set up and running.
+
+---
+
+## Lab Steps
+
+### Step 1: Create the Uploads Directory
+
+**Objective:** Set up a directory structure for storing uploaded files.
+
+**Instructions:**
+
+1. Navigate to your project's `public/` directory
+2. Create a new folder named `uploads/`
+3. Inside `uploads/`, create a subfolder named `images/`
+4. Verify the directory structure:
+   ```
+   public/
+   └── uploads/
+       └── images/
+   ```
+
+5. Ensure the web server has write permissions to this directory
+
+**What you just created:**
+- A dedicated directory for uploaded files within the public folder
+- A subdirectory for organizing image uploads
+- A location accessible via URL for serving uploaded files
+
+---
+
+### Step 2: Create the FileUpload Helper Class
+
+**Objective:** Create a helper class that handles file upload validation and storage.
+
+**Instructions:**
+
+1. Navigate to your `app/Helpers/` directory
+2. Create a new file named `FileUpload.php`
+3. Copy and paste the following code:
+
+```php title="app/Helpers/FileUpload.php"
+<?php
+
+namespace App\Helpers;
+
+use Psr\Http\Message\UploadedFileInterface;
+
+class FileUpload
+{
+    /**
+     * Upload an image file with validation.
+     *
+     * @param UploadedFileInterface $uploadedFile The uploaded file from request
+     * @param string $uploadDirectory The directory to upload to (relative to public/)
+     * @param int $maxSize Maximum file size in bytes (default: 5MB)
+     * @return array ['success' => bool, 'filename' => string|null, 'error' => string|null]
+     */
+    public static function uploadImage(
+        UploadedFileInterface $uploadedFile,
+        string $uploadDirectory = 'uploads/images',
+        int $maxSize = 5242880 // 5MB in bytes
+    ): array {
+        // Check for upload errors
+        if ($uploadedFile->getError() !== UPLOAD_ERR_OK) {
+            return [
+                'success' => false,
+                'filename' => null,
+                'error' => self::getUploadErrorMessage($uploadedFile->getError())
+            ];
+        }
+
+        // Validate file size
+        if ($uploadedFile->getSize() > $maxSize) {
+            $maxSizeMB = $maxSize / 1048576; // Convert to MB
+            return [
+                'success' => false,
+                'filename' => null,
+                'error' => "File size exceeds maximum allowed size of {$maxSizeMB}MB"
+            ];
+        }
+
+        // Validate file type using MIME type
+        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $fileMimeType = $uploadedFile->getClientMediaType();
+
+        if (!in_array($fileMimeType, $allowedMimeTypes)) {
+            return [
+                'success' => false,
+                'filename' => null,
+                'error' => 'Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed'
+            ];
+        }
+
+        // Get file extension
+        $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+
+        // Validate extension as additional security measure
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        if (!in_array(strtolower($extension), $allowedExtensions)) {
+            return [
+                'success' => false,
+                'filename' => null,
+                'error' => 'Invalid file extension'
+            ];
+        }
+
+        // Generate unique filename to prevent overwrites and path traversal
+        $filename = self::generateUniqueFilename($extension);
+
+        // Construct full upload path
+        $uploadPath = __DIR__ . '/../../public/' . $uploadDirectory;
+
+        // Create directory if it doesn't exist
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+
+        // Move uploaded file
+        try {
+            $uploadedFile->moveTo($uploadPath . '/' . $filename);
+
+            // Additional validation: verify it's actually an image
+            $fullPath = $uploadPath . '/' . $filename;
+            if (!getimagesize($fullPath)) {
+                // Not a valid image, delete it
+                unlink($fullPath);
+                return [
+                    'success' => false,
+                    'filename' => null,
+                    'error' => 'File is not a valid image'
+                ];
+            }
+
+            return [
+                'success' => true,
+                'filename' => $filename,
+                'error' => null
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'filename' => null,
+                'error' => 'Failed to save uploaded file: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Generate a unique filename using timestamp and random string.
+     */
+    private static function generateUniqueFilename(string $extension): string
+    {
+        return sprintf(
+            '%s_%s.%s',
+            date('YmdHis'),
+            bin2hex(random_bytes(8)),
+            strtolower($extension)
+        );
+    }
+
+    /**
+     * Get human-readable error message for upload error codes.
+     */
+    private static function getUploadErrorMessage(int $errorCode): string
+    {
+        switch ($errorCode) {
+            case UPLOAD_ERR_INI_SIZE:
+                return 'The uploaded file exceeds the upload_max_filesize directive in php.ini';
+            case UPLOAD_ERR_FORM_SIZE:
+                return 'The uploaded file exceeds the MAX_FILE_SIZE directive in the HTML form';
+            case UPLOAD_ERR_PARTIAL:
+                return 'The uploaded file was only partially uploaded';
+            case UPLOAD_ERR_NO_FILE:
+                return 'No file was uploaded';
+            case UPLOAD_ERR_NO_TMP_DIR:
+                return 'Missing a temporary folder';
+            case UPLOAD_ERR_CANT_WRITE:
+                return 'Failed to write file to disk';
+            case UPLOAD_ERR_EXTENSION:
+                return 'A PHP extension stopped the file upload';
+            default:
+                return 'Unknown upload error';
+        }
+    }
+
+    /**
+     * Delete an uploaded file.
+     *
+     * @param string $filename The filename to delete
+     * @param string $uploadDirectory The directory containing the file
+     * @return bool True if deleted successfully, false otherwise
+     */
+    public static function deleteFile(string $filename, string $uploadDirectory = 'uploads/images'): bool
+    {
+        $filePath = __DIR__ . '/../../public/' . $uploadDirectory . '/' . $filename;
+
+        if (file_exists($filePath)) {
+            return unlink($filePath);
+        }
+
+        return false;
+    }
+
+    /**
+     * Format bytes to human-readable size.
+     */
+    public static function formatBytes(int $bytes, int $precision = 2): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB'];
+
+        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+            $bytes /= 1024;
+        }
+
+        return round($bytes, $precision) . ' ' . $units[$i];
+    }
+}
+```
+
+4. Save the file
+
+**What you just created:**
+- A FileUpload helper class with comprehensive validation
+- MIME type and file extension validation for security
+- File size validation with configurable limits
+- Unique filename generation to prevent conflicts
+- Additional image validation using `getimagesize()`
+- Error handling with descriptive messages
+- A helper method to delete uploaded files
+- A utility method to format file sizes
+
+---
+
+### Step 3: Create the Upload Controller
+
+**Objective:** Create a controller to handle file upload form display and processing.
+
+**Instructions:**
+
+1. Navigate to your `app/Controllers/` directory
+2. Create a new file named `UploadController.php`
+3. Implement a controller class that extends `BaseController` with the following requirements:
+
+**Class Structure:**
+```php
+<?php
+
+namespace App\Controllers;
+
+use App\Helpers\FileUpload;
+use App\Helpers\FlashMessage;
+use DI\Container;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+
+class UploadController extends BaseController
+{
+    public function __construct(Container $container)
+    {
+        parent::__construct($container);
+    }
+
+    // TODO: Implement the methods below
+}
+```
+
+**Controller callback methods to implement:**
+
+Create the following public controller callback methods:
+
+| Callback Method Name | What It Should Do |
+|-------------|-------------------|
+| `index()` | Render the `upload/uploadIndexView.php` view with a title "File Upload Demo" |
+| `upload()` | Handle the file upload POST request, validate and save the file, then redirect to `upload.index` route |
+
+**Implementation Hints:**
+
+<details>
+<summary>Click to see hints for implementing the methods</summary>
+
+**For the `index()` method:**
+```php
+public function index(Request $request, Response $response, array $args): Response
+{
+    // Retrieve list of uploaded files from session (if you want to display them)
+    // Use $this->render() to render the view
+    // Pass 'title' in the data array
+}
+```
+
+**For the `upload()` method:**
+```php
+public function upload(Request $request, Response $response, array $args): Response
+{
+    // 1. Get uploaded files from request
+    $uploadedFiles = $request->getUploadedFiles();
+
+    // 2. Check if 'upload_file' exists in uploaded files
+    if (!isset($uploadedFiles['upload_file'])) {
+        FlashMessage::error('No file was uploaded');
+        return $this->redirect($request, $response, 'upload.index');
+    }
+
+    // 3. Get the uploaded file
+    $uploadedFile = $uploadedFiles['upload_file'];
+
+    // 4. Use FileUpload::uploadImage() to handle the upload
+    $result = FileUpload::uploadImage($uploadedFile);
+
+    // 5. Check if upload was successful
+    if ($result['success']) {
+        // Store filename in session for display
+        if (!isset($_SESSION['uploaded_files'])) {
+            $_SESSION['uploaded_files'] = [];
+        }
+        $_SESSION['uploaded_files'][] = $result['filename'];
+
+        FlashMessage::success('File uploaded successfully!');
+    } else {
+        FlashMessage::error($result['error']);
+    }
+
+    // 6. Redirect back to index
+    return $this->redirect($request, $response, 'upload.index');
+}
+```
+
+</details>
+
+**Key Points to Remember:**
+- Use `$request->getUploadedFiles()` to get uploaded files
+- The file input name in the form will be `upload_file`
+- Use `FileUpload::uploadImage()` to handle validation and storage
+- Always provide feedback using FlashMessage
+- Store uploaded filenames in session to display them
+- Always redirect after POST (PRG pattern)
+
+4. Save the file
+
+**What you should have created:**
+- A controller extending BaseController
+- An `index()` method that displays the upload form
+- An `upload()` method that processes file uploads
+- Proper error handling and user feedback
+- Session storage for uploaded file tracking
+
+---
+
+### Step 4: Register Routes
+
+**Objective:** Add routes for the file upload controller.
+
+**Instructions:**
+
+1. Open your `app/Routes/web-routes.php` file
+2. Add the following import at the top:
+
+```php
+use App\Controllers\UploadController;
+```
+
+3. Add these routes:
+
+```php
+// File upload routes
+$app->get('/upload', [UploadController::class, 'index'])->setName('upload.index');
+$app->post('/upload', [UploadController::class, 'upload'])->setName('upload.process');
+```
+
+4. Save the file
+
+---
+
+### Step 5: Create the Upload View
+
+**Objective:** Create a view with a file upload form and display of uploaded files.
+
+**Instructions:**
+
+1. Navigate to your `views/` directory
+2. Create a new folder named `upload/`
+3. Inside `upload/`, create a file named `uploadIndexView.php`
+4. Copy and paste the following code:
+
+```php title="views/upload/uploadIndexView.php"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($title ?? 'File Upload') ?></title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4"><?= htmlspecialchars($title ?? 'File Upload') ?></h1>
+
+        <!-- Flash Messages Display Area -->
+        <div class="mb-4">
+            <?= App\Helpers\FlashMessage::render() ?>
+        </div>
+
+        <!-- Upload Form Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Upload an Image</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/upload" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="upload_file" class="form-label">Choose an image file</label>
+                        <input
+                            type="file"
+                            class="form-control"
+                            id="upload_file"
+                            name="upload_file"
+                            accept="image/*"
+                            required>
+                        <div class="form-text">
+                            Allowed formats: JPEG, PNG, GIF, WebP. Maximum size: 5MB.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Upload File
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Uploaded Files Display -->
+        <?php if (!empty($_SESSION['uploaded_files'])): ?>
+        <div class="card">
+            <div class="card-header">
+                <h5>Uploaded Files</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <?php foreach (array_reverse($_SESSION['uploaded_files']) as $filename): ?>
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <img
+                                src="/uploads/images/<?= htmlspecialchars($filename) ?>"
+                                class="card-img-top"
+                                alt="Uploaded image"
+                                style="height: 200px; object-fit: cover;">
+                            <div class="card-body">
+                                <p class="card-text small text-muted">
+                                    <?= htmlspecialchars($filename) ?>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Information Alert -->
+        <div class="alert alert-info mt-4" role="alert">
+            <h6 class="alert-heading">Security Features:</h6>
+            <ul class="mb-0">
+                <li>File type validation (MIME type and extension)</li>
+                <li>File size limits (maximum 5MB)</li>
+                <li>Unique filename generation to prevent overwrites</li>
+                <li>Additional image validation using getimagesize()</li>
+                <li>Protection against path traversal attacks</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+```
+
+5. Save the file
+
+**What you just created:**
+- A file upload form with proper enctype attribute
+- File input with accept attribute for better UX
+- Display of uploaded files in a grid layout
+- Responsive design using Bootstrap
+- Security information for educational purposes
+- Clear validation requirements for users
+
+---
+
+### Step 6: Test Your Implementation
+
+**Objective:** Verify that file uploads work correctly and securely.
+
+**Instructions:**
+
+1. Start your development server (if not already running)
+2. Visit `http://localhost/[your-app-name]/upload` in your browser
+3. Test the following scenarios:
+
+**Test Case 1: Valid Image Upload**
+- Click "Choose File" and select a valid image (JPEG, PNG, or GIF)
+- Click "Upload File"
+- Expected: Green success message and image appears below
+
+**Test Case 2: Invalid File Type**
+- Try to upload a .txt or .pdf file
+- Expected: Red error message about invalid file type
+
+**Test Case 3: Large File**
+- Try to upload an image larger than 5MB
+- Expected: Red error message about file size
+
+**Test Case 4: No File Selected**
+- Click "Upload File" without selecting a file
+- Expected: Error message about no file uploaded
+
+**Test Case 5: Multiple Uploads**
+- Upload several different images
+- Expected: All images appear in the gallery below
+
+**Expected Behavior:**
+
+- ✅ Valid images upload successfully
+- ✅ Success messages appear for successful uploads
+- ✅ Error messages appear for invalid uploads
+- ✅ Uploaded files appear in the uploads directory
+- ✅ Images display correctly in the gallery
+- ✅ Invalid file types are rejected
+- ✅ Files larger than 5MB are rejected
+- ✅ Each uploaded file has a unique filename
+
+**If uploads don't work:**
+- Check that `public/uploads/images/` directory exists
+- Verify write permissions on the uploads directory
+- Check `upload_max_filesize` in php.ini
+- Check `post_max_size` in php.ini
+- Ensure the form has `enctype="multipart/form-data"`
+- Check browser console and PHP error logs
+
+---
+
+## Verification Checklist
+
+Before submitting your lab, verify the following:
+
+- [ ] `public/uploads/images/` directory exists with proper permissions
+- [ ] FileUpload.php exists in `app/Helpers/` directory
+- [ ] UploadController.php exists in `app/Controllers/` directory
+- [ ] Both controller methods are implemented correctly (`index`, `upload`)
+- [ ] Upload routes are registered in `web-routes.php`
+- [ ] Upload page (`/upload`) displays the form correctly
+- [ ] Valid images upload successfully
+- [ ] Invalid file types are rejected with appropriate error messages
+- [ ] Files larger than 5MB are rejected
+- [ ] Uploaded files have unique filenames
+- [ ] Uploaded images display in the gallery
+- [ ] Flash messages work correctly for success and error cases
+
+---
+
+## Understanding What You Built
+
+### FileUpload Helper Methods
+
+| Method | Description | Example |
+|--------|-------------|---------|
+| `uploadImage($file, $dir, $maxSize)` | Upload and validate an image file | `FileUpload::uploadImage($uploadedFile)` |
+| `deleteFile($filename, $dir)` | Delete an uploaded file | `FileUpload::deleteFile('image.jpg')` |
+| `formatBytes($bytes, $precision)` | Format bytes to human-readable size | `FileUpload::formatBytes(1048576)` → "1 MB" |
+
+### How File Upload Works
+
+1. **Form Submission:** User selects file and submits form with `enctype="multipart/form-data"`
+2. **File Reception:** PHP receives file in `$_FILES` superglobal, Slim wraps it in PSR-7 UploadedFile
+3. **Validation:** FileUpload helper validates MIME type, extension, and file size
+4. **Unique Naming:** Generate unique filename to prevent overwrites and security issues
+5. **Storage:** Move file from temporary location to permanent uploads directory
+6. **Verification:** Use `getimagesize()` to verify file is actually a valid image
+7. **Feedback:** Redirect with flash message (success or error)
+
+### Security Layers
+
+| Security Layer | Purpose | Implementation |
+|----------------|---------|----------------|
+| MIME Type Check | Verify file type from browser | `getClientMediaType()` |
+| Extension Check | Validate file extension | `pathinfo()` + whitelist |
+| Size Validation | Prevent large file attacks | `getSize()` comparison |
+| Unique Filenames | Prevent path traversal | `generateUniqueFilename()` |
+| Image Verification | Ensure file is valid image | `getimagesize()` |
+| Directory Isolation | Store files in safe location | `public/uploads/` |
+
+### PHP File Upload Error Codes
+
+| Error Code | Constant | Meaning |
+|------------|----------|---------|
+| 0 | `UPLOAD_ERR_OK` | Upload successful |
+| 1 | `UPLOAD_ERR_INI_SIZE` | Exceeds `upload_max_filesize` |
+| 2 | `UPLOAD_ERR_FORM_SIZE` | Exceeds `MAX_FILE_SIZE` in form |
+| 3 | `UPLOAD_ERR_PARTIAL` | File partially uploaded |
+| 4 | `UPLOAD_ERR_NO_FILE` | No file uploaded |
+| 6 | `UPLOAD_ERR_NO_TMP_DIR` | Missing temp directory |
+| 7 | `UPLOAD_ERR_CANT_WRITE` | Failed to write to disk |
+| 8 | `UPLOAD_ERR_EXTENSION` | PHP extension stopped upload |
+
+---
+
+## Common Issues and Solutions
+
+### Issue 1: "No file was uploaded" Error
+
+**Cause:** Form missing `enctype="multipart/form-data"` attribute
+
+**Solution:**
+- Ensure form tag has: `<form method="POST" enctype="multipart/form-data">`
+- This attribute is REQUIRED for file uploads
+
+### Issue 2: File Size Limit Exceeded
+
+**Cause:** PHP configuration limits are too low
+
+**Solution:**
+- Edit `php.ini` and increase:
+  ```ini
+  upload_max_filesize = 10M
+  post_max_size = 12M
+  ```
+- Restart your web server after changes
+
+### Issue 3: Permission Denied Errors
+
+**Cause:** Web server doesn't have write permissions
+
+**Solution:**
+- On Windows: Right-click folder → Properties → Security → Edit permissions
+- On Linux/Mac: `chmod 755 public/uploads/`
+- Ensure the directory is owned by the web server user
+
+### Issue 4: Files Not Appearing in Gallery
+
+**Cause:** Uploaded files not tracked in session
+
+**Solution:**
+- Verify you're storing filenames in `$_SESSION['uploaded_files']`
+- Check that SessionMiddleware is registered
+- Ensure session_start() is called
+
+### Issue 5: Images Not Displaying (Broken Images)
+
+**Cause:** Incorrect file path in `src` attribute
+
+**Solution:**
+- Verify image src uses: `/uploads/images/filename.jpg`
+- Check that files exist in `public/uploads/images/`
+- Open browser dev tools to see 404 errors
+
+### Issue 6: Security Warning - File Type Bypass
+
+**Cause:** Relying only on client-side validation
+
+**Solution:**
+- ALWAYS validate on server-side using FileUpload helper
+- Use multiple validation layers (MIME, extension, getimagesize)
+- Never trust client-provided MIME types alone
+
+---
+
+## Test Your Understanding
+
+:::note[Answer the questions below]
+1. Why is `enctype="multipart/form-data"` required in the form tag for file uploads?
+2. Why do we validate both MIME type AND file extension instead of just one?
+3. What is the purpose of generating unique filenames instead of using the original filename?
+4. How does `getimagesize()` provide an additional security layer beyond MIME type checking?
+5. Why should uploaded files be stored in the `public/` directory rather than outside of it?
+6. What PHP configuration settings limit the maximum upload size, and which one should be larger?
+7. How does the FileUpload helper protect against path traversal attacks?
+8. Why is it important to use the Post-Redirect-Get pattern after file upload?
+:::
+
