@@ -24,17 +24,19 @@ sidebar:
 
 ## Creating Session Middleware
 
-To properly implement session middleware, we'll need to create two classes:
+To properly implement session middleware, we'll need to create and use two components:
 1. **SessionManager:** Handles session configuration and security.
-2. **SessionMiddleware:** Triggers SessionManager for every request.
+2. **SessionMiddleware:** Starts or resumes sessions for every request.
 
 ---
 
 ### Step 1: Create the SessionManager Class
 
-Create: `app/Helpers/SessionManager.php`
+The `SessionManager` class will handle the session configuration and security. 
 
-```php
+- It must be created in a file named `SessionManager.php` in the `app/Helpers/` directory.
+
+```php title="SessionManager.php"
 <?php
 
 namespace App\Helpers;
@@ -167,20 +169,24 @@ class SessionManager
 - **Session ID regeneration:** Changes session ID every 15 minutes to prevent hijacking.
 - **Browser fingerprinting:** Detects if session cookie is stolen and used on different browser.
 - **Helper methods:** Convenient methods to work with session data:
-  - `set($key, $value)` → Store data
-  - `get($key, $default)` → Retrieve data
-  - `has($key)` → Check if key exists
-  - `remove($key)` → Remove a key
-  - `clear()` → Clear all session data
-  - `destroy()` → Destroy the session
+
+| Method | Description |
+|--------|-------------|
+| `set($key, $value)` | Store data in the session |
+| `get($key, $default)` | Retrieve data from the session (returns default if key doesn't exist) |
+| `has($key)` | Check if a key exists in the session |
+| `remove($key)` | Remove a specific key from the session |
+| `clear()` | Clear all session data (keeps session alive) |
+| `destroy()` | Destroy the session completely |
 
 ---
 
 ### Step 2: Create the Middleware
 
-Create: `app/Middleware/SessionMiddleware.php`
+The `SessionMiddleware` class will start or resume sessions for every request.
+- It must be created in a file named `SessionMiddleware.php` in the `app/Middleware/` directory.
 
-```php
+```php title="SessionMiddleware.php"
 <?php
 
 namespace App\Middleware;
@@ -207,7 +213,7 @@ class SessionMiddleware implements MiddlewareInterface
 }
 ```
 
-**Key functionalities:**
+**How it works?**
 - Middleware calls `SessionManager::start()` for every request
 - SessionManager handles all configuration and security automatically
 - Session is ready to use in all routes
@@ -216,17 +222,59 @@ class SessionMiddleware implements MiddlewareInterface
 
 ### Step 3: Register the Middleware
 
-In your main application file (`config/middleware.php`):
+To register the session middleware, we need to create an instance of the `SessionMiddleware` class and add it to the application.
+
+This should be done in the (`config/middleware.php`) file:
 
 ```php
-// Create instance
-$sessionMiddleware = new \App\Middleware\SessionMiddleware();
-
-// Add to application (applies to ALL routes)
-$app->add($sessionMiddleware);
+// Add the session middleware to the application (applies to ALL routes).
+$app->add(SessionMiddleware::class);
 ```
 
 **That's it!** Sessions now work in all your routes.
+
+---
+### Step 4: Testing Your Session Middleware
+
+Add a new route to test the session middleware. This route will increment a counter and store it in the session.
+
+The following code should be added to the `web-routes.php` file:
+
+```php
+use App\Helpers\SessionManager;
+
+$app->get('/test-session', function ($request, $response) {
+    // Get current counter, increment it.
+    $counter = SessionManager::get('counter', 0) + 1;
+    SessionManager::set('counter', $counter);
+
+    $response->getBody()->write("Counter: " . $counter);
+
+    return $response;
+});
+```
+
+**Or using traditional `$_SESSION`:**
+
+```php
+$app->get('/test-session', function ($request, $response) {
+    $_SESSION['counter'] = ($_SESSION['counter'] ?? 0) + 1;
+
+    $response->getBody()->write(
+        "Counter: " . $_SESSION['counter']
+    );
+
+    return $response;
+});
+```
+
+**Expected results:**
+- Visit `/test-session` → Counter: 1
+- Refresh page → Counter: 2
+- Refresh again → Counter: 3
+
+If it always shows "Counter: 1", sessions aren't persisting (see troubleshooting below).
+
 
 ---
 
@@ -236,52 +284,81 @@ Once registered, you can use session data in two ways:
 
 ### Option 1: Using SessionManager (Recommended)
 
-Cleaner and more object-oriented approach:
+Cleaner and more object-oriented approach using controller methods:
 
 ```php
 use App\Helpers\SessionManager;
+use App\Controllers\BaseController;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
 
-// Store data
-$app->post('/login', function ($request, $response) {
-    SessionManager::set('user_id', 123);
-    SessionManager::set('username', 'john');
-    return $response;
-});
+class AuthController extends BaseController
+{
+    // Store data
+    public function login(Request $request, Response $response, array $args): Response
+    {
+        // Process login logic here
+        SessionManager::set('user_id', 123);
+        SessionManager::set('username', 'john');
 
-// Read data
-$app->get('/profile', function ($request, $response) {
-    $userId = SessionManager::get('user_id');
-
-    if (!$userId) {
-        return $response->withStatus(401); // Not logged in
+        // Redirect to dashboard after login
+        return $this->redirect($request, $response, 'dashboard');
     }
 
-    // User is logged in
-    $username = SessionManager::get('username');
-    return $response;
-});
+    // Read data
+    public function profile(Request $request, Response $response, array $args): Response
+    {
+        $userId = SessionManager::get('user_id');
 
-// Check if logged in
-$app->get('/dashboard', function ($request, $response) {
-    if (!SessionManager::has('user_id')) {
-        return $response->withStatus(401);
+        if (!$userId) {
+            // Not logged in - redirect to login page
+            return $this->redirect($request, $response, 'login');
+        }
+
+        // User is logged in - render profile view
+        $username = SessionManager::get('username');
+
+        return $this->render($response, 'auth/profile.php', [
+            'user_id' => $userId,
+            'username' => $username
+        ]);
     }
 
-    // User is logged in
-    return $response;
-});
+    // Check if logged in
+    public function dashboard(Request $request, Response $response, array $args): Response
+    {
+        if (!SessionManager::has('user_id')) {
+            // Not logged in - redirect to login page
+            return $this->redirect($request, $response, 'login');
+        }
 
-// Remove specific key
-$app->post('/clear-cart', function ($request, $response) {
-    SessionManager::remove('cart_items');
-    return $response;
-});
+        // User is logged in - render dashboard
+        return $this->render($response, 'auth/dashboard.php', [
+            'username' => SessionManager::get('username')
+        ]);
+    }
 
-// Logout (destroy session)
-$app->post('/logout', function ($request, $response) {
-    SessionManager::destroy();
-    return $response;
-});
+    // Logout (destroy session)
+    public function logout(Request $request, Response $response, array $args): Response
+    {
+        SessionManager::destroy();
+
+        // Redirect to home page after logout
+        return $this->redirect($request, $response, 'home.index');
+    }
+}
+
+class CartController extends BaseController
+{
+    // Remove specific key
+    public function clearCart(Request $request, Response $response, array $args): Response
+    {
+        SessionManager::remove('cart_items');
+
+        // Redirect back to cart page
+        return $this->redirect($request, $response, 'cart.index');
+    }
+}
 ```
 
 ### Option 2: Using $_SESSION Directly
@@ -315,47 +392,6 @@ $app->post('/logout', function ($request, $response) {
 ```
 
 **Recommendation:** Use `SessionManager` methods for cleaner, more maintainable code.
-
----
-
-## Testing Your Middleware
-
-Create a simple counter test using `SessionManager`:
-
-```php
-use App\Helpers\SessionManager;
-
-$app->get('/test-session', function ($request, $response) {
-    // Get current counter, increment it
-    $counter = SessionManager::get('counter', 0) + 1;
-    SessionManager::set('counter', $counter);
-
-    $response->getBody()->write("Counter: " . $counter);
-
-    return $response;
-});
-```
-
-**Or using traditional `$_SESSION`:**
-
-```php
-$app->get('/test-session', function ($request, $response) {
-    $_SESSION['counter'] = ($_SESSION['counter'] ?? 0) + 1;
-
-    $response->getBody()->write(
-        "Counter: " . $_SESSION['counter']
-    );
-
-    return $response;
-});
-```
-
-**Expected results:**
-- Visit `/test-session` → Counter: 1
-- Refresh page → Counter: 2
-- Refresh again → Counter: 3
-
-If it always shows "Counter: 1", sessions aren't persisting (see troubleshooting below).
 
 ---
 

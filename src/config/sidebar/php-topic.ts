@@ -78,7 +78,7 @@ export default
           }
         },
         {
-          label: "Slim Framework & MVC",
+          label: "Working with Slim Framework",
           collapsed: false,
           items: [
             {
