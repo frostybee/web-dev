@@ -1,0 +1,485 @@
+---
+title: Middleware & Session Lab Instructions
+description: Middleware & Session Lab Instructions
+sidebar:
+  label: 'Middleware & Session'
+  order: 6
+  badge:
+    text: In-Class Lab
+    variant: danger
+---
+
+
+## Additional Resources
+
+- [PHP Session Documentation](https://www.php.net/manual/en/book.session.php)
+- [Slim 4 Middleware Documentation](https://www.slimframework.com/docs/v4/concepts/middleware.html)
+- [OWASP Session Management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
+
+## Lab Instructions: Implementing Session Middleware
+
+In this lab, you will implement session management for your Slim 4 application using middleware. By the end of this lab, you will have a fully functional session system with security features and helper methods.
+
+---
+
+## Learning Objectives
+
+By completing this lab, you will:
+- Understand how middleware works in Slim 4.
+- Create a SessionManager class to handle session configuration.
+- Implement SessionMiddleware to automatically start sessions for all routes.
+- Learn best practices for secure session management.
+- Test your implementation with a practical example.
+
+---
+
+## Prerequisites
+
+Before starting this lab, ensure you have:
+- A working Slim 4 application.
+- Basic understanding of PHP sessions.
+- Familiarity with PSR-7 request/response objects.
+- Your development environment set up and running.
+
+---
+
+## Lab Steps
+
+### Step 1: Create the SessionManager Helper Class
+
+**Objective:** Create a helper class that will manage all session operations with built-in security features.
+
+**Instructions:**
+
+1. Navigate to your `app/Helpers/` directory
+2. Create a new file named `SessionManager.php`
+3. Copy and paste the following code:
+
+```php title="app/Helpers/SessionManager.php"
+<?php
+
+namespace App\Helpers;
+
+class SessionManager
+{
+    /**
+     * Start the session with secure configuration.
+     */
+    public static function start(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+
+            // Configure session to last 1 day (good for local development)
+            $sessionLifetime = 24 * 60 * 60; // (hours * minutes * seconds) -> 1 day in seconds -> 86400 seconds
+
+            // Set session cookie parameters
+            session_set_cookie_params([
+                'lifetime' => $sessionLifetime,
+                'path' => '/',
+                'domain' => '',
+                'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+                'httponly' => true,
+                'samesite' => 'Strict'
+            ]);
+
+            // Configure garbage collection (automatic cleanup)
+            ini_set('session.gc_maxlifetime', $sessionLifetime);
+            ini_set('session.gc_probability', 1);
+            ini_set('session.gc_divisor', 100);
+
+            // Security settings
+            ini_set('session.use_strict_mode', 1);
+            ini_set('session.cookie_httponly', 1);
+
+            session_start();
+
+            // Regenerate session ID every 15 minutes for security
+            if (!isset($_SESSION['last_regeneration'])) {
+                $_SESSION['last_regeneration'] = time();
+                session_regenerate_id(true);
+            } elseif (time() - $_SESSION['last_regeneration'] > 900) {
+                $_SESSION['last_regeneration'] = time();
+                session_regenerate_id(true);
+            }
+
+            // Browser fingerprinting for security (detect session hijacking)
+            $fingerprint = self::generateFingerprint();
+            if (!isset($_SESSION['fingerprint'])) {
+                $_SESSION['fingerprint'] = $fingerprint;
+            } elseif ($_SESSION['fingerprint'] !== $fingerprint) {
+                // Different browser detected - destroy and restart session
+                session_destroy();
+                session_start();
+                $_SESSION['fingerprint'] = $fingerprint;
+                $_SESSION['last_regeneration'] = time();
+            }
+        }
+    }
+
+    /**
+     * Generate a unique browser fingerprint for security.
+     */
+    private static function generateFingerprint(): string
+    {
+        $factors = [
+            $_SERVER['HTTP_USER_AGENT'] ?? '',
+            $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '',
+            $_SERVER['HTTP_ACCEPT_ENCODING'] ?? '',
+            $_SERVER['REMOTE_ADDR'] ?? ''
+        ];
+
+        return hash('sha256', implode('|', $factors));
+    }
+
+    /**
+     * Store a value in the session.
+     */
+    public static function set(string $key, $value): void
+    {
+        $_SESSION[$key] = $value;
+    }
+
+    /**
+     * Retrieve a value from the session.
+     */
+    public static function get(string $key, $default = null)
+    {
+        return $_SESSION[$key] ?? $default;
+    }
+
+    /**
+     * Check if a key exists in the session.
+     */
+    public static function has(string $key): bool
+    {
+        return isset($_SESSION[$key]);
+    }
+
+    /**
+     * Remove a key from the session.
+     */
+    public static function remove(string $key): void
+    {
+        unset($_SESSION[$key]);
+    }
+
+    /**
+     * Clear all session data.
+     */
+    public static function clear(): void
+    {
+        session_unset();
+    }
+
+    /**
+     * Destroy the session completely.
+     */
+    public static function destroy(): void
+    {
+        session_destroy();
+    }
+}
+```
+
+4. Save the file
+
+**What you just created:**
+- A SessionManager class with secure session configuration
+- Helper methods for common session operations (`set`, `get`, `has`, `remove`, `clear`, `destroy`)
+- Built-in security features (session ID regeneration, browser fingerprinting)
+- Automatic cleanup of old session files
+
+---
+
+### Step 2: Create the SessionMiddleware Class
+
+**Objective:** Create middleware that will automatically start sessions for every request.
+
+**Instructions:**
+
+1. Navigate to your `app/Middleware/` directory
+2. Create a new file named `SessionMiddleware.php`
+3. Copy and paste the following code:
+
+```php title="app/Middleware/SessionMiddleware.php"
+<?php
+
+namespace App\Middleware;
+
+use App\Helpers\SessionManager;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\RequestHandlerInterface as Handler;
+
+class SessionMiddleware implements MiddlewareInterface
+{
+    public function process(
+        Request $request,
+        Handler $handler
+    ): Response
+    {
+        // Start session using SessionManager
+        SessionManager::start();
+
+        // Continue to next middleware/route
+        return $handler->handle($request);
+    }
+}
+```
+
+4. Save the file
+
+**What you just created:**
+- Middleware that implements the PSR-15 `MiddlewareInterface`
+- Automatic session initialization using SessionManager for every request
+- Proper PSR-7 request/response handling
+
+---
+
+### Step 3: Register the Middleware
+
+**Objective:** Add the SessionMiddleware to your application so it runs on every request.
+
+**Instructions:**
+
+1. Open your `config/middleware.php` file
+2. Add the following import at the top of the file (if not already present):
+
+```php
+use App\Middleware\SessionMiddleware;
+```
+
+3. Add the middleware to your application by adding this line:
+
+```php
+// Add the session middleware to the application (applies to ALL routes)
+$app->add(SessionMiddleware::class);
+```
+
+4. Save the file
+
+**Important Notes:**
+- This middleware will run for **every route** in your application
+- Sessions will now be automatically available in all controllers and routes
+- You don't need to call `session_start()` manually anymore
+
+---
+
+### Step 4: Test Your Implementation
+
+**Objective:** Verify that sessions are working correctly by creating a test route.
+
+**Instructions:**
+
+1. Open your `app/Routes/web-routes.php` file
+2. Add the following import at the top:
+
+```php
+use App\Helpers\SessionManager;
+```
+
+3. Add this test route:
+
+```php
+$app->get('/test-session', function ($request, $response) {
+    // Get current counter, increment it
+    $counter = SessionManager::get('counter', 0) + 1;
+    SessionManager::set('counter', $counter);
+
+    $response->getBody()->write("Counter: " . $counter);
+
+    return $response;
+});
+```
+
+4. Save the file
+5. Start your development server (if not already running)
+6. Visit `http://localhost/[your-project-name]/test-session` in your browser
+
+**Expected Results:**
+- First visit: "Counter: 1"
+- Refresh page: "Counter: 2"
+- Refresh again: "Counter: 3"
+- Counter continues to increment with each refresh
+
+**If the counter always shows "1":**
+- Check that SessionMiddleware is properly registered in `config/middleware.php`
+- Verify your browser accepts cookies
+- Check browser console for errors
+- Try clearing browser cookies and testing again
+
+---
+
+### Step 5: Implement Session Usage in a Controller (Optional Challenge)
+
+**Objective:** Practice using sessions in a real controller with the BaseController pattern.
+
+**Instructions:**
+
+1. Create a new controller called `DemoController.php` in `app/Controllers/`
+2. Implement the following functionality:
+
+```php
+<?php
+
+namespace App\Controllers;
+
+use App\Helpers\SessionManager;
+use DI\Container;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+
+class DemoController extends BaseController
+{
+    public function __construct(Container $container)
+    {
+        parent::__construct($container);
+    }
+
+    // Show a simple counter page
+    public function counter(Request $request, Response $response, array $args): Response
+    {
+        // Get and increment counter
+        $counter = SessionManager::get('page_visits', 0) + 1;
+        SessionManager::set('page_visits', $counter);
+
+        return $this->render($response, 'demo/counter.php', [
+            'counter' => $counter,
+            'title' => 'Visit Counter Demo'
+        ]);
+    }
+
+    // Reset the counter
+    public function resetCounter(Request $request, Response $response, array $args): Response
+    {
+        SessionManager::remove('page_visits');
+
+        return $this->redirect($request, $response, 'demo.counter');
+    }
+}
+```
+
+3. Add routes for this controller in `web-routes.php`:
+
+```php
+use App\Controllers\DemoController;
+
+$app->get('/demo/counter', [DemoController::class, 'counter'])->setName('demo.counter');
+$app->post('/demo/reset', [DemoController::class, 'resetCounter'])->setName('demo.reset');
+```
+
+4. Create a view file `views/demo/counter.php`:
+
+```php
+<!DOCTYPE html>
+<html>
+<head>
+    <title><?= htmlspecialchars($title) ?></title>
+</head>
+<body>
+    <h1>Visit Counter</h1>
+    <p>You have visited this page <strong><?= $counter ?></strong> times.</p>
+
+    <form method="POST" action="/demo/reset">
+        <button type="submit">Reset Counter</button>
+    </form>
+</body>
+</html>
+```
+
+5. Test your implementation by visiting `http://localhost/[your-project-name]/demo/counter`
+
+---
+
+## Verification Checklist
+
+Before submitting your lab, verify the following:
+
+- [ ] SessionManager.php exists in `app/Helpers/` directory
+- [ ] SessionMiddleware.php exists in `app/Middleware/` directory
+- [ ] SessionMiddleware is registered in `config/middleware.php`
+- [ ] Test route `/test-session` shows incrementing counter
+- [ ] Counter persists across page refreshes
+- [ ] Browser cookies are being set (check browser dev tools)
+- [ ] (Optional) DemoController works with counter and reset functionality
+
+---
+
+## Understanding What You Built
+
+### SessionManager Helper Methods
+
+| Method | Description | Example |
+|--------|-------------|---------|
+| `set($key, $value)` | Store data in the session | `SessionManager::set('user_id', 123)` |
+| `get($key, $default)` | Retrieve data (with optional default) | `SessionManager::get('user_id', null)` |
+| `has($key)` | Check if key exists | `if (SessionManager::has('user_id'))` |
+| `remove($key)` | Remove specific key | `SessionManager::remove('cart_items')` |
+| `clear()` | Clear all data (keep session alive) | `SessionManager::clear()` |
+| `destroy()` | Destroy session completely | `SessionManager::destroy()` |
+
+### Security Features Implemented
+
+1. **Secure Cookie Settings**
+   - HttpOnly flag prevents JavaScript access
+   - SameSite=Strict prevents CSRF attacks
+   - Secure flag for HTTPS connections
+
+2. **Session ID Regeneration**
+   - Regenerates every 15 minutes
+   - Prevents session fixation attacks
+
+3. **Browser Fingerprinting**
+   - Detects if session cookie is stolen
+   - Automatically destroys compromised sessions
+
+4. **Garbage Collection**
+   - Automatically cleans up old session files
+   - 1% chance per request (configurable)
+
+---
+
+## Common Issues and Solutions
+
+### Issue 1: "Headers already sent" error
+
+**Cause:** Output before session_start()
+
+**Solution:**
+- Ensure no whitespace before `<?php` tags
+- Check for echo/print statements before middleware runs
+- Verify no BOM in PHP files
+
+### Issue 2: Session not persisting
+
+**Cause:** Cookies not being saved
+
+**Solution:**
+- Check browser privacy settings
+- Verify session save path is writable
+- Check that middleware is registered
+
+### Issue 3: Counter resets unexpectedly
+
+**Cause:** Browser fingerprint mismatch
+
+**Solution:**
+- For development, comment out fingerprinting code (lines 86-96 in SessionManager.php)
+- For production, keep it enabled for security
+
+---
+
+## Test Your Understanding
+:::note[Answer the questions below]
+1. **What is the purpose of middleware in Slim 4?**
+2. **Why do we use SessionManager instead of calling `session_start()` directly in routes?**
+3. **What would happen if you removed the SessionMiddleware registration from `config/middleware.php`?**
+4. **Explain the difference between `SessionManager::clear()` and `SessionManager::destroy()`**
+5. **Why is session ID regeneration important for security?**
+:::
+
+
+
+
+

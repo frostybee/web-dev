@@ -78,6 +78,13 @@ export default
           }
         },
         {
+          label: "Labs",
+          collapsed: true,
+          autogenerate: {
+            directory: "php/labs",
+          }
+        },
+        {
           label: "Working with Slim Framework",
           collapsed: false,
           items: [

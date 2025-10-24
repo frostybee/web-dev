@@ -1,4 +1,5 @@
 labs/
+!src/content/docs/php/labs/
 
 starlight-plugin-tags/
 starlight-auto-links/
