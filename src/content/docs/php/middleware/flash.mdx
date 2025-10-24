@@ -11,9 +11,9 @@ sidebar:
 
 ## What are Flash Messages?
 
-- Flash messages provide user feedback after form submissions or actions. 
-- When a user logs in, registers, or updates their profile, you redirect them to another page and show a message like "Login successful!" or "Profile updated!"
-- Flash messages are **stored in the session**, survive **one redirect**, and then **automatically disappear**.
+Flash messages are short-lived messages that provide **user feedback** after form submissions or actions (such as item deletion, form validation errors, etc.). 
+- **How it works?** When a user logs in, registers, or updates their profile, you redirect them to another page and show a message like "Login successful!" or "Profile updated!"
+- Flash messages are **stored in the session**, survive **one redirect**, and then might **automatically disappear**.
 
 **Common use cases:**
 
@@ -22,15 +22,13 @@ sidebar:
 - ✅ **Info:** "Check your email for verification link"
 - ✅ **Warning:** "Your session will expire in 5 minutes"
 
-:::note[Why use them?]
-Flash messages provide immediate feedback to users without requiring JavaScript or AJAX.
-:::
-
 ---
 
 ## Creating the FlashMessage Class
 
-Create: `app/Helpers/FlashMessage.php`
+The `FlashMessage` class is a wrapper class that will help us manage flash messages in our application by providing a clean API for managing messages.
+
+This class needs to be created in the `app/Helpers/FlashMessage.php` file.
 
 ```php
 <?php
@@ -156,8 +154,11 @@ class FlashMessage
     }
 }
 ```
+----
 
-**Available methods:**
+## FlashMessage Class Methods
+
+Here is a list of the methods available in the `FlashMessage` class.
 
 | Method | Description |
 |--------|-------------|
@@ -175,12 +176,33 @@ class FlashMessage
 
 ## Using Flash Messages in Routes
 
-### Setting Flash Messages
+### Using the `FlashMessage::add($type, $message)` method
+To set a flash message, we can use the `FlashMessage::add($type, $message)` method.
 
-```php
+This method takes two parameters:
+- `$type`: The type of message to add. This can be `success`, `error`, `info`, or `warning`.
+- `$message`: The message to add.
+
+```php title="Setting flash messages in routes using the FlashMessage::add($type, $message) method"
+FlashMessage::add('success', 'Login successful! Welcome back.');
+FlashMessage::add('error', 'Invalid password. Please try again.');
+FlashMessage::add('info', 'Check your email for verification link.');
+FlashMessage::add('warning', 'Your session will expire in 5 minutes.');
+
+// redirect to the dashboard (or any other view).
+return $response->withHeader('Location', '/dashboard')->withStatus(302);
+```
+
+---
+
+### Using the `FlashMessage` class's proxy methods
+
+Or any of the other methods like `success($message)`, `error($message)`, `info($message)`, `warning($message)` as shown in the example below.
+
+```php title="Setting flash messages in routes using the FlashMessage class's proxy methods"
 use App\Helpers\FlashMessage;
 
-// After successful login
+// After successful login, we add a success message and redirect to the dashboard.
 $app->post('/login', function ($request, $response) {
     // ... validate credentials ...
 
@@ -189,7 +211,7 @@ $app->post('/login', function ($request, $response) {
     return $response->withHeader('Location', '/dashboard')->withStatus(302);
 });
 
-// After error
+// After registration fails, we add an error message and redirect to the registration page.
 $app->post('/register', function ($request, $response) {
     // ... validation fails ...
 
@@ -198,7 +220,7 @@ $app->post('/register', function ($request, $response) {
     return $response->withHeader('Location', '/register')->withStatus(302);
 });
 
-// Multiple types
+// Multiple types can be added to the same message. We add a success message and an info message and redirect to the profile page.
 $app->post('/update-profile', function ($request, $response) {
     FlashMessage::success('Profile updated successfully!');
     FlashMessage::info('Changes will appear within 24 hours.');
@@ -213,9 +235,9 @@ $app->post('/update-profile', function ($request, $response) {
 
 ### Using `render()` Method (Recommended)
 
-The simplest way - just one line in your view:
+The simplest way to display flash messages in your views is to use the `FlashMessage::render()` method.
 
-```php
+```php title="Example: Displaying flash messages in views using the FlashMessage::render() method"
 <?= App\Helpers\FlashMessage::render() ?>
 ```
 
@@ -228,7 +250,7 @@ That's it! This will automatically:
 
 **Non-dismissible alerts:**
 
-```php
+```php title="Example: Displaying non-dismissible flash messages in views"
 <?= App\Helpers\FlashMessage::render(false) ?>
 ```
 or:
