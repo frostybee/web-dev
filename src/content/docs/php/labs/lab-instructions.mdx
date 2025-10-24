@@ -2,7 +2,7 @@
 title: Middleware & Session Lab Instructions
 description: Middleware & Session Lab Instructions
 sidebar:
-  label: 'Middleware & Session'
+  label: 'Lab: Middleware & Session'
   order: 6
   badge:
     text: In-Class Lab
@@ -72,7 +72,7 @@ class SessionManager
             // Configure session to last 1 day (good for local development)
             $sessionLifetime = 24 * 60 * 60; // (hours * minutes * seconds) -> 1 day in seconds -> 86400 seconds
 
-            // Set session cookie parameters
+            // Set session cookie parameters.
             session_set_cookie_params([
                 'lifetime' => $sessionLifetime,
                 'path' => '/',
@@ -87,13 +87,13 @@ class SessionManager
             ini_set('session.gc_probability', 1);
             ini_set('session.gc_divisor', 100);
 
-            // Security settings
+            // Security settings.
             ini_set('session.use_strict_mode', 1);
             ini_set('session.cookie_httponly', 1);
 
             session_start();
 
-            // Regenerate session ID every 15 minutes for security
+            // Regenerate session ID every 15 minutes for security.
             if (!isset($_SESSION['last_regeneration'])) {
                 $_SESSION['last_regeneration'] = time();
                 session_regenerate_id(true);
@@ -102,12 +102,12 @@ class SessionManager
                 session_regenerate_id(true);
             }
 
-            // Browser fingerprinting for security (detect session hijacking)
+            // Browser fingerprinting for security (detect session hijacking).
             $fingerprint = self::generateFingerprint();
             if (!isset($_SESSION['fingerprint'])) {
                 $_SESSION['fingerprint'] = $fingerprint;
             } elseif ($_SESSION['fingerprint'] !== $fingerprint) {
-                // Different browser detected - destroy and restart session
+                // Different browser detected - destroy and restart session.
                 session_destroy();
                 session_start();
                 $_SESSION['fingerprint'] = $fingerprint;
@@ -344,7 +344,7 @@ class DemoController extends BaseController
         $counter = SessionManager::get('page_visits', 0) + 1;
         SessionManager::set('page_visits', $counter);
 
-        return $this->render($response, 'demo/counter.php', [
+        return $this->render($response, 'demo/counterView.php', [
             'counter' => $counter,
             'title' => 'Visit Counter Demo'
         ]);
@@ -369,9 +369,9 @@ $app->get('/demo/counter', [DemoController::class, 'counter'])->setName('demo.co
 $app->post('/demo/reset', [DemoController::class, 'resetCounter'])->setName('demo.reset');
 ```
 
-4. Create a view file `views/demo/counter.php`:
+4. Create a new folder in `views/` named `demo/`, then inside it create a view file called `counterView.php`:
 
-```php
+```html title="View:  counterView.php"
 <!DOCTYPE html>
 <html>
 <head>
@@ -381,7 +381,7 @@ $app->post('/demo/reset', [DemoController::class, 'resetCounter'])->setName('dem
     <h1>Visit Counter</h1>
     <p>You have visited this page <strong><?= $counter ?></strong> times.</p>
 
-    <form method="POST" action="/demo/reset">
+    <form method="POST" action="reset">
         <button type="submit">Reset Counter</button>
     </form>
 </body>
@@ -412,22 +412,22 @@ Before submitting your lab, verify the following:
 
 | Method | Description | Example |
 |--------|-------------|---------|
-| `set($key, $value)` | Store data in the session | `SessionManager::set('user_id', 123)` |
+| `set($key, $value)` | Store data (key-value pair) in the session | `SessionManager::set('user_id', 123)` |
 | `get($key, $default)` | Retrieve data (with optional default) | `SessionManager::get('user_id', null)` |
-| `has($key)` | Check if key exists | `if (SessionManager::has('user_id'))` |
-| `remove($key)` | Remove specific key | `SessionManager::remove('cart_items')` |
-| `clear()` | Clear all data (keep session alive) | `SessionManager::clear()` |
-| `destroy()` | Destroy session completely | `SessionManager::destroy()` |
+| `has($key)` | Check if key exists in the session | `if (SessionManager::has('user_id'))` |
+| `remove($key)` | Remove specific key from the session | `SessionManager::remove('cart_items')` |
+| `clear()` | Clear all data (keep session alive) from the session | `SessionManager::clear()` |
+| `destroy()` | Destroy the session completely | `SessionManager::destroy()` |
 
 ### Security Features Implemented
 
 1. **Secure Cookie Settings**
-   - HttpOnly flag prevents JavaScript access
+   - HttpOnly flag prevents JavaScript access to the session cookie
    - SameSite=Strict prevents CSRF attacks
-   - Secure flag for HTTPS connections
+   - Secure flag for HTTPS connections only
 
 2. **Session ID Regeneration**
-   - Regenerates every 15 minutes
+   - Regenerates the session ID every 15 minutes
    - Prevents session fixation attacks
 
 3. **Browser Fingerprinting**
@@ -453,7 +453,7 @@ Before submitting your lab, verify the following:
 
 ### Issue 2: Session not persisting
 
-**Cause:** Cookies not being saved
+**Cause:** Cookies not being saved in the browser
 
 **Solution:**
 - Check browser privacy settings
@@ -478,8 +478,4 @@ Before submitting your lab, verify the following:
 4. Explain the difference between `SessionManager::clear()` and `SessionManager::destroy()`
 5. Why is session ID regeneration important for security?
 :::
-
-
-
-
 

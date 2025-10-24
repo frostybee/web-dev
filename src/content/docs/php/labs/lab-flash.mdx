@@ -2,7 +2,7 @@
 title: Flash Messages Lab
 description: Flash Messages Lab
 sidebar:
-  label: 'Flash Messages'
+  label: 'Lab: Flash Messages'
   order: 1
   badge:
     text: In-Class Lab
@@ -226,15 +226,15 @@ class FlashDemoController extends BaseController
 }
 ```
 
-**Methods to Implement:**
+**Controller callback methods to implement:**
 
-Create the following public methods. Each method should:
-- Accept the standard Slim parameters: `Request $request, Response $response, array $args`
+Create the following public controller callback methods. Each controller callback method should:
+- Accept the standard Slim framework callback method parameters: `Request $request, Response $response, array $args`
 - Return a `Response` object
 
-| Method Name | What It Should Do |
+| Callback Method Name | What It Should Do |
 |-------------|-------------------|
-| `index()` | Render the `flash-demo/index.php` view with a title "Flash Messages Demo" |
+| `index()` | Render the `flash/flashIndexView.php` view with a title "Flash Messages Demo" |
 | `success()` | Add a success flash message, then redirect to the `flash.demo` route |
 | `error()` | Add an error flash message, then redirect to the `flash.demo` route |
 | `info()` | Add an info flash message, then redirect to the `flash.demo` route |
@@ -310,12 +310,12 @@ use App\Controllers\FlashDemoController;
 
 ```php
 // Flash message demo routes
-$app->get('/flash-demo', [FlashDemoController::class, 'index'])->setName('flash.demo');
-$app->post('/flash-demo/success', [FlashDemoController::class, 'success'])->setName('flash.success');
-$app->post('/flash-demo/error', [FlashDemoController::class, 'error'])->setName('flash.error');
-$app->post('/flash-demo/info', [FlashDemoController::class, 'info'])->setName('flash.info');
-$app->post('/flash-demo/warning', [FlashDemoController::class, 'warning'])->setName('flash.warning');
-$app->post('/flash-demo/multiple', [FlashDemoController::class, 'multiple'])->setName('flash.multiple');
+$app->get('/flash', [FlashDemoController::class, 'index'])->setName('flash.demo');
+$app->post('/flash/success', [FlashDemoController::class, 'success'])->setName('flash.success');
+$app->post('/flash/error', [FlashDemoController::class, 'error'])->setName('flash.error');
+$app->post('/flash/info', [FlashDemoController::class, 'info'])->setName('flash.info');
+$app->post('/flash/warning', [FlashDemoController::class, 'warning'])->setName('flash.warning');
+$app->post('/flash/multiple', [FlashDemoController::class, 'multiple'])->setName('flash.multiple');
 ```
 
 4. Save the file
@@ -329,11 +329,11 @@ $app->post('/flash-demo/multiple', [FlashDemoController::class, 'multiple'])->se
 **Instructions:**
 
 1. Navigate to your `views/` directory
-2. Create a new folder named `flash-demo/`
-3. Inside `flash-demo/`, create a file named `index.php`
+2. Create a new folder named `flash/`
+3. Inside `flash/`, create a file named `flashIndexView.php`
 4. Copy and paste the following code:
 
-```php title="views/flash-demo/index.php"
+```php title="views/flash/flashIndexView.php"
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -360,31 +360,31 @@ $app->post('/flash-demo/multiple', [FlashDemoController::class, 'multiple'])->se
                 <p class="card-text">Click the buttons below to test different types of flash messages:</p>
 
                 <div class="d-grid gap-2">
-                    <form method="POST" action="/flash-demo/success">
+                    <form method="POST" action="/flash/success">
                         <button type="submit" class="btn btn-success w-100">
                             Show Success Message
                         </button>
                     </form>
 
-                    <form method="POST" action="/flash-demo/error">
+                    <form method="POST" action="flash/error">
                         <button type="submit" class="btn btn-danger w-100">
                             Show Error Message
                         </button>
                     </form>
 
-                    <form method="POST" action="/flash-demo/info">
+                    <form method="POST" action="flash/info">
                         <button type="submit" class="btn btn-info w-100">
                             Show Info Message
                         </button>
                     </form>
 
-                    <form method="POST" action="/flash-demo/warning">
+                    <form method="POST" action="flash/warning">
                         <button type="submit" class="btn btn-warning w-100">
                             Show Warning Message
                         </button>
                     </form>
 
-                    <form method="POST" action="/flash-demo/multiple">
+                    <form method="POST" action="flash/multiple">
                         <button type="submit" class="btn btn-primary w-100">
                             Show Multiple Messages
                         </button>
@@ -421,7 +421,7 @@ $app->post('/flash-demo/multiple', [FlashDemoController::class, 'multiple'])->se
 **Instructions:**
 
 1. Start your development server (if not already running)
-2. Visit `http://localhost:8000/flash-demo` in your browser
+2. Visit `http://localhost/[your-app-name]/flash` in your browser
 3. Click each button and observe the flash messages:
    - "Show Success Message" → Green alert
    - "Show Error Message" → Red alert
@@ -453,7 +453,7 @@ Before submitting your lab, verify the following:
 - [ ] FlashDemoController.php exists in `app/Controllers/` directory
 - [ ] All six controller methods are implemented correctly (`index`, `success`, `error`, `info`, `warning`, `multiple`)
 - [ ] Flash demo routes are registered in `web-routes.php`
-- [ ] Flash demo page (`/flash-demo`) displays all message types correctly
+- [ ] Flash demo page (`/flash`) displays all message types correctly
 - [ ] Messages disappear after page refresh
 - [ ] Multiple messages can be displayed simultaneously
 - [ ] Close buttons work on dismissible alerts
