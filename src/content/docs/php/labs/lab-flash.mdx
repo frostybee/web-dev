@@ -1,0 +1,687 @@
+---
+title: Flash Messages Lab
+description: Flash Messages Lab
+sidebar:
+  label: 'Flash Messages'
+  order: 1
+  badge:
+    text: In-Class Lab
+    variant: danger
+---
+
+## Additional Resources
+
+- [Bootstrap Alerts Documentation](https://getbootstrap.com/docs/5.3/components/alerts/)
+- [Post-Redirect-Get Pattern](https://en.wikipedia.org/wiki/Post/Redirect/Get)
+- [PHP Sessions](https://www.php.net/manual/en/book.session.php)
+- [XSS Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)
+
+
+## Flash Instructions: Implementing Flash Messages
+
+In this lab, you will implement a flash messaging system for your Slim 4 application. Flash messages provide temporary user feedback after form submissions, login attempts, and other actions. By the end of this lab, you'll have a fully functional flash messaging system using Bootstrap alerts.
+
+---
+
+## Learning Objectives
+
+By completing this lab, you will:
+- Understand what flash messages are and when to use them.
+- Create a FlashMessage helper class for managing temporary messages.
+- Integrate flash messages with the BaseController redirect() method.
+- Display flash messages in views using Bootstrap alerts.
+- Implement the Post-Redirect-Get (PRG) pattern correctly.
+- Handle success, error, info, and warning messages.
+
+---
+
+## Prerequisites
+
+Before starting this lab, ensure you have:
+- Completed the Session Middleware lab (flash messages require sessions).   
+- A working Slim 4 application with SessionMiddleware registered
+- Basic understanding of the BaseController pattern.
+- Bootstrap CSS included in your views (for styled alerts).
+- Your development environment set up and running.
+
+---
+
+## Lab Steps
+
+### Step 1: Create the FlashMessage Helper Class
+
+**Objective:** Create a helper class that manages flash messages stored in the session.
+
+**Instructions:**
+
+1. Navigate to your `app/Helpers/` directory
+2. Create a new file named `FlashMessage.php`
+3. Copy and paste the following code:
+
+```php title="app/Helpers/FlashMessage.php"
+<?php
+
+namespace App\Helpers;
+
+class FlashMessage
+{
+    private const FLASH_KEY = 'flash_messages';
+
+    /**
+     * Add a success message.
+     */
+    public static function success(string $message): void
+    {
+        self::add('success', $message);
+    }
+
+    /**
+     * Add an error message.
+     */
+    public static function error(string $message): void
+    {
+        self::add('error', $message);
+    }
+
+    /**
+     * Add an info message.
+     */
+    public static function info(string $message): void
+    {
+        self::add('info', $message);
+    }
+
+    /**
+     * Add a warning message.
+     */
+    public static function warning(string $message): void
+    {
+        self::add('warning', $message);
+    }
+
+    /**
+     * Add a flash message of any type.
+     */
+    public static function add(string $type, string $message): void
+    {
+        if (!isset($_SESSION[self::FLASH_KEY])) {
+            $_SESSION[self::FLASH_KEY] = [];
+        }
+
+        $_SESSION[self::FLASH_KEY][] = [
+            'type' => $type,
+            'message' => $message
+        ];
+    }
+
+    /**
+     * Get all flash messages and clear them.
+     */
+    public static function get(): array
+    {
+        $messages = $_SESSION[self::FLASH_KEY] ?? [];
+        unset($_SESSION[self::FLASH_KEY]);
+        return $messages;
+    }
+
+    /**
+     * Check if there are any flash messages.
+     */
+    public static function has(): bool
+    {
+        return !empty($_SESSION[self::FLASH_KEY]);
+    }
+
+    /**
+     * Clear all flash messages without retrieving them.
+     */
+    public static function clear(): void
+    {
+        unset($_SESSION[self::FLASH_KEY]);
+    }
+
+    /**
+     * Render all flash messages as Bootstrap alerts.
+     */
+    public static function render(bool $dismissible = true): string
+    {
+        $messages = self::get();
+        if (empty($messages)) {
+            return '';
+        }
+
+        $bootstrapTypes = [
+            'success' => 'success',
+            'error' => 'danger',
+            'info' => 'info',
+            'warning' => 'warning'
+        ];
+
+        $html = '';
+        foreach ($messages as $flash) {
+            $type = $bootstrapTypes[$flash['type']] ?? 'info';
+            $message = htmlspecialchars($flash['message']);
+
+            if ($dismissible) {
+                $html .= <<<HTML
+                <div class="alert alert-{$type} alert-dismissible fade show" role="alert">
+                    {$message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                HTML;
+            } else {
+                $html .= <<<HTML
+                <div class="alert alert-{$type}" role="alert">
+                    {$message}
+                </div>
+                HTML;
+            }
+        }
+
+        return $html;
+    }
+}
+```
+
+4. Save the file
+
+**What you just created:**
+- A FlashMessage helper class with methods for different message types
+- Methods to add, retrieve, check, and clear flash messages
+- A `render()` method that automatically generates Bootstrap alert HTML
+- Automatic message cleanup after display
+- XSS protection with `htmlspecialchars()`
+
+---
+
+### Step 2: Create a Test Controller
+
+**Objective:** Create a controller to demonstrate flash message functionality.
+
+**Instructions:**
+
+1. Navigate to your `app/Controllers/` directory
+2. Create a new file named `FlashDemoController.php`
+3. Copy and paste the following code:
+
+```php title="app/Controllers/FlashDemoController.php"
+<?php
+
+namespace App\Controllers;
+
+use App\Helpers\FlashMessage;
+use DI\Container;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+
+class FlashDemoController extends BaseController
+{
+    public function __construct(Container $container)
+    {
+        parent::__construct($container);
+    }
+
+    /**
+     * Show the demo form
+     */
+    public function index(Request $request, Response $response, array $args): Response
+    {
+        return $this->render($response, 'flash-demo/index.php', [
+            'title' => 'Flash Messages Demo'
+        ]);
+    }
+
+    /**
+     * Handle success message demo
+     */
+    public function success(Request $request, Response $response, array $args): Response
+    {
+        FlashMessage::success('This is a success message!');
+        return $this->redirect($request, $response, 'flash.demo');
+    }
+
+    /**
+     * Handle error message demo
+     */
+    public function error(Request $request, Response $response, array $args): Response
+    {
+        FlashMessage::error('This is an error message!');
+        return $this->redirect($request, $response, 'flash.demo');
+    }
+
+    /**
+     * Handle info message demo
+     */
+    public function info(Request $request, Response $response, array $args): Response
+    {
+        FlashMessage::info('This is an info message!');
+        return $this->redirect($request, $response, 'flash.demo');
+    }
+
+    /**
+     * Handle warning message demo
+     */
+    public function warning(Request $request, Response $response, array $args): Response
+    {
+        FlashMessage::warning('This is a warning message!');
+        return $this->redirect($request, $response, 'flash.demo');
+    }
+
+    /**
+     * Handle multiple messages demo
+     */
+    public function multiple(Request $request, Response $response, array $args): Response
+    {
+        FlashMessage::success('Operation completed successfully!');
+        FlashMessage::info('Check your email for confirmation.');
+        FlashMessage::warning('Your trial period ends in 7 days.');
+
+        return $this->redirect($request, $response, 'flash.demo');
+    }
+}
+```
+
+4. Save the file
+
+**What you just created:**
+- A controller extending BaseController
+- Multiple methods demonstrating different message types
+- Proper use of redirect() to trigger the PRG pattern
+- Example of setting multiple flash messages at once
+
+---
+
+### Step 3: Register Routes
+
+**Objective:** Add routes for the flash message demo controller.
+
+**Instructions:**
+
+1. Open your `app/Routes/web-routes.php` file
+2. Add the following import at the top:
+
+```php
+use App\Controllers\FlashDemoController;
+```
+
+3. Add these routes:
+
+```php
+// Flash message demo routes
+$app->get('/flash-demo', [FlashDemoController::class, 'index'])->setName('flash.demo');
+$app->post('/flash-demo/success', [FlashDemoController::class, 'success'])->setName('flash.success');
+$app->post('/flash-demo/error', [FlashDemoController::class, 'error'])->setName('flash.error');
+$app->post('/flash-demo/info', [FlashDemoController::class, 'info'])->setName('flash.info');
+$app->post('/flash-demo/warning', [FlashDemoController::class, 'warning'])->setName('flash.warning');
+$app->post('/flash-demo/multiple', [FlashDemoController::class, 'multiple'])->setName('flash.multiple');
+```
+
+4. Save the file
+
+---
+
+### Step 4: Create the Demo View
+
+**Objective:** Create a view that displays flash messages and provides buttons to test each message type.
+
+**Instructions:**
+
+1. Navigate to your `views/` directory
+2. Create a new folder named `flash-demo/`
+3. Inside `flash-demo/`, create a file named `index.php`
+4. Copy and paste the following code:
+
+```php title="views/flash-demo/index.php"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($title ?? 'Flash Demo') ?></title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4"><?= htmlspecialchars($title ?? 'Flash Demo') ?></h1>
+
+        <!-- Flash Messages Display Area -->
+        <div class="mb-4">
+            <?= App\Helpers\FlashMessage::render() ?>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>Test Flash Messages</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Click the buttons below to test different types of flash messages:</p>
+
+                <div class="d-grid gap-2">
+                    <form method="POST" action="/flash-demo/success">
+                        <button type="submit" class="btn btn-success w-100">
+                            Show Success Message
+                        </button>
+                    </form>
+
+                    <form method="POST" action="/flash-demo/error">
+                        <button type="submit" class="btn btn-danger w-100">
+                            Show Error Message
+                        </button>
+                    </form>
+
+                    <form method="POST" action="/flash-demo/info">
+                        <button type="submit" class="btn btn-info w-100">
+                            Show Info Message
+                        </button>
+                    </form>
+
+                    <form method="POST" action="/flash-demo/warning">
+                        <button type="submit" class="btn btn-warning w-100">
+                            Show Warning Message
+                        </button>
+                    </form>
+
+                    <form method="POST" action="/flash-demo/multiple">
+                        <button type="submit" class="btn btn-primary w-100">
+                            Show Multiple Messages
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-4" role="alert">
+            <strong>Note:</strong> Flash messages appear once and then disappear. Refresh the page to clear any visible messages.
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+```
+
+5. Save the file
+
+**What you just created:**
+- A view that displays flash messages using `FlashMessage::render()`
+- Buttons to test each message type
+- Bootstrap-styled layout
+- Forms using POST method to demonstrate PRG pattern
+
+---
+
+### Step 5: Test Your Implementation
+
+**Objective:** Verify that flash messages work correctly.
+
+**Instructions:**
+
+1. Start your development server (if not already running)
+2. Visit `http://localhost:8000/flash-demo` in your browser
+3. Click each button and observe the flash messages:
+   - "Show Success Message" → Green alert
+   - "Show Error Message" → Red alert
+   - "Show Info Message" → Blue alert
+   - "Show Warning Message" → Yellow alert
+   - "Show Multiple Messages" → Three different alerts
+
+**Expected Behavior:**
+
+- ✅ Messages appear at the top of the page after redirect
+- ✅ Messages have appropriate colors (success=green, error=red, etc.)
+- ✅ Messages have close buttons (dismissible)
+- ✅ Refreshing the page clears all messages
+- ✅ Multiple messages can be displayed at once
+
+**If messages don't appear:**
+- Verify SessionMiddleware is registered in `config/middleware.php`
+- Check browser console for JavaScript errors
+- Ensure Bootstrap CSS and JS are loading
+- Verify the FlashMessage::render() line is in your view
+
+---
+
+### Step 6: Implement a Practical Example (Contact Form)
+
+**Objective:** Create a real-world example using flash messages with form validation.
+
+**Instructions:**
+
+1. Create a new controller `ContactController.php` in `app/Controllers/`:
+
+```php title="app/Controllers/ContactController.php"
+<?php
+
+namespace App\Controllers;
+
+use App\Helpers\FlashMessage;
+use DI\Container;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+
+class ContactController extends BaseController
+{
+    public function __construct(Container $container)
+    {
+        parent::__construct($container);
+    }
+
+    /**
+     * Show contact form
+     */
+    public function show(Request $request, Response $response, array $args): Response
+    {
+        return $this->render($response, 'contact/form.php', [
+            'title' => 'Contact Us'
+        ]);
+    }
+
+    /**
+     * Process contact form submission
+     */
+    public function submit(Request $request, Response $response, array $args): Response
+    {
+        $data = $request->getParsedBody();
+
+        // Validate name
+        if (empty($data['name'])) {
+            FlashMessage::error('Name is required.');
+            return $this->redirect($request, $response, 'contact.form');
+        }
+
+        // Validate email
+        if (empty($data['email'])) {
+            FlashMessage::error('Email is required.');
+            return $this->redirect($request, $response, 'contact.form');
+        }
+
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            FlashMessage::error('Please enter a valid email address.');
+            return $this->redirect($request, $response, 'contact.form');
+        }
+
+        // Validate message
+        if (empty($data['message'])) {
+            FlashMessage::error('Message cannot be empty.');
+            return $this->redirect($request, $response, 'contact.form');
+        }
+
+        // If validation passes, "send" the message
+        // (In a real app, you would send an email here)
+
+        FlashMessage::success('Thank you for your message! We will respond within 24 hours.');
+        FlashMessage::info('A confirmation email has been sent to ' . htmlspecialchars($data['email']));
+
+        return $this->redirect($request, $response, 'contact.form');
+    }
+}
+```
+
+2. Add routes in `web-routes.php`:
+
+```php
+use App\Controllers\ContactController;
+
+$app->get('/contact', [ContactController::class, 'show'])->setName('contact.form');
+$app->post('/contact', [ContactController::class, 'submit'])->setName('contact.submit');
+```
+
+3. Create the contact form view `views/contact/form.php`:
+
+```php title="views/contact/form.php"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($title ?? 'Contact Us') ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4"><?= htmlspecialchars($title ?? 'Contact Us') ?></h1>
+
+        <!-- Display Flash Messages -->
+        <?= App\Helpers\FlashMessage::render() ?>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="/contact">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+```
+
+4. Test the contact form at `http://localhost:8000/contact`
+
+**What to test:**
+- Submit empty form → See error messages
+- Submit invalid email → See validation error
+- Submit valid form → See success and info messages
+
+---
+
+## Verification Checklist
+
+Before submitting your lab, verify the following:
+
+- [ ] FlashMessage.php exists in `app/Helpers/` directory
+- [ ] FlashDemoController.php exists in `app/Controllers/` directory
+- [ ] Flash demo routes are registered in `web-routes.php`
+- [ ] Flash demo page (`/flash-demo`) displays all message types correctly
+- [ ] Messages disappear after page refresh
+- [ ] Multiple messages can be displayed simultaneously
+- [ ] ContactController validates form input and shows appropriate messages
+- [ ] Contact form (`/contact`) shows error messages for invalid input
+- [ ] Contact form shows success messages for valid submission
+
+---
+
+## Understanding What You Built
+
+### FlashMessage Helper Methods
+
+| Method | Description | Example |
+|--------|-------------|---------|
+| `success($msg)` | Add a success message (green alert) | `FlashMessage::success('Saved!')` |
+| `error($msg)` | Add an error message (red alert) | `FlashMessage::error('Invalid input')` |
+| `info($msg)` | Add an info message (blue alert) | `FlashMessage::info('Check your email')` |
+| `warning($msg)` | Add a warning message (yellow alert) | `FlashMessage::warning('Trial ending soon')` |
+| `add($type, $msg)` | Add a custom message type | `FlashMessage::add('custom', 'Message')` |
+| `render($dismissible)` | Display all messages as Bootstrap alerts | `<?= FlashMessage::render() ?>` |
+| `get()` | Retrieve and clear all messages | `$messages = FlashMessage::get()` |
+| `has()` | Check if messages exist | `if (FlashMessage::has())` |
+| `clear()` | Clear all messages without retrieving | `FlashMessage::clear()` |
+
+### How Flash Messages Work
+
+1. **Setting:** Flash message is stored in `$_SESSION['flash_messages']`
+2. **Redirect:** User is redirected to another page (PRG pattern)
+3. **Display:** Next page renders messages using `FlashMessage::render()`
+4. **Auto-clear:** Messages are automatically removed after being retrieved
+5. **Result:** Message only appears once, then disappears
+
+### Bootstrap Alert Mapping
+
+| Flash Type | Bootstrap Class | Color |
+|------------|----------------|-------|
+| `success` | `alert-success` | Green |
+| `error` | `alert-danger` | Red |
+| `info` | `alert-info` | Blue |
+| `warning` | `alert-warning` | Yellow |
+
+---
+
+
+## Common Issues and Solutions
+
+### Issue 1: Messages Don't Appear
+
+**Cause:** SessionMiddleware not registered or sessions not working
+
+**Solution:**
+- Verify `SessionMiddleware` is in `config/middleware.php`
+- Test that sessions work with the `/test-session` route
+- Check browser accepts cookies
+
+### Issue 2: Messages Appear Multiple Times
+
+**Cause:** Calling `FlashMessage::render()` multiple times
+
+**Solution:**
+- Only call `render()` once per page
+- Check your layout/view for duplicate calls
+
+### Issue 3: Messages Persist After Refresh
+
+**Cause:** `render()` not being called, so messages aren't cleared
+
+**Solution:**
+- Ensure `FlashMessage::render()` is in your view
+- Alternatively, call `FlashMessage::get()` or `clear()` manually
+
+### Issue 4: Bootstrap Styles Not Showing
+
+**Cause:** Bootstrap CSS not loaded
+
+**Solution:**
+- Add Bootstrap CDN link to your view's `<head>`:
+```html
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+```
+
+---
+
+## Test Your Understanding
+
+:::note[Answer the questions below]
+1. What is the Post-Redirect-Get (PRG) pattern and why is it important for flash messages?
+2. Why do flash messages need to be stored in the session instead of regular variables?
+3. What happens to flash messages after `FlashMessage::render()` is called?
+4. What Bootstrap class is used for error messages and why is it different from the flash type name?
+5. How would you display non-dismissible flash messages?
+6. Can you set multiple flash messages before a redirect? What happens to them?
+:::
