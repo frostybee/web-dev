@@ -202,9 +202,10 @@ class FlashMessage
 
 1. Navigate to your `app/Controllers/` directory
 2. Create a new file named `FlashDemoController.php`
-3. Copy and paste the following code:
+3. Implement a controller class that extends `BaseController` with the following requirements:
 
-```php title="app/Controllers/FlashDemoController.php"
+**Class Structure:**
+```php
 <?php
 
 namespace App\Controllers;
@@ -221,73 +222,74 @@ class FlashDemoController extends BaseController
         parent::__construct($container);
     }
 
-    /**
-     * Show the demo form
-     */
-    public function index(Request $request, Response $response, array $args): Response
-    {
-        return $this->render($response, 'flash-demo/index.php', [
-            'title' => 'Flash Messages Demo'
-        ]);
-    }
-
-    /**
-     * Handle success message demo
-     */
-    public function success(Request $request, Response $response, array $args): Response
-    {
-        FlashMessage::success('This is a success message!');
-        return $this->redirect($request, $response, 'flash.demo');
-    }
-
-    /**
-     * Handle error message demo
-     */
-    public function error(Request $request, Response $response, array $args): Response
-    {
-        FlashMessage::error('This is an error message!');
-        return $this->redirect($request, $response, 'flash.demo');
-    }
-
-    /**
-     * Handle info message demo
-     */
-    public function info(Request $request, Response $response, array $args): Response
-    {
-        FlashMessage::info('This is an info message!');
-        return $this->redirect($request, $response, 'flash.demo');
-    }
-
-    /**
-     * Handle warning message demo
-     */
-    public function warning(Request $request, Response $response, array $args): Response
-    {
-        FlashMessage::warning('This is a warning message!');
-        return $this->redirect($request, $response, 'flash.demo');
-    }
-
-    /**
-     * Handle multiple messages demo
-     */
-    public function multiple(Request $request, Response $response, array $args): Response
-    {
-        FlashMessage::success('Operation completed successfully!');
-        FlashMessage::info('Check your email for confirmation.');
-        FlashMessage::warning('Your trial period ends in 7 days.');
-
-        return $this->redirect($request, $response, 'flash.demo');
-    }
+    // TODO: Implement the methods below
 }
 ```
 
+**Methods to Implement:**
+
+Create the following public methods. Each method should:
+- Accept the standard Slim parameters: `Request $request, Response $response, array $args`
+- Return a `Response` object
+
+| Method Name | What It Should Do |
+|-------------|-------------------|
+| `index()` | Render the `flash-demo/index.php` view with a title "Flash Messages Demo" |
+| `success()` | Add a success flash message, then redirect to the `flash.demo` route |
+| `error()` | Add an error flash message, then redirect to the `flash.demo` route |
+| `info()` | Add an info flash message, then redirect to the `flash.demo` route |
+| `warning()` | Add a warning flash message, then redirect to the `flash.demo` route |
+| `multiple()` | Add 2-3 flash messages of different types, then redirect to the `flash.demo` route |
+
+**Implementation Hints:**
+
+<details>
+<summary>Click to see hints for implementing the methods</summary>
+
+**For the `index()` method:**
+```php
+public function index(Request $request, Response $response, array $args): Response
+{
+    // Use $this->render() to render the view
+    // Pass 'title' in the data array
+}
+```
+
+**For message methods (`success()`, `error()`, etc.):**
+```php
+public function success(Request $request, Response $response, array $args): Response
+{
+    // 1. Use FlashMessage::success() to add a message
+    // 2. Use $this->redirect() to redirect to 'flash.demo' route
+}
+```
+
+**For the `multiple()` method:**
+```php
+public function multiple(Request $request, Response $response, array $args): Response
+{
+    // 1. Call FlashMessage::success() with a message
+    // 2. Call FlashMessage::info() with a different message
+    // 3. Call FlashMessage::warning() with another message
+    // 4. Use $this->redirect() to redirect to 'flash.demo' route
+}
+```
+
+</details>
+
+**Key Points to Remember:**
+- Use `FlashMessage::success()`, `FlashMessage::error()`, `FlashMessage::info()`, or `FlashMessage::warning()`
+- Always use `$this->redirect($request, $response, 'route.name')` after setting flash messages
+- The message text can be anything descriptive (e.g., "This is a success message!")
+- For `multiple()`, demonstrate that you can set multiple messages before redirecting
+
 4. Save the file
 
-**What you just created:**
-- A controller extending BaseController
-- Multiple methods demonstrating different message types
-- Proper use of redirect() to trigger the PRG pattern
-- Example of setting multiple flash messages at once
+**What you should have created:**
+- A controller extending BaseController with a constructor
+- An `index()` method that renders a view
+- Five methods that set flash messages and redirect
+- Proper use of the Post-Redirect-Get (PRG) pattern
 
 ---
 
@@ -443,160 +445,18 @@ $app->post('/flash-demo/multiple', [FlashDemoController::class, 'multiple'])->se
 
 ---
 
-### Step 6: Implement a Practical Example (Contact Form)
-
-**Objective:** Create a real-world example using flash messages with form validation.
-
-**Instructions:**
-
-1. Create a new controller `ContactController.php` in `app/Controllers/`:
-
-```php title="app/Controllers/ContactController.php"
-<?php
-
-namespace App\Controllers;
-
-use App\Helpers\FlashMessage;
-use DI\Container;
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
-
-class ContactController extends BaseController
-{
-    public function __construct(Container $container)
-    {
-        parent::__construct($container);
-    }
-
-    /**
-     * Show contact form
-     */
-    public function show(Request $request, Response $response, array $args): Response
-    {
-        return $this->render($response, 'contact/form.php', [
-            'title' => 'Contact Us'
-        ]);
-    }
-
-    /**
-     * Process contact form submission
-     */
-    public function submit(Request $request, Response $response, array $args): Response
-    {
-        $data = $request->getParsedBody();
-
-        // Validate name
-        if (empty($data['name'])) {
-            FlashMessage::error('Name is required.');
-            return $this->redirect($request, $response, 'contact.form');
-        }
-
-        // Validate email
-        if (empty($data['email'])) {
-            FlashMessage::error('Email is required.');
-            return $this->redirect($request, $response, 'contact.form');
-        }
-
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            FlashMessage::error('Please enter a valid email address.');
-            return $this->redirect($request, $response, 'contact.form');
-        }
-
-        // Validate message
-        if (empty($data['message'])) {
-            FlashMessage::error('Message cannot be empty.');
-            return $this->redirect($request, $response, 'contact.form');
-        }
-
-        // If validation passes, "send" the message
-        // (In a real app, you would send an email here)
-
-        FlashMessage::success('Thank you for your message! We will respond within 24 hours.');
-        FlashMessage::info('A confirmation email has been sent to ' . htmlspecialchars($data['email']));
-
-        return $this->redirect($request, $response, 'contact.form');
-    }
-}
-```
-
-2. Add routes in `web-routes.php`:
-
-```php
-use App\Controllers\ContactController;
-
-$app->get('/contact', [ContactController::class, 'show'])->setName('contact.form');
-$app->post('/contact', [ContactController::class, 'submit'])->setName('contact.submit');
-```
-
-3. Create the contact form view `views/contact/form.php`:
-
-```php title="views/contact/form.php"
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($title ?? 'Contact Us') ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4"><?= htmlspecialchars($title ?? 'Contact Us') ?></h1>
-
-        <!-- Display Flash Messages -->
-        <?= App\Helpers\FlashMessage::render() ?>
-
-        <div class="card">
-            <div class="card-body">
-                <form method="POST" action="/contact">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="message" class="form-label">Message</label>
-                        <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Send Message</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
-```
-
-4. Test the contact form at `http://localhost:8000/contact`
-
-**What to test:**
-- Submit empty form → See error messages
-- Submit invalid email → See validation error
-- Submit valid form → See success and info messages
-
----
-
 ## Verification Checklist
 
 Before submitting your lab, verify the following:
 
 - [ ] FlashMessage.php exists in `app/Helpers/` directory
 - [ ] FlashDemoController.php exists in `app/Controllers/` directory
+- [ ] All six controller methods are implemented correctly (`index`, `success`, `error`, `info`, `warning`, `multiple`)
 - [ ] Flash demo routes are registered in `web-routes.php`
 - [ ] Flash demo page (`/flash-demo`) displays all message types correctly
 - [ ] Messages disappear after page refresh
 - [ ] Multiple messages can be displayed simultaneously
-- [ ] ContactController validates form input and shows appropriate messages
-- [ ] Contact form (`/contact`) shows error messages for invalid input
-- [ ] Contact form shows success messages for valid submission
+- [ ] Close buttons work on dismissible alerts
 
 ---
 
