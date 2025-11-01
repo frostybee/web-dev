@@ -9,6 +9,13 @@ export default
         // Direct link to index.mdx file.
         // { label: "Quick Reference", link: "php/" },
         {
+          label: "Course Content",
+          collapsed: false,
+          autogenerate: {
+            directory: "php/topics",
+          }
+        },
+        {
           label: "PHP Basics",
           collapsed: true,
           items: [
