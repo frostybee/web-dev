@@ -345,14 +345,14 @@ Before moving on, make sure you can answer:
 5. What happens if configuration is missing (e.g., no `allowedTypes`)?
 
 **What you just built:**
-- A static helper method that encapsulates all file upload logic
-- Configuration-driven approach for flexibility
-- Complete validation (errors, size, type)
-- Automatic directory creation if needed
-- Secure filename generation using `uniqid()`
-- Result pattern for clean success/failure handling
-- Detailed error messages for debugging
-- Reusable across your entire application
+- A static helper method that encapsulates all file upload logic.
+- Configuration-driven approach for flexibility.
+- Complete validation (errors, size, type).
+- Automatic directory creation if needed.
+- Secure filename generation using `uniqid()`.
+- Result pattern for clean success/failure handling.
+- Detailed error messages for debugging.
+- Reusable across your entire application.
 
 ---
 
@@ -431,11 +431,11 @@ Before creating the form, understand these essential attributes:
 5. Save the file
 
 **What you just created:**
-- An HTML form with `method="POST"` for file uploads
-- The critical `enctype="multipart/form-data"` attribute
-- A file input field with `name="myfile"` (you'll use this name in PHP)
-- Bootstrap styling for a clean interface
-- Flash message display area for feedback
+- An HTML form with `method="POST"` for file uploads.
+- The critical `enctype="multipart/form-data"` attribute.
+- A file input field with `name="myfile"` (you'll use this name in PHP).
+- Bootstrap styling for a clean interface.
+- Flash message display area for feedback.
 
 ---
 
@@ -616,10 +616,10 @@ $app->post('/upload', [UploadController::class, 'upload'])->setName('upload.proc
 3. Save the file
 
 **What you just added:**
-- Check if uploaded files exist in session
-- Display files in a responsive grid layout
-- Show each image with its filename
-- Most recent uploads appear first
+- Check if uploaded files exist in session.
+- Display files in a responsive grid layout.
+- Show each image with its filename.
+- Most recent uploads appear first.
 
 ---
 
@@ -775,17 +775,17 @@ if ($result->isSuccess()) {
 
 ### How File Upload Works (With Helper Pattern)
 
-1. **Form Submission:** User selects file and submits form with `enctype="multipart/form-data"`
-2. **File Reception:** PHP receives file in `$_FILES` superglobal, Slim wraps it in PSR-7 UploadedFileInterface
-3. **Route Mapping:** Slim routes the POST request to `UploadController::upload()`
-4. **Controller Handling:** Controller retrieves the file using `$request->getUploadedFiles()`
-5. **Helper Call:** Controller calls `FileUploadHelper::upload()` with file and configuration
-6. **Helper Validation:** Helper validates upload errors, media type, and file size
-7. **Unique Naming:** Helper generates unique filename using `uniqid()`
-8. **Storage:** Helper moves file to permanent location using `moveTo()`
-9. **Result Return:** Helper returns Result object (success with filename, or failure with error)
-10. **Controller Response:** Controller checks result, sets flash message, stores filename in session
-11. **Redirect:** Controller uses `$this->redirect()` to send user back to upload form (PRG pattern)
+1. **Form submission:** User selects file and submits form with `enctype="multipart/form-data"`
+2. **File reception:** PHP receives file in `$_FILES` superglobal, Slim wraps it in PSR-7 UploadedFileInterface.
+3. **Route mapping:** Slim routes the POST request to `UploadController::upload()`.
+4. **Controller handling:** Controller retrieves the file using `$request->getUploadedFiles()`.
+5. **Helper call:** Controller calls `FileUploadHelper::upload()` with file and configuration.
+6. **Helper validation:** Helper validates upload errors, media type, and file size.
+7. **Unique naming:** Helper generates unique filename using `uniqid()`.
+8. **Storage:** Helper moves file to permanent location using `moveTo()`.
+9. **Result return:** Helper returns Result object (success with filename, or failure with error).
+10. **Controller response:** Controller checks result, sets flash message, stores filename in session.
+11. **Redirect:** Controller uses `$this->redirect()` to send user back to upload form (PRG pattern).
 
 ### Architecture: Separation of Concerns
 
@@ -830,17 +830,17 @@ $result = FileUploadHelper::upload($file, [
 ```
 
 **Clean Controller Methods:**
-- Controllers stay focused on HTTP concerns
-- No validation logic mixed with controller logic
-- Easy to read and maintain
-- Consistent error handling across all upload operations
-- Proper use of BaseController helper methods (`render()`, `redirect()`)
+- Controllers stay focused on HTTP concerns.
+- No validation logic mixed with controller logic.
+- Easy to read and maintain.
+- Consistent error handling across all upload operations.
+- Proper use of BaseController helper methods (`render()`, `redirect()`).
 
 **Testability:**
-- Test helper independently of HTTP layer
-- Mock UploadedFileInterface for unit tests
-- Test configuration handling
-- Verify Result objects are returned correctly
+- Test helper independently of HTTP layer.
+- Mock UploadedFileInterface for unit tests.
+- Test configuration handling.
+- Verify Result objects are returned correctly.
 
 ### PHP File Upload Error Codes
 
@@ -886,44 +886,44 @@ $result = FileUploadHelper::upload($file, [
 **Solution:**
 
 **On Windows:**
-- Usually not an issue for local development - if you created the folder, PHP should have access
-- If you see permission errors, right-click folder → Properties → Security → Edit permissions
-- Ensure "Users" group has "Modify" permissions
+- Usually not an issue for local development - if you created the folder, PHP should have access.
+- If you see permission errors, right-click folder → Properties → Security → Edit permissions.
+- Ensure "Users" group has "Modify" permissions.
 
 **On Linux/Mac:**
-- Run: `chmod 755 public/uploads/`
-- Or: `chmod 777 public/uploads/` (less secure, but works for development)
-- Ensure the directory is owned by the web server user (e.g., `www-data`, `apache`)
+- Run: `chmod 755 public/uploads/`.
+- Or: `chmod 777 public/uploads/` (less secure, but works for development).
+- Ensure the directory is owned by the web server user (e.g., `www-data`, `apache`).
 
-**Note:** The `0755` parameter in `mkdir()` is automatically ignored on Windows, so you don't need to change the code
+**Note:** The `0755` parameter in `mkdir()` is automatically ignored on Windows, so you don't need to change the code.
 
 ### Issue 4: Files Not Appearing in Gallery
 
-**Cause:** Uploaded files not tracked in session
+**Cause:** Uploaded files not tracked in session.
 
 **Solution:**
-- Verify you're storing filenames in `$_SESSION['uploaded_files']`
-- Check that SessionMiddleware is registered
-- Ensure session_start() is called
+- Verify you're storing filenames in `$_SESSION['uploaded_files']`.
+- Check that SessionMiddleware is registered.
+- Ensure session_start() is called.
 
 ### Issue 5: Images Not Displaying (Broken Images)
 
-**Cause:** Incorrect file path in `src` attribute
+**Cause:** Incorrect file path in `src` attribute.
 
 **Solution:**
-- Verify image src uses: `/uploads/images/filename.jpg`
-- Check that files exist in `public/uploads/images/`
-- Open browser dev tools to see 404 errors
+- Verify image src uses: `/uploads/images/filename.jpg`.
+- Check that files exist in `public/uploads/images/`.
+- Open browser dev tools to see 404 errors.
 
 ### Issue 6: Security Warning - File Type Bypass
 
-**Cause:** Relying only on client-side validation
+**Cause:** Relying only on client-side validation.
 
 **Solution:**
-- ALWAYS validate on server-side in your POST route
-- Check file errors, size, and media type
-- Never trust client-provided media types alone
-- Consider adding `getimagesize()` check for extra security
+- ALWAYS validate on server-side in your POST route.
+- Check file errors, size, and media type.
+- Never trust client-provided media types alone.
+- Consider adding `getimagesize()` check for extra security.
 
 ---
 
