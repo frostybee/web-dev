@@ -2,7 +2,7 @@ export default
 [
     {
       label: "PHP",
-      link: "php/basics",
+      link: "php/topics",
       icon: "seti:php",
       items: [
         // Each item here is one entry in the navigation menu.
@@ -14,6 +14,44 @@ export default
           autogenerate: {
             directory: "php/topics",
           }
+        },
+        {
+          label: "Assignment 2",
+          collapsed: false,
+          autogenerate: {
+            directory: "php/assignment-2",
+          }
+        },
+        {
+          label: "Labs",
+          collapsed: true,
+          autogenerate: {
+            directory: "php/labs",
+          }
+        },
+        {
+          label: "Working with Slim Framework",
+          collapsed: false,
+          items: [
+            {
+              label: "Slim Framework & MVC",
+              autogenerate: {
+                directory: "php/slim",
+              }
+            },
+            {
+              label: "Middleware",
+              autogenerate: {
+                directory: "php/middleware",
+              }
+            },
+            {
+              label: "Slim MVC App",
+              autogenerate: {
+                directory: "php/slim-mvc",
+              }
+            }
+          ],
         },
         {
           label: "PHP Basics",
@@ -76,44 +114,6 @@ export default
           autogenerate: {
             directory: "php/security",
           }
-        },
-        {
-          label: "Assignment 2",
-          collapsed: false,
-          autogenerate: {
-            directory: "php/assignment-2",
-          }
-        },
-        {
-          label: "Labs",
-          collapsed: true,
-          autogenerate: {
-            directory: "php/labs",
-          }
-        },
-        {
-          label: "Working with Slim Framework",
-          collapsed: false,
-          items: [
-            {
-              label: "Slim Framework & MVC",
-              autogenerate: {
-                directory: "php/slim",
-              }
-            },
-            {
-              label: "Middleware",
-              autogenerate: {
-                directory: "php/middleware",
-              }
-            },
-            {
-              label: "Slim MVC App",
-              autogenerate: {
-                directory: "php/slim-mvc",
-              }
-            }
-          ],
         },
       ],
     }

@@ -27,8 +27,6 @@ When a user uploads a file through an HTML form, the file data is sent to the se
 
 Slim Framework makes this process straightforward by providing access to uploaded files through its PSR-7 Request object. Instead of working directly with PHP's `$_FILES` superglobal, Slim wraps uploaded files in `UploadedFileInterface` objects, which provide a clean, object-oriented API for handling file uploads.
 
-In this lab, you'll learn how to create an upload form, receive files on the server, validate them for security, and save them safely to your server's filesystem using best practices.
-
 ---
 
 ## Learning Objectives
@@ -773,7 +771,7 @@ if ($result->isSuccess()) {
 }
 ```
 
-### How File Upload Works (With Helper Pattern)
+### How File Upload Works (With File Upload Helper Class)
 
 1. **Form submission:** User selects file and submits form with `enctype="multipart/form-data"`
 2. **File reception:** PHP receives file in `$_FILES` superglobal, Slim wraps it in PSR-7 UploadedFileInterface.
@@ -808,7 +806,7 @@ if ($result->isSuccess()) {
 | Unique Filenames | Prevent path traversal & overwrites | `uniqid('upload_')` |
 | Directory Isolation | Store files in safe location | `public/uploads/images/` |
 
-### Benefits of the Helper Pattern
+### Benefits of the File Upload Helper Class
 
 **Code Reusability:**
 ```php
