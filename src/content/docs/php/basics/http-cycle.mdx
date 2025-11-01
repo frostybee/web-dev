@@ -138,16 +138,27 @@ scheme      host      port    path           query      fragment
 HTTP (HyperText Transfer Protocol) defines several methods that indicate the **desired action** to be performed on a resource. The two most commonly used methods are:
 
 ### GET
-- **Purpose**: Retrieve data from a server
-- **Characteristics**: Safe, idempotent, cacheable
-- **Use Cases**: Fetching web pages, API data retrieval, downloading files
-- **Example**: `GET /users/123` - Retrieve user with ID 123
+- **Purpose**: Retrieve data from a server.
+- **Characteristics**: Safe, idempotent, cacheable.
+- **Use cases**: Fetching web pages, API data retrieval, downloading files.
+- **Example**: `GET /users/123` - Retrieve user with ID 123.
+
+**Safe & Idempotent:**
+- Safe: Only retrieves data, doesn't modify anything on the server.
+- Idempotent: Calling it multiple times produces the same result (no side effects). 
+- Example: Fetching a webpage or API data.
 
 ### POST
-- **Purpose**: Submit data to create a new resource or send data to the server
-- **Characteristics**: Not safe, not idempotent, not cacheable by default
-- **Use Cases**: Form submissions, creating new records, file uploads
-- **Example**: `POST /users` - Create a new user account
+- **Purpose**: Submit data to create a new resource or send data to the server.
+- **Characteristics**: Not safe, not idempotent, not cacheable by default.  
+- **Use cases**: Form submissions, creating new records, file uploads.
+- **Example**: `POST /users` - Create a new user account.
+
+**Not safe, not idempotent:**
+- Not safe: Modifies server state (creates/updates resources).
+- Not idempotent: Each request can create a new resource or have different effects.
+- Example: Submitting a form that creates a new order—each POST creates another order.
+
 
 ---
 
