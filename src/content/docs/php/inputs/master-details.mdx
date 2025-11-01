@@ -16,6 +16,30 @@ sidebar:
 
 ---
 
+## Common Implementation Patterns
+
+There are several ways to implement the Master-Details pattern, in this example, we will use the separate page approach.
+
+### 1. Single Page Approach
+Both master list and details display on the same page:
+- Master list always visible.
+- Details panel updates based on selection.
+- Uses URL parameters for item selection.
+
+### 2. Separate Pages Approach
+Master and details on **different pages**:
+- Master page shows the list.
+- Clicking an item navigates to details page.
+- Requires back navigation to return to list.
+
+### 3. AJAX Approach
+Dynamic loading without page refresh:
+- Master list loads initially.
+- Details load via JavaScript/AJAX. 
+- Smoother user experience.
+
+---
+
 ## Step 1: Plan Your Database Structure
 Design tables with a **clear relationship** between master and detail records:
 ```sql
@@ -38,7 +62,7 @@ CREATE TABLE products (
 ---
 
 ## Step 2: Create the Master List
-Display all items in a **summary format** with selection links:
+Display all items in a **summary format** with selection links, allow users to click on a product to view the details:
 
 ```php
 // Fetch all products
@@ -52,11 +76,13 @@ foreach ($products as $product) {
 ---
 
 ## Step 3: Handle Item Selection
-You can use **URI parameters** or **forms** to identify which item to show details for:
+You can use **URI parameters** or **forms** to identify which item to show details for, in this example, we will use URI parameters:
 
 ```php
+// Get the selected item ID from the URI (stored in the $_GET superglobal).
 $selected_id = $_GET['id'] ?? null;
 
+// Fetch the selected item from the database (using the selected item ID).
 if ($selected_id) {
     $selected_item = fetchProductById($selected_id);
 }
@@ -69,18 +95,18 @@ if ($selected_id) {
 ---
 
 ## Step 4: Display Details Panel
-Show comprehensive information about the selected item:
+Show comprehensive information about the selected item, in this example, we will display the name and category of the selected item:
 ```php
 if (isset($selected_item)) {
     echo "<h2>{$selected_item['name']}</h2>";
     echo "<p>Category: {$selected_item['category']}</p>";
-    // Display additional details
+    // Display additional details (e.g., description, price, etc.).
 }
 ```
 
 ---
 
-## Step 5: Implement Navigation
+## Step 5: Implement Navigation (Optional)
 Allow users to easily move between items:
 ```php
 // Previous/Next navigation
@@ -94,55 +120,35 @@ if ($next_id) echo "<a href='?id=$next_id'>Next</a>";
 ---
 
 ## Step 6: Add Search and Filtering
-Enable users to filter the master list:
+Enable users to filter the master list, in this example, we will allow users to filter the master list by name and category:
 ```php
+// Get the search and category parameters from the URL.
 $search = $_GET['search'] ?? '';
 $category = $_GET['category'] ?? '';
 
+// Fetch the products from the database (using the search and category parameters).
 $products = fetchProducts($search, $category);
 ```
-
----
-
-## Common Implementation Patterns
-
-### 1. Single Page Approach
-Both master list and details display on the same page:
-- Master list always visible
-- Details panel updates based on selection
-- Uses URL parameters for item selection
-
-### 2. Separate Pages Approach
-Master and details on **different pages**:
-- Master page shows the list
-- Clicking an item navigates to details page
-- Requires back navigation to return to list
-
-### 3. AJAX Approach
-Dynamic loading without page refresh:
-- Master list loads initially
-- Details load via JavaScript/AJAX
-- Smoother user experience
 
 ---
 
 ## Best Practices
 
 ### Performance Optimization
-- Load only necessary data for the master list
-- Fetch detailed data only when item is selected
-- Implement pagination for large datasets
-- Use database indexing on frequently queried fields
+- Load only necessary data for the master list.
+- Fetch detailed data only when item is selected.
+- Implement pagination for large datasets.
+- Use database indexing on frequently queried fields.
 
 ### User Experience
-- Highlight the currently selected item
-- Provide clear navigation between items
-- Show loading indicators for AJAX requests
-- Maintain selection state during filtering
+- Highlight the currently selected item.
+- Provide clear navigation between items.
+- Show loading indicators for AJAX requests.
+- Maintain selection state during filtering.
 
 ### Data Management
-- Validate item IDs to prevent unauthorized access
-- Handle cases where selected item doesn't exist
-- Implement proper error handling for database queries
-- Use prepared statements to prevent SQL injection
+- Validate item IDs to prevent unauthorized access.
+- Handle cases where selected item doesn't exist.
+- Implement proper error handling for database queries.
+- Use prepared statements to prevent SQL injection.
 
