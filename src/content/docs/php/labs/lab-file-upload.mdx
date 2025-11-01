@@ -80,33 +80,33 @@ Before starting this lab, ensure you have:
    ```
 
 5. **Permissions Note:**
-   - **On Windows:** No action needed - PHP will automatically have write access if you created the directory
+   - **On Windows:** No action needed. PHP will automatically have write access if you created the directory.
    - **On Linux/Mac:** Ensure the web server has write permissions: `chmod 755 public/uploads/`
 
 **What you just created:**
-- A dedicated directory for uploaded files within the public folder
-- A subdirectory for organizing image uploads
-- A location accessible via URL for serving uploaded files
+- A dedicated directory for uploaded files within the public folder.
+- A subdirectory for organizing image uploads.
+- A location accessible via URL for serving uploaded files.
 
 ---
 
-### Step 2: Create the FileUploadHelper Class
+### Step 2: Create the FileUploadHelper Class (Server-Side)
 
 **Objective:** Create a reusable helper class to handle file upload logic with proper validation and error handling.
 
-**Why Create a Helper Class:**
+**Why create a helper class?**
 
 Separating file upload logic into a helper class provides several benefits:
-- **Reusability**: Use the same upload logic across multiple routes and controllers
-- **Clean Controllers**: Keep route handlers focused on HTTP concerns (request/response)
-- **Testability**: Easily unit test upload logic in isolation
-- **Maintainability**: One place to fix bugs or add features
-- **Best Practices**: Demonstrates proper separation of concerns and the Single Responsibility Principle
+- **Reusability**: Use the same upload logic across multiple routes and controllers.
+- **Clean controllers**: Keep route handlers focused on HTTP concerns (request/response).
+- **Testability**: Easily unit test upload logic in isolation.
+- **Maintainability**: One place to fix bugs or add features.
+- **Best practices**: Demonstrates proper separation of concerns and the Single Responsibility Principle (SRP).
 
 **Instructions:**
 
-1. Navigate to your `app/Helpers/` directory
-2. Create a new file named `FileUploadHelper.php`
+1. Navigate to your `app/Helpers/` directory.
+2. Create a new file named `FileUploadHelper.php`.  
 3. Add the following code:
 
 ```php title="app/Helpers/FileUploadHelper.php"
@@ -225,9 +225,9 @@ Before creating the form, understand these essential attributes:
 
 **Instructions:**
 
-1. Navigate to your `views/` directory
+1. Navigate to your `views/` directory.
 2. Create a new folder named `upload/`
-3. Inside `upload/`, create a file named `uploadView.php`
+3. Inside `upload/`, create a file named `uploadView.php`.
 4. Add the following HTML code:
 
 ```html title="views/upload/uploadView.php"
@@ -292,22 +292,22 @@ Before creating the form, understand these essential attributes:
 
 ---
 
-### Step 4: Create the UploadController
+### Step 4: Create the UploadController (Server-Side)
 
 **Objective:** Create a controller class to handle file upload requests using the BaseController pattern.
 
-**Why Use a Controller:**
+**Why use a controller?**
 
 Using a controller class (instead of closures in routes) provides:
-- Access to BaseController helper methods (`render()`, `redirect()`)
-- Better code organization
-- Easier testing and maintenance
-- Consistent with the MVC pattern
+- Access to BaseController helper methods (`render()`, `redirect()`).
+- Better code organization.
+- Easier testing and maintenance.
+- Consistent with the MVC pattern.
 
 **Instructions:**
 
-1. Navigate to your `app/Controllers/` directory
-2. Create a new file named `UploadController.php`
+1. Navigate to your `app/Controllers/` directory.
+2. Create a new file named `UploadController.php`.
 3. Add the following code:
 
 ```php title="app/Controllers/UploadController.php"
@@ -387,11 +387,11 @@ class UploadController extends BaseController
 4. Save the file.
 
 **What you just created:**
-- An `UploadController` that extends `BaseController`
-- An `index()` method that uses `$this->render()` to display the form
-- An `upload()` method that processes uploads and uses `$this->redirect()`
-- Clean separation: controller handles HTTP, helper handles file logic
-- Proper use of BaseController helper methods
+- An `UploadController` that extends `BaseController`.
+- An `index()` method that uses `$this->render()` to display the form.
+- An `upload()` method that processes uploads and uses `$this->redirect()`.
+- Clean separation: controller handles HTTP, helper handles file logic.
+- Proper use of BaseController helper methods.
 
 ---
 
@@ -401,7 +401,7 @@ class UploadController extends BaseController
 
 **Instructions:**
 
-1. Open your `app/Routes/web-routes.php` file
+1. Open your `app/Routes/web-routes.php` file.
 2. Add the import at the top:
 
 ```php
