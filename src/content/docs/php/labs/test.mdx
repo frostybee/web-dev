@@ -1,8 +1,7 @@
 ---
-title: Comprehensive Guide to File Uploads with Slim Framework and PHP
-draft: true
+title: File Uploads with Slim Framework and PHP
 sidebar:
-  label: 'Lab: File Upload'
+  label: 'File Uploads with PHP and Slim'
   order: 1
   badge:
     text: In-Class Lab
@@ -13,401 +12,903 @@ sidebar:
 
 ## Introduction
 
-File uploads are a fundamental feature in modern web applications, allowing users to submit images, documents, and other files to your server. As a student learning web development, understanding the entire file upload pipeline—from the HTTP request to secure storage—is crucial for building robust applications.
+File uploads are a fundamental feature in modern web applications, allowing users to submit images, documents, and other files to your server. Understanding the entire file upload pipeline—from the HTTP request to secure storage—is crucial for building robust applications.
 
-This guide covers file upload handling using the Slim PHP framework, a lightweight microframework that provides elegant routing and middleware capabilities while keeping the core PHP file handling mechanisms accessible.
+This guide takes a **progressive approach**: we'll start with traditional PHP file upload handling to understand the fundamentals, then explore how the Slim PHP framework provides a cleaner, more secure abstraction layer for the same functionality.
+
+**What you'll learn:**
+- How HTTP file uploads work with multipart form data
+- Traditional PHP file handling with `$_FILES` and `move_uploaded_file()`
+- Modern file handling using Slim Framework's PSR-7 interface
+- Essential validation and security practices
+- Best practices for production applications
 
 ---
 
-## 1. Understanding HTTP File Uploads
+## Part 1: Traditional PHP File Uploads
 
-### The Basics of Multipart Form Data
+Before exploring frameworks, it's important to understand how PHP handles file uploads at a fundamental level. This knowledge will help you appreciate what frameworks do behind the scenes and debug issues when they arise.
 
-When a user uploads a file through a web form, the browser sends the data using a special encoding type called `multipart/form-data`. Here's the basic HTML syntax:
+### Understanding HTTP File Uploads
+
+When a user uploads a file through a web form, the browser sends the data using a special encoding type called `multipart/form-data`. This encoding allows binary file data to be transmitted alongside regular text fields.
+
+#### Creating an HTML Upload Form
+
+Here's the basic HTML syntax for a file upload form:
 
 ```html
-<form method="POST" action="/upload" enctype="multipart/form-data">
-    <input type="file" name="profile_picture">
-    <button type="submit">Upload</button>
+<form method="POST" action="/upload.php" enctype="multipart/form-data">
+    <label for="userfile">Select a file to upload:</label>
+    <input type="file" name="userfile" id="userfile">
+    <input type="submit" value="Upload File">
 </form>
 ```
 
-**Key points:**
-- The `enctype="multipart/form-data"` attribute is **essential**—without it, file uploads won't work
-- The `method` must be POST (GET requests cannot handle file uploads)
-- The `name` attribute becomes the key you'll use to access the file in PHP
+**Critical requirements:**
+1. **`method="POST"`** - File uploads must be sent via POST. GET requests cannot handle file uploads because they encode data in the URL, which has size limitations.
+2. **`enctype="multipart/form-data"`** - This is the **most critical attribute**. It tells the browser to encode the form data in multiple parts, allowing files to be sent alongside regular text fields. Without this, the file will not be uploaded.
+3. **`type="file"`** - The file input element creates the browser's file-selection interface.
+4. **`name` attribute** - The name you give the file input (e.g., `name="userfile"`) is the key you'll use to access the file on the server.
+
+**Why `multipart/form-data`?**
+
+The default encoding type, `application/x-www-form-urlencoded`, only works for text data. It URL-encodes form values, which is inefficient and impractical for binary file data. The `multipart/form-data` encoding breaks the request into multiple parts (boundaries), with each part containing either a form field or a file, complete with headers describing the content.
 
 ### The $_FILES Superglobal
 
-When PHP receives an uploaded file, it populates the `$_FILES` superglobal array with information about the file:
+When PHP receives an uploaded file, it automatically populates the `$_FILES` superglobal array with information about each file. This is your primary interface for working with uploads in traditional PHP.
 
 ```php
-$_FILES['profile_picture'] = [
-    'name' => 'avatar.jpg',           // Original filename
-    'type' => 'image/jpeg',           // MIME type (user-provided, don't trust!)
-    'tmp_name' => '/tmp/phpXXXXXX',   // Temporary location
-    'error' => 0,                      // Error code
-    'size' => 524288                   // File size in bytes
+// Structure of $_FILES for a single file
+$_FILES['userfile'] = [
+    'name' => 'vacation-photo.jpg',    // Original filename from user's computer
+    'type' => 'image/jpeg',             // MIME type (user-provided, don't trust!)
+    'tmp_name' => '/tmp/phpXXXXXX',     // Temporary location on server
+    'error' => 0,                        // Error code (0 = success)
+    'size' => 524288                     // File size in bytes (512 KB)
 ];
 ```
 
-**Important:** The uploaded file is initially stored in a temporary location and will be **deleted automatically** after the script finishes unless you move it somewhere permanent.
+**Understanding each field:**
 
----
+- **`name`**: The original filename from the user's computer. **Never trust this value** - it can contain malicious characters like `../../etc/passwd`.
+- **`type`**: The MIME type sent by the browser (e.g., `image/jpeg`, `application/pdf`). **Don't trust this either** - users can easily manipulate it.
+- **`tmp_name`**: PHP automatically saves the uploaded file to a temporary location. This is the actual path where you can access the file.
+- **`error`**: An error code indicating upload status. `0` means success; other values indicate specific errors.
+- **`size`**: File size in bytes.
 
-## 2. Setting Up Slim for File Uploads
+**Critical concept:** The uploaded file is stored in a **temporary location** and will be **automatically deleted** when the PHP script finishes executing. You must move it to a permanent location using `move_uploaded_file()`.
 
-### Basic Route Structure
+### Handling File Uploads in Traditional PHP
 
-In Slim, you'll typically create a POST route to handle file uploads. The route receives a `Request` object that provides access to uploaded files:
-
-```php
-$app->post('/upload', function ($request, $response) {
-    // Your upload handling logic goes here
-});
-```
-
-### Accessing Uploaded Files in Slim
-
-Slim provides a cleaner interface than raw `$_FILES`:
+Here's a basic example of processing a file upload with vanilla PHP:
 
 ```php
-$uploadedFiles = $request->getUploadedFiles();
-$uploadedFile = $uploadedFiles['profile_picture'];
-```
+<?php
+// upload.php
 
-The `$uploadedFile` is a `Psr\Http\Message\UploadedFileInterface` object with helpful methods you'll explore.
-
----
-
-## 3. Validation: Your First Line of Defense
-
-### Check If a File Was Actually Uploaded
-
-Before processing, verify that a file was submitted:
-
-```php
-if (!isset($uploadedFiles['fieldname'])) {
-    // No file was uploaded
+// Check if file was uploaded
+if (!isset($_FILES['userfile'])) {
+    die('No file uploaded');
 }
-```
 
-### Error Checking
+$file = $_FILES['userfile'];
 
-PHP provides error codes in `$_FILES['field']['error']`. The important constants are:
+// Check for upload errors
+if ($file['error'] !== UPLOAD_ERR_OK) {
+    die('Upload failed with error code: ' . $file['error']);
+}
 
-- `UPLOAD_ERR_OK` (0): Success
-- `UPLOAD_ERR_INI_SIZE` (1): File exceeds `upload_max_filesize` in php.ini
-- `UPLOAD_ERR_FORM_SIZE` (2): File exceeds MAX_FILE_SIZE in HTML form
-- `UPLOAD_ERR_PARTIAL` (3): File was only partially uploaded
-- `UPLOAD_ERR_NO_FILE` (4): No file was uploaded
-
-In Slim, check: `$uploadedFile->getError()`
-
-### Validate File Size
-
-Always validate file size server-side (never trust client-side validation):
-
-```php
+// Validate file size (5MB limit)
 $maxSize = 5 * 1024 * 1024; // 5 MB in bytes
-if ($uploadedFile->getSize() > $maxSize) {
-    // File too large
+if ($file['size'] > $maxSize) {
+    die('File too large. Maximum size is 5MB');
+}
+
+// Validate file type (whitelist approach)
+$allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+$finfo = finfo_open(FILEINFO_MIME_TYPE);
+$mimeType = finfo_file($finfo, $file['tmp_name']);
+finfo_close($finfo);
+
+if (!in_array($mimeType, $allowedTypes)) {
+    die('Invalid file type. Only JPEG, PNG, and GIF images are allowed');
+}
+
+// Generate a safe filename
+$extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+$newFilename = uniqid('upload_', true) . '.' . $extension;
+
+// Define upload directory
+$uploadDir = __DIR__ . '/uploads/';
+if (!is_dir($uploadDir)) {
+    mkdir($uploadDir, 0755, true);
+}
+
+// Move file to permanent location
+$destination = $uploadDir . $newFilename;
+if (move_uploaded_file($file['tmp_name'], $destination)) {
+    echo "File uploaded successfully: " . htmlspecialchars($newFilename);
+} else {
+    die('Failed to move uploaded file');
+}
+?>
+```
+
+### Validation in Traditional PHP
+
+Proper validation is non-negotiable for security. Here's what you must validate:
+
+#### 1. Check for Upload Errors
+
+PHP provides specific error constants:
+
+```php
+switch ($_FILES['userfile']['error']) {
+    case UPLOAD_ERR_OK:
+        // Success - proceed with validation
+        break;
+    case UPLOAD_ERR_INI_SIZE:
+        die('File exceeds upload_max_filesize in php.ini');
+    case UPLOAD_ERR_FORM_SIZE:
+        die('File exceeds MAX_FILE_SIZE in HTML form');
+    case UPLOAD_ERR_PARTIAL:
+        die('File was only partially uploaded');
+    case UPLOAD_ERR_NO_FILE:
+        die('No file was uploaded');
+    default:
+        die('Unknown upload error');
 }
 ```
 
-### Validate File Type
+#### 2. Validate File Size
 
-**Critical security concept:** Never trust the MIME type from `$_FILES['field']['type']`—users can manipulate it. Instead:
-
-1. **Check file extension** (basic, but can be spoofed)
-2. **Use `mime_content_type()` or `finfo_file()`** to inspect actual content
-3. **For images, use `getimagesize()`** which validates actual image data
-
-Example approach:
-```php
-$allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
-$allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-```
-
-You'll need to extract the extension from the filename and verify the actual MIME type matches your whitelist.
-
----
-
-## 4. Moving Files to Permanent Storage
-
-### The moveTo() Method
-
-In Slim, uploaded files have a `moveTo()` method:
+Always validate server-side (client-side validation can be bypassed):
 
 ```php
-$uploadedFile->moveTo('/path/to/destination/filename.jpg');
+$maxSize = 5 * 1024 * 1024; // 5 MB
+if ($_FILES['userfile']['size'] > $maxSize) {
+    die('File too large');
+}
 ```
 
-**Important considerations:**
-- The destination directory must exist and be writable
-- You should **generate a new filename** rather than using the original (security!)
-- The path can be absolute or relative
+#### 3. Validate File Type
 
-### Generating Safe Filenames
+**Never trust the MIME type from `$_FILES['userfile']['type']`** - it comes from the user and can be spoofed. Instead:
 
-Original filenames from users can contain:
-- Special characters that break file systems
-- Path traversal attempts (`../../etc/passwd`)
-- Name collisions with existing files
-
-A common approach:
 ```php
-$extension = pathinfo($originalName, PATHINFO_EXTENSION);
-$newFilename = uniqid() . '.' . $extension;
-// Or use: bin2hex(random_bytes(16))
+// Use fileinfo to check actual file content
+$finfo = finfo_open(FILEINFO_MIME_TYPE);
+$mimeType = finfo_file($finfo, $_FILES['userfile']['tmp_name']);
+finfo_close($finfo);
+
+$allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+if (!in_array($mimeType, $allowedTypes)) {
+    die('Invalid file type');
+}
 ```
 
-### Organizing Uploads
+For images specifically, you can also use:
 
-Consider organizing files by:
-- **Date**: `/uploads/2025/10/filename.jpg`
-- **User ID**: `/uploads/user_123/filename.jpg`
-- **Type**: `/uploads/images/filename.jpg`
+```php
+$imageInfo = getimagesize($_FILES['userfile']['tmp_name']);
+if ($imageInfo === false) {
+    die('File is not a valid image');
+}
+```
 
-This prevents a single directory from becoming too large and makes management easier.
+### Security Considerations for Traditional PHP Uploads
 
----
-
-## 5. Security Considerations
-
-### Never Trust User Input
+#### Never Trust User Input
 
 This principle applies to **everything** about uploaded files:
-- Filename
-- MIME type
-- File extension
-- File content
+- **Filename**: Can contain path traversal attempts (`../../etc/passwd`)
+- **MIME type**: Can be spoofed by the user
+- **File extension**: Can be misleading (e.g., `malicious.php.jpg`)
+- **File content**: Could contain embedded malicious code
 
-### Prevent Code Execution
+#### Generate Safe Filenames
+
+```php
+// BAD - Never do this!
+$destination = 'uploads/' . $_FILES['userfile']['name'];
+
+// GOOD - Generate new filename
+$extension = pathinfo($_FILES['userfile']['name'], PATHINFO_EXTENSION);
+$newFilename = bin2hex(random_bytes(16)) . '.' . $extension;
+```
+
+#### Prevent Code Execution
 
 If a user uploads a PHP file disguised as an image, it could be executed on your server. Mitigations:
 
-1. **Store uploads outside the web root** when possible
-2. **Use a .htaccess file** to prevent execution:
+1. **Store uploads outside the web root** when possible:
+   ```
+   Good: /var/www/myapp/uploads/  (outside public_html)
+   Bad:  /var/www/myapp/public_html/uploads/
+   ```
+
+2. **Use a `.htaccess` file** in the upload directory to prevent execution:
    ```apache
+   # .htaccess in uploads directory
    <FilesMatch "\.php$">
        Deny from all
    </FilesMatch>
    ```
+
 3. **Validate file content**, not just extension
 
-### Image-Specific Security
+#### PHP Configuration Limits
 
-For images, consider:
-- Using `getimagesize()` to verify it's actually an image
-- Re-encoding images to strip metadata and potential exploits
-- Using libraries like GD or ImageMagick to process and save images
+Check these `php.ini` settings:
 
-### File Size Limits
+```php
+echo 'upload_max_filesize: ' . ini_get('upload_max_filesize') . "\n";
+echo 'post_max_size: ' . ini_get('post_max_size') . "\n";
+echo 'max_file_uploads: ' . ini_get('max_file_uploads') . "\n";
+```
 
-Check these PHP configuration values:
-- `upload_max_filesize`: Maximum size per file
-- `post_max_size`: Maximum POST data size (must be ≥ upload_max_filesize)
-- `max_file_uploads`: Maximum number of files per request
-
-You can check values with: `ini_get('upload_max_filesize')`
+- **`upload_max_filesize`**: Maximum size per file (default often 2MB)
+- **`post_max_size`**: Maximum POST data size (must be ≥ `upload_max_filesize`)
+- **`max_file_uploads`**: Maximum number of files per request
 
 ---
 
-## 6. Complete Upload Flow
+## Part 2: File Uploads with Slim Framework
 
-Here's the logical flow you should implement:
+Now that you understand traditional PHP file handling, let's explore how the Slim Framework provides a cleaner, more secure abstraction through the PSR-7 standard.
 
-1. **Retrieve uploaded files** from request
-2. **Check if file exists** in the upload array
-3. **Validate upload errors** (check error code)
-4. **Validate file size** (within limits)
-5. **Validate file type** (extension + MIME type)
-6. **Generate safe filename** (prevent collisions and security issues)
-7. **Create destination directory** if it doesn't exist
-8. **Move file** to permanent location
-9. **Store file information** in database (optional but common)
-10. **Return response** to user
+### Why Use a Framework for File Uploads?
+
+Traditional PHP file handling has several pain points:
+- The `$_FILES` superglobal is a global variable with inconsistent structure
+- Error handling requires manual switch statements
+- No built-in validation helpers
+- Multiple file uploads create complex nested arrays
+
+**Slim Framework improvements:**
+- Clean object-oriented interface via PSR-7
+- Consistent API regardless of single or multiple files
+- Better error handling
+- Integrates with modern PHP practices (dependency injection, middleware)
+
+### Setting Up Slim for File Uploads
+
+In Slim, you create a POST route to handle uploads. The framework provides a `Request` object that gives clean access to uploaded files:
+
+```php
+<?php
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Factory\AppFactory;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$app = AppFactory::create();
+
+$app->post('/upload', function (Request $request, Response $response) {
+    // Your upload handling logic goes here
+    return $response;
+});
+
+$app->run();
+```
+
+### Accessing Uploaded Files in Slim
+
+Slim provides a much cleaner interface than raw `$_FILES`:
+
+```php
+$app->post('/upload', function (Request $request, Response $response) {
+    // Get all uploaded files
+    $uploadedFiles = $request->getUploadedFiles();
+
+    // Get a specific file by the input name
+    $uploadedFile = $uploadedFiles['userfile'] ?? null;
+
+    if ($uploadedFile === null) {
+        $response->getBody()->write('No file uploaded');
+        return $response->withStatus(400);
+    }
+
+    // Continue processing...
+    return $response;
+});
+```
+
+### The UploadedFile Object
+
+The `$uploadedFile` is an object implementing `Psr\Http\Message\UploadedFileInterface`. It provides these helpful methods:
+
+```php
+// Check for errors
+$error = $uploadedFile->getError();
+// Returns UPLOAD_ERR_OK (0) on success
+
+// Get file size
+$size = $uploadedFile->getSize();
+// Returns size in bytes
+
+// Get original filename
+$clientFilename = $uploadedFile->getClientFilename();
+// Returns original name from user's computer (DO NOT TRUST!)
+
+// Get MIME type
+$clientMediaType = $uploadedFile->getClientMediaType();
+// Returns MIME type sent by browser (DO NOT TRUST!)
+
+// Move file to permanent location
+$uploadedFile->moveTo($destinationPath);
+// This is the key method - moves file from temp to permanent location
+```
+
+**Important notes:**
+- `getClientFilename()` and `getClientMediaType()` return **user-provided data** - never trust these without validation
+- The `moveTo()` method handles the file move and validates that it was actually uploaded via HTTP POST
+
+### Complete Slim Upload Example
+
+Here's a complete example showing proper validation and error handling:
+
+```php
+$app->post('/upload', function (Request $request, Response $response) {
+    $uploadedFiles = $request->getUploadedFiles();
+    $uploadedFile = $uploadedFiles['userfile'] ?? null;
+
+    // Check if file exists
+    if ($uploadedFile === null) {
+        $response->getBody()->write('No file uploaded');
+        return $response->withStatus(400);
+    }
+
+    // Check for upload errors
+    if ($uploadedFile->getError() !== UPLOAD_ERR_OK) {
+        $response->getBody()->write('Upload error: ' . $uploadedFile->getError());
+        return $response->withStatus(400);
+    }
+
+    // Validate file size (5MB limit)
+    $maxSize = 5 * 1024 * 1024;
+    if ($uploadedFile->getSize() > $maxSize) {
+        $response->getBody()->write('File too large. Maximum is 5MB');
+        return $response->withStatus(413); // Payload Too Large
+    }
+
+    // Validate file type using actual content
+    $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
+
+    // Get a temporary stream to check the file
+    $stream = $uploadedFile->getStream();
+    $tmpFile = tempnam(sys_get_temp_dir(), 'upload_check_');
+    file_put_contents($tmpFile, $stream);
+
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $tmpFile);
+    finfo_close($finfo);
+    unlink($tmpFile);
+
+    if (!in_array($mimeType, $allowedMimeTypes)) {
+        $response->getBody()->write('Invalid file type');
+        return $response->withStatus(415); // Unsupported Media Type
+    }
+
+    // Generate safe filename
+    $extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+    $newFilename = bin2hex(random_bytes(16)) . '.' . strtolower($extension);
+
+    // Define upload directory
+    $uploadDir = __DIR__ . '/../uploads/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
+    // Move file to permanent location
+    $destination = $uploadDir . $newFilename;
+    $uploadedFile->moveTo($destination);
+
+    // Success response
+    $response->getBody()->write(json_encode([
+        'success' => true,
+        'filename' => $newFilename,
+        'size' => $uploadedFile->getSize()
+    ]));
+
+    return $response
+        ->withHeader('Content-Type', 'application/json')
+        ->withStatus(200);
+});
+```
+
+### Security Best Practices with Slim
+
+The same security principles apply, but Slim provides some advantages:
+
+#### 1. Store Files Outside Web Root
+
+Slim makes this easier with directory configuration:
+
+```php
+// In your configuration or settings
+$uploadPath = __DIR__ . '/../storage/uploads/'; // Outside public/
+```
+
+#### 2. Always Validate, Never Trust Client Data
+
+```php
+// BAD - Trusting client filename
+$filename = $uploadedFile->getClientFilename();
+$uploadedFile->moveTo('uploads/' . $filename);
+
+// GOOD - Generate new secure filename
+$ext = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
+$newName = uniqid('file_', true) . '.' . $ext;
+$uploadedFile->moveTo('uploads/' . $newName);
+```
+
+#### 3. Validate Before Moving
+
+Always perform all validation **before** calling `moveTo()`:
+
+```php
+// Check error
+if ($uploadedFile->getError() !== UPLOAD_ERR_OK) {
+    return $response->withStatus(400);
+}
+
+// Validate size
+if ($uploadedFile->getSize() > $maxSize) {
+    return $response->withStatus(413);
+}
+
+// Validate type
+// ... validation code ...
+
+// Only move after all checks pass
+$uploadedFile->moveTo($destination);
+```
 
 ---
 
-## 7. Database Storage
+## Part 3: Common Practices and Advanced Topics
 
-While the file itself lives on the filesystem, you typically store **metadata** in a database:
+The following practices apply whether you're using traditional PHP or a framework like Slim.
+
+### Generating Safe Filenames
+
+Original filenames from users can cause multiple issues:
+
+```php
+// Problems with user filenames:
+// - "../../../etc/passwd" (path traversal)
+// - "my file.jpg" (spaces cause issues)
+// - "report.php.jpg" (double extension)
+// - "file😀.jpg" (special characters)
+```
+
+**Best practice approaches:**
+
+```php
+// Option 1: Unique ID + extension
+$ext = pathinfo($originalName, PATHINFO_EXTENSION);
+$newFilename = uniqid('upload_', true) . '.' . $ext;
+
+// Option 2: Random bytes (more secure)
+$ext = pathinfo($originalName, PATHINFO_EXTENSION);
+$newFilename = bin2hex(random_bytes(16)) . '.' . $ext;
+
+// Option 3: UUID (requires library)
+$ext = pathinfo($originalName, PATHINFO_EXTENSION);
+$newFilename = \Ramsey\Uuid\Uuid::uuid4()->toString() . '.' . $ext;
+```
+
+### Organizing Uploaded Files
+
+Don't store all files in a single directory. Consider:
+
+#### By Date (Recommended)
+
+```php
+$date = new DateTime();
+$subPath = $date->format('Y/m/d');
+$fullPath = $uploadDir . $subPath . '/';
+
+if (!is_dir($fullPath)) {
+    mkdir($fullPath, 0755, true);
+}
+
+$destination = $fullPath . $newFilename;
+```
+
+#### By User
+
+```php
+$userId = $_SESSION['user_id'] ?? 'anonymous';
+$fullPath = $uploadDir . 'user_' . $userId . '/';
+
+if (!is_dir($fullPath)) {
+    mkdir($fullPath, 0755, true);
+}
+```
+
+#### By Type
+
+```php
+$type = strpos($mimeType, 'image/') === 0 ? 'images' : 'documents';
+$fullPath = $uploadDir . $type . '/';
+```
+
+### Database Metadata Storage
+
+Store file **metadata** in your database, not the files themselves:
 
 ```sql
 CREATE TABLE uploaded_files (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    original_filename VARCHAR(255),
-    stored_filename VARCHAR(255),
-    file_path VARCHAR(512),
-    mime_type VARCHAR(100),
-    file_size INT,
-    uploaded_at TIMESTAMP,
-    user_id INT
+    user_id INT NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    stored_filename VARCHAR(255) NOT NULL,
+    file_path VARCHAR(512) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    file_size INT NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 ```
 
-This allows you to:
-- Track who uploaded what
-- Implement download permissions
-- Display original filenames to users
-- Clean up orphaned files
-
----
-
-## 8. Handling Multiple File Uploads
-
-HTML supports multiple file uploads:
-
-```html
-<input type="file" name="documents[]" multiple>
-```
-
-In PHP, this creates an array structure in `$_FILES`. You'll need to iterate through the uploaded files and process each one individually.
-
----
-
-## 9. Responding to the Client
-
-### Success Response
-
-After successful upload, return appropriate information:
+Example PHP code:
 
 ```php
+// After successful upload
+$stmt = $pdo->prepare("
+    INSERT INTO uploaded_files
+    (user_id, original_filename, stored_filename, file_path, mime_type, file_size)
+    VALUES (?, ?, ?, ?, ?, ?)
+");
+
+$stmt->execute([
+    $_SESSION['user_id'],
+    $uploadedFile->getClientFilename(),
+    $newFilename,
+    $relativePath,
+    $mimeType,
+    $uploadedFile->getSize()
+]);
+
+$fileId = $pdo->lastInsertId();
+```
+
+**Benefits:**
+- Track who uploaded what and when
+- Implement download permissions
+- Display original filenames to users while storing safe ones
+- Clean up orphaned files
+- Generate usage statistics
+
+### Handling Multiple File Uploads
+
+HTML supports multiple file selection:
+
+```html
+<form method="POST" enctype="multipart/form-data">
+    <input type="file" name="documents[]" multiple>
+    <button type="submit">Upload Files</button>
+</form>
+```
+
+#### Traditional PHP Approach
+
+```php
+// $_FILES structure for multiple files is awkward:
+$_FILES['documents'] = [
+    'name' => ['file1.pdf', 'file2.pdf'],
+    'type' => ['application/pdf', 'application/pdf'],
+    'tmp_name' => ['/tmp/php123', '/tmp/php456'],
+    'error' => [0, 0],
+    'size' => [10240, 20480]
+];
+
+// Process multiple files
+foreach ($_FILES['documents']['tmp_name'] as $index => $tmpName) {
+    $file = [
+        'name' => $_FILES['documents']['name'][$index],
+        'type' => $_FILES['documents']['type'][$index],
+        'tmp_name' => $tmpName,
+        'error' => $_FILES['documents']['error'][$index],
+        'size' => $_FILES['documents']['size'][$index]
+    ];
+
+    // Validate and process each file
+    if ($file['error'] === UPLOAD_ERR_OK) {
+        // ... validation ...
+        move_uploaded_file($file['tmp_name'], $destination);
+    }
+}
+```
+
+#### Slim Approach (Cleaner)
+
+```php
+$uploadedFiles = $request->getUploadedFiles();
+$files = $uploadedFiles['documents'] ?? [];
+
+foreach ($files as $uploadedFile) {
+    if ($uploadedFile->getError() === UPLOAD_ERR_OK) {
+        // Validate and process - same code as single file
+        // ... validation ...
+        $uploadedFile->moveTo($destination);
+    }
+}
+```
+
+### Responding to the Client
+
+#### Success Response
+
+```php
+// Slim JSON response
 return $response
     ->withStatus(200)
     ->withJson([
         'success' => true,
         'file_id' => $fileId,
-        'url' => '/uploads/' . $storedFilename
+        'filename' => $newFilename,
+        'url' => '/uploads/' . $newFilename
     ]);
 ```
 
-### Error Responses
-
-Provide meaningful error messages:
-- 400 Bad Request: Validation failed
-- 413 Payload Too Large: File too big
-- 415 Unsupported Media Type: Wrong file type
-- 500 Internal Server Error: Server-side issues
-
----
-
-## 10. Serving Uploaded Files
-
-### Direct Access
-
-If files are in the web root (e.g., `/public/uploads/`), they're directly accessible via URL.
-
-**Pros:** Simple, efficient (web server handles it)  
-**Cons:** No permission checking, security concerns
-
-### Controlled Access via Route
-
-Create a route that serves files:
+#### Error Responses with Proper HTTP Status Codes
 
 ```php
-$app->get('/files/{id}', function ($request, $response, $args) {
+// No file uploaded
+return $response->withStatus(400); // Bad Request
+
+// File too large
+return $response->withStatus(413); // Payload Too Large
+
+// Invalid file type
+return $response->withStatus(415); // Unsupported Media Type
+
+// Server error (disk full, permissions, etc.)
+return $response->withStatus(500); // Internal Server Error
+```
+
+### Serving Uploaded Files
+
+You have two main approaches:
+
+#### 1. Direct Access (Simple but Limited)
+
+Place files in your public directory:
+
+```
+public/
+└── uploads/
+    └── abc123.jpg
+```
+
+Access via URL: `https://yoursite.com/uploads/abc123.jpg`
+
+**Pros:**
+- Simple
+- Efficient (web server handles it directly)
+
+**Cons:**
+- No permission checking
+- No download tracking
+- Anyone with the URL can access
+- Can't customize headers
+
+#### 2. Controlled Access via Route (Recommended)
+
+Store files outside public directory and serve through a route:
+
+```php
+$app->get('/files/{id}', function (Request $request, Response $response, array $args) {
+    $fileId = (int)$args['id'];
+
     // 1. Look up file in database
+    $stmt = $pdo->prepare("SELECT * FROM uploaded_files WHERE id = ?");
+    $stmt->execute([$fileId]);
+    $file = $stmt->fetch();
+
+    if (!$file) {
+        return $response->withStatus(404);
+    }
+
     // 2. Check user permissions
-    // 3. Verify file exists
+    if ($file['user_id'] !== $_SESSION['user_id']) {
+        return $response->withStatus(403); // Forbidden
+    }
+
+    // 3. Verify file exists on disk
+    if (!file_exists($file['file_path'])) {
+        return $response->withStatus(404);
+    }
+
     // 4. Set appropriate headers
+    $response = $response
+        ->withHeader('Content-Type', $file['mime_type'])
+        ->withHeader('Content-Length', $file['file_size'])
+        ->withHeader('Content-Disposition', 'inline; filename="' . $file['original_filename'] . '"');
+
     // 5. Read and output file content
+    $response->getBody()->write(file_get_contents($file['file_path']));
+
+    return $response;
 });
 ```
 
-This approach allows:
+**Benefits:**
 - Permission checking
 - Download tracking
-- Bandwidth throttling
-- Custom headers (force download, etc.)
+- Custom headers (force download, custom filenames)
+- Bandwidth throttling (if needed)
 
----
+### Advanced Topics
 
-## 11. Advanced Topics
+#### Image Processing
 
-### Chunked Uploads
+For uploaded images, you might want to:
 
-For very large files, consider implementing chunked uploads where the file is split into smaller pieces and uploaded sequentially. This provides:
-- Better progress tracking
-- Resumable uploads if connection drops
-- Better memory management
+```php
+// Generate thumbnail
+$image = imagecreatefromjpeg($sourcePath);
+$thumbnail = imagescale($image, 200, 200);
+imagejpeg($thumbnail, $thumbnailPath, 85);
 
-### Client-Side Validation
+// Strip EXIF data (privacy concern)
+$image = imagecreatefromjpeg($sourcePath);
+imagejpeg($image, $cleanedPath, 90);
 
-Use JavaScript to provide immediate feedback:
-- File size checking
-- File type checking
-- Preview generation
-- Progress bars
+// Convert format
+$image = imagecreatefrompng($sourcePath);
+imagejpeg($image, $jpgPath, 90);
+```
 
-**Remember:** Client-side validation is for **UX only**—always validate server-side!
+Libraries like **Intervention Image** make this easier:
 
-### Image Processing
+```php
+use Intervention\Image\ImageManagerStatic as Image;
 
-When handling images, you might want to:
-- Generate thumbnails
-- Resize for different display sizes
-- Strip EXIF data (privacy)
-- Convert formats
-- Optimize file size
+Image::make($uploadedPath)
+    ->fit(800, 600)
+    ->save($processedPath, 85);
+```
 
-PHP offers GD library and ImageMagick for these tasks.
+#### Chunked Uploads for Large Files
 
-### Cloud Storage Integration
+For very large files (>100MB), consider chunked uploads:
 
-Instead of local filesystem, consider cloud storage (AWS S3, Google Cloud Storage):
-- Scalability
-- Redundancy
+1. Client splits file into chunks
+2. Each chunk uploaded separately
+3. Server assembles chunks
+4. Provides resumable uploads if connection drops
+
+Libraries like **Resumable.js** or **Uppy** handle the client side.
+
+#### Cloud Storage Integration
+
+Instead of local filesystem, use cloud storage:
+
+```php
+// Using AWS S3 SDK
+use Aws\S3\S3Client;
+
+$s3 = new S3Client([/*...*/]);
+$s3->putObject([
+    'Bucket' => 'my-bucket',
+    'Key' => $newFilename,
+    'Body' => $uploadedFile->getStream(),
+    'ContentType' => $mimeType
+]);
+```
+
+**Benefits:**
+- Unlimited storage
+- Geographic redundancy
 - CDN integration
-- No local disk space concerns
+- No local disk management
 
----
+### Common Pitfalls and How to Avoid Them
 
-## 12. Common Pitfalls and How to Avoid Them
+#### 1. Forgetting `enctype`
 
-### Forgetting enctype
+Without `enctype="multipart/form-data"`, files won't upload. This is the **#1 beginner mistake**.
 
-Without `enctype="multipart/form-data"`, files won't upload. This is the #1 beginner mistake.
+#### 2. Not Checking Errors
 
-### Not Checking Errors
+Always check error codes before assuming success:
 
-Always check `$uploadedFile->getError()` before processing—don't assume success.
+```php
+// Traditional PHP
+if ($_FILES['file']['error'] !== UPLOAD_ERR_OK) { /* handle */ }
 
-### Trusting User Data
+// Slim
+if ($uploadedFile->getError() !== UPLOAD_ERR_OK) { /* handle */ }
+```
 
-Never use original filenames or MIME types without validation.
+#### 3. Trusting User Data
 
-### Insufficient Permissions
+**Never** use original filenames or MIME types without validation.
 
-Ensure your upload directory is writable by the PHP process (usually `www-data` or `apache`).
+#### 4. Insufficient Permissions
 
-### Memory Limits
+Ensure upload directory is writable:
 
-Very large files can exceed PHP's `memory_limit`. Monitor this for file size limits.
+```bash
+# On Linux/Mac
+chmod 755 /path/to/uploads
+chown www-data:www-data /path/to/uploads
+```
 
----
+#### 5. Memory Limits
 
-## 13. Testing Your Implementation
+Very large files can exceed PHP's `memory_limit`:
 
-Create test cases for:
-- Successful upload
-- Missing file
-- File too large
-- Wrong file type
-- Invalid filename characters
-- Concurrent uploads
-- Disk space exhaustion scenarios
+```php
+// Check memory limit
+echo ini_get('memory_limit'); // e.g., "128M"
+
+// If needed, increase (if hosting allows)
+ini_set('memory_limit', '256M');
+```
+
+#### 6. Not Sanitizing Extensions
+
+Always lowercase and validate extensions:
+
+```php
+$extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+$allowedExtensions = ['jpg', 'jpeg', 'png', 'pdf'];
+
+if (!in_array($extension, $allowedExtensions)) {
+    die('Invalid extension');
+}
+```
+
+### Testing Your Implementation
+
+Create comprehensive tests for:
+
+- **Successful upload** - Valid file uploads correctly
+- **Missing file** - Handles no file gracefully
+- **File too large** - Rejects oversized files
+- **Wrong file type** - Rejects non-whitelisted types
+- **Invalid filename** - Handles malicious filenames
+- **Concurrent uploads** - Multiple simultaneous uploads
+- **Disk space** - Behavior when disk is full
+- **Permissions** - Fails gracefully with permission errors
 
 ---
 
 ## Summary
 
-File upload handling requires careful attention to:
-- **Validation**: Size, type, errors
-- **Security**: Never trust user input, prevent code execution
-- **Storage**: Safe filenames, organized structure
-- **Response**: Appropriate HTTP status codes and messages
+File upload handling requires careful attention to multiple concerns:
 
-By understanding both the underlying PHP mechanisms and how Slim abstracts them, you can build secure, robust file upload functionality in your applications. Start simple, test thoroughly, and add complexity as needed.
+**Core Concepts:**
+- HTTP multipart/form-data encoding
+- Traditional PHP with `$_FILES` and `move_uploaded_file()`
+- Modern frameworks like Slim with PSR-7 interfaces
+
+**Validation Essentials:**
+- Always check error codes
+- Validate file size against reasonable limits
+- Validate file type using actual content (not user-provided MIME)
+- Use whitelisting approach for allowed types
+
+**Security Imperatives:**
+- Never trust any user-provided data (filenames, MIME types, extensions)
+- Generate new, secure filenames
+- Store files outside web root when possible
+- Prevent code execution in upload directories
+- Validate file content, not just extension
+
+**Best Practices:**
+- Store metadata in database
+- Organize files by date, user, or type
+- Use proper HTTP status codes
+- Implement permission-based file serving
+- Process images to strip metadata and create thumbnails
+
+By understanding both the underlying PHP mechanisms (Part 1) and how modern frameworks like Slim abstract them (Part 2), you can build secure, robust file upload functionality. Start with simple uploads, thoroughly test your implementation, and progressively add features like multiple uploads, image processing, and cloud storage as your application grows.
