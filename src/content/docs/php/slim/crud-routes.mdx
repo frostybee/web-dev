@@ -29,12 +29,13 @@ This guide walks you through creating a new resource with complete CRUD operatio
 2. Name it using PascalCase with "Controller" suffix (e.g., `ProductController.php`)
 3. Extend `BaseController` and add constructor with proper parent call
 4. Implement these standard **callback methods**:
-   - `index()` => List all resources
-   - `show()` => Display single resource
-   - `create()` => Show creation form and handle POST
-   - `edit()` => Show edit form
-   - `update()` => Handle update POST
-   - `delete()` => Handle resource deletion
+   - `index()` → Display a list of items (**GET** request).
+   - `show()` → Show details of a single item (**GET** request).
+   - `create()` → Display a form to create a new item (**GET** request).
+   - `store()` → Handle a request to save a new item to the database (**POST** request).
+   - `edit()` → Display a form to edit an item (**GET** request).
+   - `update()` → Handle a request to save changes to an item (**POST** request).
+   - `delete()` → Handle a request to delete an item (**GET** request).
 
 :::note[Remember]
 These methods are called by the router when a request is made to the corresponding route.
@@ -59,12 +60,13 @@ class YourController extends BaseController  // e.g., ProductsController
     }
 
     // Signatures of controller methods: (callback methods)
-    public function index(Request $request, Response $response, array $args): Response
-    public function show(Request $request, Response $response, array $args): Response
-    public function create(Request $request, Response $response, array $args): Response
-    public function edit(Request $request, Response $response, array $args): Response
-    public function update(Request $request, Response $response, array $args): Response
-    public function delete(Request $request, Response $response, array $args): Response
+    public function index(Request $request, Response $response, array $args): Response // GET request
+    public function show(Request $request, Response $response, array $args): Response // GET request
+    public function create(Request $request, Response $response, array $args): Response // GET request
+    public function store(Request $request, Response $response, array $args): Response // POST request
+    public function edit(Request $request, Response $response, array $args): Response // GET request
+    public function update(Request $request, Response $response, array $args): Response // POST request
+    public function delete(Request $request, Response $response, array $args): Response // GET request
 }
 ```
 
@@ -78,10 +80,10 @@ The `$request` parameter is the PSR-7 request object, the `$response` parameter 
 
 1. Create a folder in `app/Views/` matching your resource (e.g., `products`) name (lowercase) (if it doesn't exist)
 2. Create these view files:
-   - `index.php` => List view
-   - `show.php` => Detail view
-   - `create.php` => Creation form
-   - `edit.php` => Edit form
+   - `resource-name.IndexView.php` => List view
+   - `resource-name.ShowView.php` => Detail view
+   - `resource-name.CreateView.php` => Creation form
+   - `resource-name.EditView.php` => Edit form
 
 ---
 
@@ -144,7 +146,7 @@ URIs are used to identify resources in your application.
 | **Store new** | POST | `/resources` | `/products` |
 | **Edit form** | GET | `/resources/{id}/edit` | `/products/123/edit` |
 | **Update** | POST | `/resources/{id}` | `/products/123` |
-| **Delete** | POST | `/resources/{id}/delete` | `/products/123/delete` |
+| **Delete** | GET | `/resources/{id}/delete` | `/products/123/delete` |
 
 :::tip[Why This Pattern Works]
 - Users can guess URIs: if `/products` lists all products, then `/products/123` likely shows product 123,
@@ -158,28 +160,30 @@ URIs are used to identify resources in your application.
 Add these routes to your `web-routes.php` file for complete CRUD functionality:
 
 ```php
-// List all resources (GET /resource-name) e.g., GET /products
+// 1) List all resources (GET /resource-name) e.g., GET /products
 $app->get('/resource-name', [YourController::class, 'index'])
     ->setName('resource.index');
 
-// Show single resource (GET /resource-name/{id}) e.g., GET /products/1
+// 2) Show single resource (GET /resource-name/{id}) e.g., GET /products/1
 $app->get('/resource-name/{id}', [YourController::class, 'show'])
     ->setName('resource.show');
 
-// Create new resource (form + processing) (GET /resource-name/create) e.g., GET /products/create
+// 3) Show a form to create a new resource (GET /resource-name/create) e.g., GET /products/create
 $app->get('/resource-name/create', [YourController::class, 'create'])
     ->setName('resource.create');
-// Create new resource (POST /resource-name) e.g., POST /products
-$app->post('/resource-name', [YourController::class, 'create']);
 
-// Edit existing resource (form + processing) (GET /resource-name/{id}/edit) e.g., GET /products/1/edit
+// 4) Handle a request to save a new item to the database (POST /resource-name) e.g., POST /products
+$app->post('/resource-name', [YourController::class, 'store']);
+
+// 5) Show a form to edit an existing resource (GET /resource-name/{id}/edit) e.g., GET /products/1/edit
 $app->get('/resource-name/{id}/edit', [YourController::class, 'edit'])
     ->setName('resource.edit');
-// Edit existing resource (POST /resource-name/{id}) e.g., POST /products/1
+
+// 6) Handle a request to save changes to an existing resource (POST /resource-name/{id}) e.g., POST /products/1
 $app->post('/resource-name/{id}', [YourController::class, 'update']);
 
-// Delete resource (POST /resource-name/{id}/delete) e.g., POST /products/1/delete
-$app->post('/resource-name/{id}/delete', [YourController::class, 'delete'])
+// 7) Handle a request to delete an existing resource (GET /resource-name/{id}/delete) e.g., GET /products/1/delete
+$app->get('/resource-name/{id}/delete', [YourController::class, 'delete'])
     ->setName('resource.delete');
 ```
 
@@ -189,11 +193,11 @@ $app->post('/resource-name/{id}/delete', [YourController::class, 'delete'])
 
 1. Create a model class in `app/Domain/Models/` (e.g., `ProductsModel.php`) (if it doesn't exist)
 2. Implement methods for data operations in the model:
-   - `getAll()` => Retrieve all records
-   - `getById($id)` => Get single record
-   - `create($data)` => Insert new record
-   - `update($id, $data)` => Update existing record
-   - `delete($id)` => Remove record
+   - `getAll()` => Retrieve all records (**SELECT** query)
+   - `getById($id)` => Get a single record (**SELECT** query)
+   - `create($data)` => Insert a new record (**INSERT** query)
+   - `update($id, $data)` => Update an existing record (**UPDATE** query)
+   - `delete($id)` => Remove an existing record (**DELETE** query)
 3. Follow the MVC pattern - models handle data, controllers coordinate, views display
 
 ---
@@ -223,9 +227,9 @@ $app->post('/resource-name/{id}/delete', [YourController::class, 'delete'])
 
 ## Important Notes
 
-- **Route Order Matters**: Place specific routes (like `/create`) before parametric routes (like `/{id}`)
-- **Named Routes**: Always use `->setName()` for routes you'll redirect to
-- **URI Args vs Query Params**: Use `$uri_args` only for routes with `{placeholders}`, use `$query_params` for `?key=value`
+- **Route order matters**: Place specific routes (like `/create`) before parametric routes (like `/{id}`)
+- **Named routes**: Always use `->setName()` for routes you'll redirect to
+- **URI args vs query params**: Use `$args` only for routes with `{placeholders}`, use `$request->getQueryParams()` for `?key=value`
 - **POST-Redirect-GET**: Always redirect after successful form submissions to prevent duplicate submissions
 
 ---
@@ -242,10 +246,10 @@ app/
 │   └── YourModel.php        👉 (e.g., ProductsModel.php)
 ├── Views/
 │   └── your-resource/       👉 (e.g., products)
-│       ├── index.php
-│       ├── show.php
-│       ├── create.php
-│       └── edit.php
+│       ├── resource-name.IndexView.php      👉 (e.g., products.IndexView.php) 
+│       ├── resource-name.ShowView.php       👉 (e.g., products.ShowView.php)
+│       ├── resource-name.CreateView.php     👉 (e.g., products.CreateView.php)
+│       └── resource-name.EditView.php       👉 (e.g., products.EditView.php)
 └── Routes/
     └── web-routes.php (updated)
 ```

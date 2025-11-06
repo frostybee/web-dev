@@ -57,13 +57,13 @@ A set of controller classes is required to be created to handle the "business lo
 - **UsersController**:  Manages user accounts and permissions.
 
 **Each controller should have methods like:**
-- `index()` → Display a list of items.
-- `show()` → Show details of a single item.
-- `create()` → Display a form to create a new item.
-- `store()` → Save a new item to the database.
-- `edit()` → Display a form to edit an item.
-- `update()` → Save changes to an item.
-- `delete()` → Remove an item.
+- `index()` → Display a list of items (**GET** request).
+- `show()` → Show details of a single item (**GET** request).
+- `create()` → Display a form to create a new item (**GET** request).
+- `store()` → Handle a request to save a new item to the database (**POST** request).
+- `edit()` → Display a form to edit an item (**GET** request).
+- `update()` → Handle a request to save changes to an item (**POST** request).
+- `delete()` → Handle a request to delete an item (**GET** request).
 
 All the logic for handling admin requests goes in these controllers.
 
