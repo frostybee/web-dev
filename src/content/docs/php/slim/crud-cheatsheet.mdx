@@ -33,30 +33,46 @@ When implementing CRUD operations, you should follow these steps **for each reso
 In your controller's **callback methods**, you can extract the request data (route parameters, POST form data, query string parameters) from the request object using the following methods:
 
 ### 1. Get route parameter (from `{id}` placeholder)
-Inputs passed in the URI path are called **route parameters**.
-You can access them using the `$args` array parameter in your controller's callback method.
+- Inputs passed in the URI path are called **route parameters**. 
+- Route parameters are typically used for **parametric routes** like `/products/{id}` and they help identify the specific item to be displayed, edited, or deleted. For example, `/products/123` 
+- You can access them using the `$args` array parameter in your controller's callback method.
+
 
 ```php title="app/Controllers/YourController.php"
-$productId = (int) $args['id']; // E.g., /products/123 -> $args['id'] = '123'
+public function routeCallback(Request $request, Response $response, array $args): Response
+{
+    $productId = (int) $args['id']; // E.g., /products/123 -> $args['id'] = '123'
+}
 ```
+---
 
 ### 2. Get POST form data
-
-Inputs passed in the **POST** request body are called **form data**. You can access them using the `$request->getParsedBody()` method.
+- Inputs passed in the **POST** request body are called **form data**. 
+- Form data is typically used for **form submissions** or **API requests**. For example, `/products`
+- You can access them using the `$request->getParsedBody()` method.
 
 ```php title="app/Controllers/YourController.php"
-$formData = $request->getParsedBody();
-$productName = $formData['name'] ?? '';
-$productPrice = $formData['price'] ?? 0;
+public function routeCallback(Request $request, Response $response, array $args): Response
+{
+    $formData = $request->getParsedBody();
+    $productName = $formData['name'] ?? '';
+    $productPrice = $formData['price'] ?? 0;    
+}
 ```
+--- 
 
 ### 3. Get query string parameters
-Inputs passed in the **GET** request query string are called **query string parameters**. You can access them using the `$request->getQueryParams()` method.
+- Inputs passed in the **GET** request query string are called **query string parameters**. 
+- Query string parameters are typically used for **search queries** or **filters**. For example, `/products?search=laptop&sort=price`
+- You can access them using the `$request->getQueryParams()` method.
 
 ```php title="app/Controllers/YourController.php"
-$queryParams = $request->getQueryParams();
-$search = $queryParams['search'] ?? '';
-$sort = $queryParams['sort'] ?? 'name';
+public function routeCallback(Request $request, Response $response, array $args): Response
+{
+    $queryParams = $request->getQueryParams();
+    $search = $queryParams['search'] ?? '';
+    $sort = $queryParams['sort'] ?? 'name';
+}
 ```
 
 ---
@@ -124,29 +140,29 @@ class YourController extends BaseController
 
 use App\Controllers\ProductsController;
 
-// 1) List all products
+// 1) List all products (GET request)
 $app->get('/products', [ProductsController::class, 'index'])
-    ->setName('products.index');
+    ->setName('products.index');  // 👉 named route for redirecting after successful form submissions
 
-// 2) Show single product
+// 2) Show single product (GET request)
 $app->get('/products/{id}', [ProductsController::class, 'show'])
     ->setName('products.show');
 
-// 3) Show creation form
+// 3) Show a form for creating a new product (GET request)
 $app->get('/products/create', [ProductsController::class, 'create'])
     ->setName('products.create');
 
-// 4) Handle save new product
+// 4) Handle a request to save a new product to the database (POST request)
 $app->post('/products', [ProductsController::class, 'store']);
 
-// 5) Show edit form
+// 5) Show a form for editing a product (GET request)
 $app->get('/products/{id}/edit', [ProductsController::class, 'edit'])
     ->setName('products.edit');
 
-// 6) Handle update
+// 6) Handle a request to save changes to a product (POST request)
 $app->post('/products/{id}', [ProductsController::class, 'update']);
 
-// 7) Handle delete
+// 7) Handle a request to delete a product (GET request)
 $app->get('/products/{id}/delete', [ProductsController::class, 'delete'])
     ->setName('products.delete');
 ```
@@ -288,24 +304,45 @@ public function createAndGetId(array $data): string
 
 ---
 
-## BaseController Methods
+## Rendering Views and Redirecting to Other Routes
 
-### Display Views using `render()`
+The `BaseController` class provides two methods for displaying views and redirecting to other routes:
+
+1. `render()` → Display a view template using a view template file name (e.g., `products/index.php`)
+2. `redirect()` → Redirect to a named route using a named route name (e.g., `products.index`)
+
+### Displaying Views using `render()`
+
+The `render()` method takes **three** parameters:
+1. `$response` → PSR-7 response object to modify
+2. `$view_name` → Name of the view template file (e.g., `products/index.php`)
+3. `$data` → Associative array of data to pass to the view (optional)
 
 ```php
 // Basic rendering
 return $this->render($response, 'products/index.php');
 
-// Passing data to view
-return $this->render($response, 'products/show.php', [
+// Passing associative array of data to view
+$data = [
     'product' => $this->model->findById((int) $args['id']),
     'title' => 'Product Details'
-]);
+];
+return $this->render($response, 'products/show.php', $data);
 ```
 
 ---
 
 ### HTTP Redirects using `redirect()`
+
+- The `redirect()` method is used to redirect the user to a named route. 
+- It is typically used after a successful **form submission** (in the Post-Redirect-Get (PRG) pattern) to prevent duplicate submissions or after **a data operation** (like delete or update).
+
+The `redirect()` method takes **five** parameters:
+1. `$request` → PSR-7 request object for route context
+2. `$response` → PSR-7 response object to modify
+3. `$route_name` → Named route to redirect to (e.g., `products.index`, `products.edit`)
+4. `$uri_args` → Replaces route placeholders like `{id}` in `/products/{id}` (optional)
+5. `$query_params` → Adds query strings like `?page=2&sort=name` (optional)
 
 **Method Signature:**
 ```php
@@ -313,15 +350,10 @@ protected function redirect(
     Request $request,
     Response $response,
     string $route_name,      // Named route to redirect to
-    array $uri_args = [],    // Replaces {placeholders} in route
-    array $query_params = [] // Adds ?key=value to URL
+    array $uri_args = [],    // Optional: Replaces {placeholders} in route
+    array $query_params = [] // Optional: Adds ?key=value to URL
 ): Response
 ```
-
-:::tip[Key Difference]
-- **`$uri_args`** → Replaces route placeholders like `{id}` in `/products/{id}`
-- **`$query_params`** → Adds query strings like `?page=2&sort=name`
-:::
 
 ---
 
@@ -348,24 +380,13 @@ return $this->redirect($request, $response, 'products.edit', ['id' => $productId
 
 ---
 
-### Post-Redirect-Get (PRG) Pattern
-
-```php
-public function store(Request $request, Response $response, array $args): Response
-{
-    $productId = $this->model->createAndGetId($request->getParsedBody());
-    return $this->redirect($request, $response, 'products.show', ['id' => $productId]);
-}
-```
----
-
 ## Quick Tips
 
-- **Named Parameters** → Use `:name` for better readability in SQL queries
-- **Route Names** → Always use `->setName()` for routes you'll redirect to
-- **Route Order** → Place `/create` routes **before** `/{id}` routes
-- **PRG Pattern** → Always redirect after POST requests to prevent duplicate submissions
+- **Named parameters** → Use `:name` for better readability in SQL queries
+- **Route names** → Always use `->setName()` for routes you'll redirect to (e.g., `products.index`, `products.edit`)
+- **Route order** → Place `/create` routes **before** `/{id}` routes
+- **PRG pattern** → Always redirect after POST requests to prevent duplicate submissions
 - **Validation** → Validate all input data before passing to model methods
-- **Error Handling** → Use try-catch blocks and redirect on errors
-- **Security** → Use prepared statements (all BaseModel methods do this automatically)
+- **Error handling** → Use try-catch blocks and redirect on errors
+- **Security** → Use prepared statements (all `BaseModel` methods do this automatically)
 
