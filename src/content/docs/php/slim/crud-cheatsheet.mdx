@@ -1,5 +1,5 @@
 ---
-title: CRUD Operations Cheatsheet
+title: 'Quick Reference: CRUD Operations in Slim MVC'
 description: Quick reference guide for CRUD operations in Slim Framework
 sidebar:
   label: 'CRUD Cheatsheet'
@@ -9,70 +9,118 @@ sidebar:
     variant: tip
 ---
 
-## Quick Reference: CRUD Operations in Slim MVC
-
 This cheatsheet provides a quick reference for implementing CRUD operations in your Slim MVC application.
+
+## Checklist for Implementing CRUD Operations
+
+When implementing CRUD operations, you should follow these steps **for each resource** (e.g., products, categories, orders, users, etc.) in the **following order**:
+
+1. ✅ Create a Model class (extends `BaseModel`, inject `PDOService`)
+2. ✅ Create a Controller class (extends `BaseController`, inject `Container` and `Model` (s))
+3. ✅ Implement 7 standard controller methods (index, show, create, store, edit, update, delete)
+4. ✅ Create 4 view files (index, show, create, edit) for the resource
+5. ✅ Register 7 routes in `web-routes.php` for the resource
+6. ✅ Use named routes for redirects
+7. ✅ Follow RESTful URI patterns
+8. ✅ Validate input data before passing to model methods
+9. ✅ Use Post-Redirect-Get pattern (PRG) pattern after successful form submissions to prevent duplicate submissions
+10. ✅ Test all routes in browser
 
 ---
 
-## 1. CRUD Controller Methods
+## Extracting Input Data from the Client Request 
 
-### Standard Method Signatures
+In your controller's **callback methods**, you can extract the request data (route parameters, POST form data, query string parameters) from the request object using the following methods:
 
-```php
-<?php
+### 1. Get route parameter (from `{id}` placeholder)
+Inputs passed in the URI path are called **route parameters**.
+You can access them using the `$args` array parameter in your controller's callback method.
+
+```php title="app/Controllers/YourController.php"
+$productId = (int) $args['id']; // E.g., /products/123 -> $args['id'] = '123'
+```
+
+### 2. Get POST form data
+
+Inputs passed in the **POST** request body are called **form data**. You can access them using the `$request->getParsedBody()` method.
+
+```php title="app/Controllers/YourController.php"
+$formData = $request->getParsedBody();
+$productName = $formData['name'] ?? '';
+$productPrice = $formData['price'] ?? 0;
+```
+
+### 3. Get query string parameters
+Inputs passed in the **GET** request query string are called **query string parameters**. You can access them using the `$request->getQueryParams()` method.
+
+```php title="app/Controllers/YourController.php"
+$queryParams = $request->getQueryParams();
+$search = $queryParams['search'] ?? '';
+$sort = $queryParams['sort'] ?? 'name';
+```
+
+---
+
+
+## Controller Class Structure
+
+Create a controller class by extending `BaseController`. The constructor should call the parent constructor with the `Container` instance and inject model instance(s) into the controller's constructor.
+
+### Standard Signatures of the Controller Callback Methods
+
+```php title="app/Controllers/YourController.php"
+<?php 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
-class ProductsController extends BaseController
+class YourController extends BaseController
 {
-    public function __construct(Container $container, private ProductsModel $model) {
+    public function __construct(Container $container, private YourModel $model) {
         parent::__construct($container);
     }
 
-    // Display list of items (GET)
+    // Display list of items (GET request)
     public function index(Request $request, Response $response, array $args): Response
 
-    // Show single item details (GET)
+    // Show single item details (GET request)
     public function show(Request $request, Response $response, array $args): Response
 
-    // Display creation form (GET)
+    // Display a form for creating a new item (GET request)
     public function create(Request $request, Response $response, array $args): Response
 
-    // Handle save new item (POST)
+    // Handle a request to save a new item to the database (POST request)
     public function store(Request $request, Response $response, array $args): Response
 
-    // Display edit form (GET)
+    // Display a form for editing an item (GET request)
     public function edit(Request $request, Response $response, array $args): Response
 
-    // Handle update item (POST)
+    // Handle a request to save changes to an item (POST request)
     public function update(Request $request, Response $response, array $args): Response
 
-    // Handle delete item (GET)
+    // Handle a request to delete an item (GET request)
     public function delete(Request $request, Response $response, array $args): Response
 }
 ```
 
 ---
 
-## 2. RESTful Route Patterns
-
-### Standard CRUD Routes
+## Standard CRUD Routes URI Patterns
 
 | Action | Method | URI Pattern | Controller Method | Route Name |
 |--------|--------|-------------|-------------------|------------|
-| List all | GET | `/products` | `index()` | `products.index` |
-| Show one | GET | `/products/{id}` | `show()` | `products.show` |
-| Create form | GET | `/products/create` | `create()` | `products.create` |
-| Store new | POST | `/products` | `store()` | - |
-| Edit form | GET | `/products/{id}/edit` | `edit()` | `products.edit` |
-| Update | POST | `/products/{id}` | `update()` | - |
-| Delete | GET | `/products/{id}/delete` | `delete()` | `products.delete` |
+| List all items | GET | `/products` | `index()` | `products.index` |
+| Show one item | GET | `/products/{id}` | `show()` | `products.show` |
+| Show create form | GET | `/products/create` | `create()` | `products.create` |
+| Handle save new item | POST | `/products` | `store()` | - |
+| Show edit form | GET | `/products/{id}/edit` | `edit()` | `products.edit` |
+| Save changes  | POST | `/products/{id}` | `update()` | - |
+| Delete item | GET | `/products/{id}/delete` | `delete()` | `products.delete` |
+
+---
 
 ### Route Registration Example
 
-```php
-// In app/Routes/web-routes.php
+```php title="app/Routes/web-routes.php"
 
 use App\Controllers\ProductsController;
 
@@ -109,11 +157,14 @@ Place specific routes (like `/create`) **before** parametric routes (like `/{id}
 
 ---
 
-## 3. BaseModel Methods
+## Model Class Structure
 
-### Creating a Model
+The `BaseModel` class provides a set of convenient methods for database operations using **prepared statements**. All methods use **named or positional parameters** for security against SQL injection.
 
-```php
+Create a model class by extending `BaseModel`. The constructor should call the parent constructor with the `PDOService` instance.
+
+
+```php title="app/Models/YourModel.php"
 <?php
 namespace App\Domain\Models;
 
@@ -129,7 +180,7 @@ class ProductsModel extends BaseModel
 
 ---
 
-### selectAll() - Retrieve Multiple Records
+### Retrieve Multiple Records using `selectAll()`
 
 ```php
 // Get all records
@@ -138,19 +189,16 @@ public function getAllProducts(): array
     return $this->selectAll('SELECT * FROM products ORDER BY created_at DESC');
 }
 
-// Get records with conditions (named parameters)
+// With conditions (named parameters)
 public function getProductsByCategory(int $categoryId): array
 {
-    return $this->selectAll(
-        'SELECT * FROM products WHERE category_id = :category_id',
-        ['category_id' => $categoryId]
-    );
+    return $this->selectAll('SELECT * FROM products WHERE category_id = :id', ['id' => $categoryId]);
 }
 ```
 
 ---
 
-### selectOne() - Retrieve Single Record
+### Retrieve Single Record using `selectOne()`
 
 ```php
 // Find by ID (positional parameter)
@@ -162,19 +210,16 @@ public function findById(int $id): array|false
 // Find by slug (named parameter)
 public function findBySlug(string $slug): array|false
 {
-    return $this->selectOne(
-        'SELECT * FROM products WHERE slug = :slug',
-        ['slug' => $slug]
-    );
+    return $this->selectOne('SELECT * FROM products WHERE slug = :slug', ['slug' => $slug]);
 }
 ```
 
 ---
 
-### count() - Count Records
+### Count Records using `count()`
 
 ```php
-// Count all products
+// Count all
 public function getTotalProducts(): int
 {
     return $this->count('SELECT COUNT(*) FROM products');
@@ -183,81 +228,69 @@ public function getTotalProducts(): int
 // Count with condition
 public function countActiveProducts(): int
 {
-    return $this->count(
-        'SELECT COUNT(*) FROM products WHERE status = :status',
-        ['status' => 'active']
+    return $this->count('SELECT COUNT(*) FROM products WHERE status = :status', ['status' => 'active']);
+}
+```
+
+---
+
+### Insert a new record
+
+```php
+// INSERT
+public function create(array $data): int
+{
+    return $this->execute(
+        'INSERT INTO products (name, price, created_at) VALUES (:name, :price, :created_at)',
+        ['name' => $data['name'], 'price' => $data['price'], 'created_at' => date('Y-m-d H:i:s')]
     );
 }
 ```
 
 ---
 
-### execute() - Insert, Update, Delete
+### Update an existing record
 
 ```php
-// INSERT - Create new product
-public function create(array $data): int
-{
-    $rowsAffected = $this->execute(
-        'INSERT INTO products (name, price, category_id, created_at)
-         VALUES (:name, :price, :category_id, :created_at)',
-        [
-            'name' => $data['name'],
-            'price' => $data['price'],
-            'category_id' => $data['category_id'],
-            'created_at' => date('Y-m-d H:i:s')
-        ]
-    );
-    return $rowsAffected;
-}
-
-// UPDATE - Update existing product
+// UPDATE
 public function update(int $id, array $data): int
 {
     return $this->execute(
-        'UPDATE products
-         SET name = :name, price = :price, updated_at = :updated_at
-         WHERE id = :id',
-        [
-            'id' => $id,
-            'name' => $data['name'],
-            'price' => $data['price'],
-            'updated_at' => date('Y-m-d H:i:s')
-        ]
-    );
-}
-
-// DELETE - Remove product
-public function delete(int $id): int
-{
-    return $this->execute(
-        'DELETE FROM products WHERE id = :id',
-        ['id' => $id]
+        'UPDATE products SET name = :name, price = :price WHERE id = :id',
+        ['id' => $id, 'name' => $data['name'], 'price' => $data['price']]
     );
 }
 ```
 
 ---
 
-### lastInsertId() - Get Last Inserted ID
+### Delete an existing record
+
+```php
+// DELETE
+public function delete(int $id): int
+{
+    return $this->execute('DELETE FROM products WHERE id = :id', ['id' => $id]);
+}
+```
+
+---
+
+### Get Last Inserted ID using `lastInsertId()`
 
 ```php
 public function createAndGetId(array $data): string
 {
-    $this->execute(
-        'INSERT INTO products (name, price) VALUES (:name, :price)',
-        ['name' => $data['name'], 'price' => $data['price']]
-    );
-
+    $this->execute('INSERT INTO products (name, price) VALUES (:name, :price)', $data);
     return $this->lastInsertId();
 }
 ```
 
 ---
 
-## 4. BaseController Methods
+## BaseController Methods
 
-### render() - Display Views
+### Display Views using `render()`
 
 ```php
 // Basic rendering
@@ -272,7 +305,7 @@ return $this->render($response, 'products/show.php', [
 
 ---
 
-### redirect() - HTTP Redirects
+### HTTP Redirects using `redirect()`
 
 **Method Signature:**
 ```php
@@ -292,7 +325,7 @@ protected function redirect(
 
 ---
 
-### Redirect Examples
+### Examples of Redirects
 
 ```php
 // Simple redirect (no parameters)
@@ -324,174 +357,6 @@ public function store(Request $request, Response $response, array $args): Respon
     return $this->redirect($request, $response, 'products.show', ['id' => $productId]);
 }
 ```
-
----
-
-## 5. Admin Panel Setup
-
-### Admin Route Group Pattern
-
-```php
-// In app/Routes/web-routes.php
-
-$app->group('/admin', function ($group) {
-    // Dashboard
-    $group->get('/dashboard', [AdminController::class, 'dashboard'])
-        ->setName('admin.dashboard');
-
-    // Products management
-    $group->get('/products', [ProductsController::class, 'index'])
-        ->setName('admin.products.index');
-    $group->get('/products/create', [ProductsController::class, 'create'])
-        ->setName('admin.products.create');
-    $group->post('/products', [ProductsController::class, 'store']);
-    $group->get('/products/{id}/edit', [ProductsController::class, 'edit'])
-        ->setName('admin.products.edit');
-    $group->post('/products/{id}', [ProductsController::class, 'update']);
-    $group->get('/products/{id}/delete', [ProductsController::class, 'delete']);
-
-    // Categories management
-    $group->get('/categories', [CategoriesController::class, 'index'])
-        ->setName('admin.categories.index');
-    $group->get('/categories/create', [CategoriesController::class, 'create'])
-        ->setName('admin.categories.create');
-    $group->post('/categories', [CategoriesController::class, 'store']);
-
-    // Orders management
-    $group->get('/orders', [OrdersController::class, 'index'])
-        ->setName('admin.orders.index');
-    $group->get('/orders/{id}', [OrdersController::class, 'show'])
-        ->setName('admin.orders.show');
-
-})->add(AdminAuthMiddleware::class); // Protect ALL routes with middleware
-```
-
-:::note[How Route Groups Work]
-1. All routes inside the group automatically get `/admin` prefix
-2. Middleware applies to **every route** in the group
-3. Middleware runs **before** controller methods
-:::
-
----
-
-### Expected Admin File Structure
-
-```
-app/
-├── Controllers/
-│   ├── AdminController.php
-│   ├── ProductsController.php
-│   ├── CategoriesController.php
-│   ├── OrdersController.php
-│   └── UsersController.php
-├── Models/
-│   ├── ProductsModel.php
-│   ├── CategoriesModel.php
-│   ├── OrdersModel.php
-│   └── UsersModel.php
-├── Views/
-│   └── admin/
-│       ├── dashboard.php
-│       ├── products/
-│       │   ├── index.php
-│       │   ├── show.php
-│       │   ├── create.php
-│       │   └── edit.php
-│       ├── categories/
-│       │   ├── index.php
-│       │   ├── create.php
-│       │   └── edit.php
-│       └── orders/
-│           ├── index.php
-│           └── show.php
-├── Middleware/
-│   └── AdminAuthMiddleware.php
-└── Routes/
-    └── web-routes.php
-```
-
----
-
-### Admin Middleware Checklist
-
-Your middleware should:
-- ✅ Check if user is logged in (authenticated)
-- ✅ Check if user has admin privileges
-- ✅ Redirect to login page if checks fail
-- ✅ Allow access to admin routes if checks pass
-
----
-
-## 6. Common Patterns & Best Practices
-
-### Extracting Request Data
-
-```php
-// Get route parameter (from {id} placeholder)
-$productId = (int) $args['id'];
-
-// Get POST form data
-$formData = $request->getParsedBody();
-$name = $formData['name'] ?? '';
-
-// Get query string parameters (?page=2&sort=name)
-$queryParams = $request->getQueryParams();
-$page = $queryParams['page'] ?? 1;
-$sort = $queryParams['sort'] ?? 'name';
-```
-
----
-
-### Complete CRUD Controller Example
-
-```php
-<?php
-class ProductsController extends BaseController
-{
-    public function __construct(Container $container, private ProductsModel $model) {
-        parent::__construct($container);
-    }
-
-    public function index(Request $request, Response $response, array $args): Response {
-        return $this->render($response, 'products/index.php', [
-            'products' => $this->model->getAllProducts()
-        ]);
-    }
-
-    public function show(Request $request, Response $response, array $args): Response {
-        return $this->render($response, 'products/show.php', [
-            'product' => $this->model->findById((int) $args['id'])
-        ]);
-    }
-
-    public function create(Request $request, Response $response, array $args): Response {
-        return $this->render($response, 'products/create.php');
-    }
-
-    public function store(Request $request, Response $response, array $args): Response {
-        $id = $this->model->createAndGetId($request->getParsedBody());
-        return $this->redirect($request, $response, 'products.show', ['id' => $id]);
-    }
-
-    public function edit(Request $request, Response $response, array $args): Response {
-        return $this->render($response, 'products/edit.php', [
-            'product' => $this->model->findById((int) $args['id'])
-        ]);
-    }
-
-    public function update(Request $request, Response $response, array $args): Response {
-        $id = (int) $args['id'];
-        $this->model->update($id, $request->getParsedBody());
-        return $this->redirect($request, $response, 'products.show', ['id' => $id]);
-    }
-
-    public function delete(Request $request, Response $response, array $args): Response {
-        $this->model->delete((int) $args['id']);
-        return $this->redirect($request, $response, 'products.index');
-    }
-}
-```
-
 ---
 
 ## Quick Tips
@@ -504,19 +369,3 @@ class ProductsController extends BaseController
 - **Error Handling** → Use try-catch blocks and redirect on errors
 - **Security** → Use prepared statements (all BaseModel methods do this automatically)
 
----
-
-## Summary Checklist
-
-When implementing CRUD:
-
-1. ✅ Create Model class (extends `BaseModel`)
-2. ✅ Create Controller class (extends `BaseController`, inject model)
-3. ✅ Implement 7 standard controller methods (index, show, create, store, edit, update, delete)
-4. ✅ Create 4 view files (index, show, create, edit)
-5. ✅ Register 7 routes in `web-routes.php`
-6. ✅ Use named routes for redirects
-7. ✅ Follow RESTful URI patterns
-8. ✅ Validate input data
-9. ✅ Use Post-Redirect-Get pattern
-10. ✅ Test all routes in browser
