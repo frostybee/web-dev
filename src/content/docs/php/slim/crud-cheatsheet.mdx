@@ -261,22 +261,13 @@ public function createAndGetId(array $data): string
 
 ```php
 // Basic rendering
-public function index(Request $request, Response $response, array $args): Response
-{
-    return $this->render($response, 'products/index.php');
-}
+return $this->render($response, 'products/index.php');
 
 // Passing data to view
-public function show(Request $request, Response $response, array $args): Response
-{
-    $productId = (int) $args['id'];
-    $product = $this->model->findById($productId);
-
-    return $this->render($response, 'products/show.php', [
-        'product' => $product,
-        'title' => 'Product Details'
-    ]);
-}
+return $this->render($response, 'products/show.php', [
+    'product' => $this->model->findById((int) $args['id']),
+    'title' => 'Product Details'
+]);
 ```
 
 ---
@@ -304,47 +295,22 @@ protected function redirect(
 ### Redirect Examples
 
 ```php
-// 1) Simple redirect (no parameters)
-public function logout(Request $request, Response $response, array $args): Response
-{
-    session_destroy();
-    return $this->redirect($request, $response, 'home.index');
-}
+// Simple redirect (no parameters)
+return $this->redirect($request, $response, 'home.index');
 
-// 2) Redirect with route parameter (replaces {id})
-public function store(Request $request, Response $response, array $args): Response
-{
-    $data = $request->getParsedBody();
-    $productId = $this->model->createAndGetId($data);
+// With route parameter (replaces {id}) → /products/123
+return $this->redirect($request, $response, 'products.show', ['id' => $productId]);
 
-    // Redirects to: /products/123
-    return $this->redirect($request, $response, 'products.show', ['id' => $productId]);
-}
+// With query parameters only → /products?category=electronics&sort=price
+return $this->redirect($request, $response, 'products.index', [], [
+    'category' => 'electronics',
+    'sort' => 'price'
+]);
 
-// 3) Redirect with query parameters only
-public function search(Request $request, Response $response, array $args): Response
-{
-    $term = $request->getQueryParams()['q'] ?? '';
-
-    // Redirects to: /products?category=electronics&sort=price
-    return $this->redirect($request, $response, 'products.index', [], [
-        'category' => 'electronics',
-        'sort' => 'price'
-    ]);
-}
-
-// 4) Redirect with BOTH route parameter and query string
-public function update(Request $request, Response $response, array $args): Response
-{
-    $productId = (int) $args['id'];
-    $this->model->update($productId, $request->getParsedBody());
-
-    // Redirects to: /products/123/edit?tab=details&success=1
-    return $this->redirect($request, $response, 'products.edit', ['id' => $productId], [
-        'tab' => 'details',
-        'success' => '1'
-    ]);
-}
+// With BOTH route parameter and query string → /products/123/edit?tab=details
+return $this->redirect($request, $response, 'products.edit', ['id' => $productId], [
+    'tab' => 'details'
+]);
 ```
 
 ---
@@ -486,52 +452,40 @@ class ProductsController extends BaseController
         parent::__construct($container);
     }
 
-    // List all products
-    public function index(Request $request, Response $response, array $args): Response
-    {
-        $products = $this->model->getAllProducts();
-        return $this->render($response, 'products/index.php', ['products' => $products]);
+    public function index(Request $request, Response $response, array $args): Response {
+        return $this->render($response, 'products/index.php', [
+            'products' => $this->model->getAllProducts()
+        ]);
     }
 
-    // Show single product
-    public function show(Request $request, Response $response, array $args): Response
-    {
-        $product = $this->model->findById((int) $args['id']);
-        return $this->render($response, 'products/show.php', ['product' => $product]);
+    public function show(Request $request, Response $response, array $args): Response {
+        return $this->render($response, 'products/show.php', [
+            'product' => $this->model->findById((int) $args['id'])
+        ]);
     }
 
-    // Display creation form
-    public function create(Request $request, Response $response, array $args): Response
-    {
+    public function create(Request $request, Response $response, array $args): Response {
         return $this->render($response, 'products/create.php');
     }
 
-    // Handle save new product
-    public function store(Request $request, Response $response, array $args): Response
-    {
-        $data = $request->getParsedBody();
-        $productId = $this->model->createAndGetId($data);
-        return $this->redirect($request, $response, 'products.show', ['id' => $productId]);
+    public function store(Request $request, Response $response, array $args): Response {
+        $id = $this->model->createAndGetId($request->getParsedBody());
+        return $this->redirect($request, $response, 'products.show', ['id' => $id]);
     }
 
-    // Display edit form
-    public function edit(Request $request, Response $response, array $args): Response
-    {
-        $product = $this->model->findById((int) $args['id']);
-        return $this->render($response, 'products/edit.php', ['product' => $product]);
+    public function edit(Request $request, Response $response, array $args): Response {
+        return $this->render($response, 'products/edit.php', [
+            'product' => $this->model->findById((int) $args['id'])
+        ]);
     }
 
-    // Handle update product
-    public function update(Request $request, Response $response, array $args): Response
-    {
-        $productId = (int) $args['id'];
-        $this->model->update($productId, $request->getParsedBody());
-        return $this->redirect($request, $response, 'products.show', ['id' => $productId]);
+    public function update(Request $request, Response $response, array $args): Response {
+        $id = (int) $args['id'];
+        $this->model->update($id, $request->getParsedBody());
+        return $this->redirect($request, $response, 'products.show', ['id' => $id]);
     }
 
-    // Handle delete product
-    public function delete(Request $request, Response $response, array $args): Response
-    {
+    public function delete(Request $request, Response $response, array $args): Response {
         $this->model->delete((int) $args['id']);
         return $this->redirect($request, $response, 'products.index');
     }
