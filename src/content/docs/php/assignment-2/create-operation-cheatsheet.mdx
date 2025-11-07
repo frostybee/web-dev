@@ -1,0 +1,329 @@
+---
+title: 'CREATE Operation Cheatsheet (Admin Panel)'
+description: Quick reference for implementing CREATE operations in the Admin Panel
+sidebar:
+  label: 'CREATE Operation (Admin)'
+  order: 11
+  badge:
+    text: Assignment 2
+    variant: success
+---
+
+This cheatsheet provides step-by-step instructions for implementing the **CREATE** operation in your **Admin Panel**.
+
+:::note[Admin Panel Context]
+This guide focuses on creating items in the **Admin Panel**. All routes will use the `/admin` prefix to separate admin functionality from public routes.
+:::
+
+## What is the CREATE Operation in Admin Panel?
+
+The CREATE operation allows **administrators** to **add new items** (products, categories, etc.) to your database. It involves two steps:
+
+1. **Show the creation form** (GET request) → Display a form for entering new data
+2. **Handle form submission** (POST request) → Save the new data to the database
+
+**Admin Panel Structure:**
+- Routes use `/admin` prefix (e.g., `/admin/products/create`).
+- Views are organized in `app/Views/admin/` folder.
+- Authentication middleware will be added later to protect these routes.
+
+---
+
+## Prerequisites
+
+Before implementing CREATE operations, ensure you have:
+
+1. ✅ **ProductsModel** created (extends `BaseModel`, injects `PDOService`)
+2. ✅ **ProductsController** created (extends `BaseController`, injects `Container` and `ProductsModel`)
+
+:::tip[Authentication Later]
+For now, we'll implement the CREATE operation without authentication. Later, you'll add `AdminAuthMiddleware` to protect these routes from unauthorized access.
+:::
+
+---
+
+## Step 1: Register Admin Routes
+
+In `app/Routes/web-routes.php`, register **two routes** inside the `/admin` route group:
+
+### Instructions:
+1. **First route (GET)**: Inside the admin group, register a GET route for `/products/create` that calls the `create()` method
+   - The full URI will be: `/admin/products/create`
+   - Set a named route: `products.create`
+
+2. **Second route (POST)**: Inside the admin group, register a POST route for `/products` that calls the `store()` method
+   - The full URI will be: `/admin/products`
+   - No named route needed for POST requests
+
+**Example structure:**
+```php
+$app->group('/admin', function ($group) {
+    // TODO: Add GET /products/create route here
+    // TODO: Add POST /products route here
+});
+// Note: Later you'll add ->add(AdminAuthMiddleware::class) to protect these routes
+```
+
+:::tip[Route Order]
+Place the `/products/create` route **before** the `/products/{id}` route to avoid conflicts
+:::
+
+---
+
+## Step 2: Implement Controller Methods
+
+In `app/Controllers/ProductsController.php`, implement two controller methods:
+
+### Method 1: `create()` - Display Creation Form
+
+**What this method should do:**
+- Render and return the creation form view (e.g., `admin/products/products.CreateView.php`).
+- **NOTE:** No data processing needed - just display the empty form.
+
+**Method signature:**
+```php
+public function create(Request $request, Response $response, array $args): Response
+{
+    // TODO: Render the admin create form view (e.g., 'admin/products/products.CreateView.php')
+}
+```
+
+---
+
+### Method 2: `store()` - Handle Form Submission
+
+**What this method should do in the following order (see hints below):**
+1. Extract the form data from the request.
+2. Validate the required fields (e.g., name, price).
+3. If validation fails → redirect back to the creation form.
+4. If validation passes → save the data to database using the model.
+5. Get the ID of the newly created item.
+6. Redirect to the newly created item's detail page (PRG pattern).
+
+**Method signature:**
+```php
+public function store(Request $request, Response $response, array $args): Response
+{
+    // TODO: 1. Get form data using $request->getParsedBody()
+
+    // TODO: 2. Validate required fields (name, price, etc.)
+
+    // TODO: 3. If validation fails, redirect back to 'admin.products.create'
+
+    // TODO: 4. Save to database using $this->model->createAndGetId()
+
+    // TODO: 5. Redirect to 'admin.products.index' or 'admin.products.show' with the new product ID
+}
+```
+
+:::note[Post-Redirect-Get (PRG) Pattern]
+Always **redirect** after a successful POST request to prevent duplicate submissions if the user refreshes the page
+:::
+
+**Hints:**
+- Use `$request->getParsedBody()` to get form data as an associative array.
+- Use `empty()` to check if required fields are missing.
+- Use `$this->redirect()` to redirect to admin named routes (with `admin.` prefix).
+- Pass the new ID to the redirect: `['id' => $productId]`.
+- Redirect to either the product list (`admin.products.index`) or the detail page (`admin.products.show`).
+
+---
+
+## Step 3: Implement Model Method
+
+In `app/Models/ProductsModel.php`, create a method to insert the new record:
+
+### Method: `createAndGetId()` - Insert and Return New ID
+
+**What this method should do (see hints below):**
+1. Execute an INSERT query with the form data.
+2. Return the ID of the newly inserted record.
+
+**Method signature:**
+```php
+public function createAndGetId(array $data): string
+{
+    // TODO: 1. Execute INSERT query using $this->execute()
+    //       - Insert: name, price, description, created_at
+    //       - Use named parameters (:name, :price, etc.)
+
+    // TODO: 2. Return the last inserted ID using $this->lastInsertId()
+}
+```
+
+**Hints:**
+- Use `$this->execute()` for INSERT queries.
+- Use named parameters for security: `:name`, `:price`, `:description`.
+- Use `date('Y-m-d H:i:s')` for the `created_at` timestamp.
+- Use `$data['field_name'] ?? ''` for optional fields.
+- Use `$this->lastInsertId()` to get the ID of the inserted record.
+
+---
+
+## Step 4: Create a Form to Create a New Product
+
+In `app/Views/admin/products/products.CreateView.php`, create an HTML form:
+
+### What the form should include:
+
+1. **Form element:**
+   - `method="POST"` → Submits data using POST request
+   - `action="<?=APP_ADMIN_BASE_URL?>/products"` → Submits to the  POST `/admin/products` route
+
+2. **Input fields:**
+   - Product name (text input, required)
+   - Price (number input, required)
+   - Description (textarea, optional)
+   - Category (dropdown/select, optional)
+
+3. **Buttons:**
+   - Submit button to create the product
+   - Cancel link back to `<?=APP_ADMIN_BASE_URL?>/admin/products`
+
+**Form structure:**
+```html
+<form method="???" action="???">
+    <!-- TODO: Add input field for product name -->
+
+    <!-- TODO: Add input field for price -->
+
+    <!-- TODO: Add textarea for description -->
+
+    <!-- TODO: Add select dropdown for category (optional) -->
+
+    <!-- TODO: Add submit button -->
+
+    <!-- TODO: Add cancel link back to /admin/products -->
+</form>
+```
+
+:::danger[Form Action]
+The form's `action` attribute must match the POST route URI (e.g., `/admin/products`, NOT `/admin/products/create`)
+:::
+
+**Hints:**
+- Use `<input type="text" name="name">` for the product name
+- Use `<input type="number" name="price" step="0.01">` for decimal prices
+- Use `<textarea name="description">` for longer text
+- Use `required` attribute for mandatory fields
+- Input `name` attributes must match the keys you use in the controller
+- Cancel link should go to `<?=APP_ADMIN_BASE_URL?>/admin/products` (the admin product list)
+
+---
+
+## Complete Workflow (Admin Panel)
+
+When creating a new product, here's what happens:
+
+```
+1. User clicks "Add Product" → Browser requests GET /admin/products/create
+   ↓
+2. Router calls ProductsController::create()
+   ↓
+3. Controller renders the admin creation form view
+   ↓
+4. User fills out form and clicks "Create Product"
+   ↓
+5. Browser submits POST /admin/products (with form data)
+   ↓
+6. Router calls ProductsController::store()
+   ↓
+7. Controller:
+   - Extracts form data
+   - Validates the data
+   - Calls model's createAndGetId() method
+   ↓
+8. Model:
+   - Executes INSERT query
+   - Returns the new product ID
+   ↓
+9. Controller: Redirects to GET /admin/products or /admin/products/{id}
+   ↓
+10. User sees the product list or newly created product details page
+```
+
+:::note[Adding Authentication Later]
+Once you implement `AdminAuthMiddleware`, it will check authentication before steps 2 and 6, blocking unauthorized users from accessing these routes.
+:::
+
+---
+
+## Validation Requirements
+
+Your `store()` method should validate:
+
+**Required fields:**
+- ✅ Product name must not be empty
+- ✅ Price must not be empty
+- ✅ Price must be a valid number
+- ✅ Price must be greater than or equal to 0
+
+**Optional validations:**
+- Maximum length for product name (e.g., 255 characters)
+- Valid price range (e.g., between 0.01 and 999999.99)
+- Description length limits
+
+**Validation hints:**
+- Use `empty($formData['name'])` to check if a field is empty
+- Use `filter_var($price, FILTER_VALIDATE_FLOAT)` to validate numbers
+- Use `strlen($name)` to check string length
+
+---
+
+## Common Mistakes to Avoid
+
+❌ **Wrong route names** → Use `admin.products.create` not `products.create` for admin routes
+
+❌ **Wrong form action** → Form action must be `/admin/products`, not `/products` or `/admin/products/create`
+
+❌ **Wrong redirect route** → Redirect to `admin.products.index` not `products.index`
+
+❌ **Forgetting to validate input** → Always validate before inserting to database
+
+❌ **Not using PRG pattern** → Always redirect after POST to prevent duplicate submissions
+
+❌ **Wrong form method** → Must be `method="POST"` (not GET)
+
+❌ **Wrong view path** → Admin views should be in `app/Views/admin/products/` not `app/Views/products/`
+
+❌ **Missing named routes** → You need a named route for `admin.products.create` to redirect back on errors
+
+❌ **Input name mismatch** → Form input `name` attributes must match the keys you use in `$formData`
+
+❌ **Hardcoding values in model** → Use the `$data` parameter, don't hardcode product names
+
+❌ **Not handling errors** → Use try-catch blocks for database errors
+
+❌ **Returning render after POST** → Always redirect, never render directly after POST
+
+❌ **Forgetting admin prefix** → Routes must be inside the `/admin` group
+
+---
+
+## Testing Checklist
+
+After implementation, test these scenarios:
+
+### Happy Path (Success)
+- ✅ Navigate to `/admin/products/create` → Form displays correctly
+- ✅ Fill in all required fields → Form submits successfully
+- ✅ After submit → Redirects to admin product list or detail page
+- ✅ Check database → New record exists with correct data
+
+### Error Handling
+- ✅ Submit form with empty name → Redirects back to form
+- ✅ Submit form with empty price → Redirects back to form
+- ✅ Submit form with invalid price (negative) → Redirects back to form
+
+### Edge Cases
+- ✅ Submit form with very long product name → Handles gracefully
+- ✅ Submit form with special characters → Data saves correctly
+- ✅ Refresh page after successful creation → No duplicate insert (PRG pattern working)
+
+:::tip[Later: Test Authentication]
+Once you implement `AdminAuthMiddleware`, also test:
+- Accessing `/admin/products/create` without login → Should redirect to login
+- Accessing as non-admin user → Should be blocked
+:::
+
+

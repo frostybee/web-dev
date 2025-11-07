@@ -74,11 +74,9 @@ public function routeCallback(Request $request, Response $response, array $args)
     $sort = $queryParams['sort'] ?? 'name';
 }
 ```
-
 ---
 
-
-## Controller Class Structure
+## Creating a Controller Class
 
 Create a controller class by extending `BaseController`. The constructor should call the parent constructor with the `Container` instance and inject model instance(s) into the controller's constructor.
 
@@ -116,6 +114,81 @@ class YourController extends BaseController
     // Handle a request to delete an item (GET request)
     public function delete(Request $request, Response $response, array $args): Response
 }
+```
+---
+
+### Rendering Views and Redirecting to Other Routes
+
+The `BaseController` class provides two methods for displaying views and redirecting to other routes:
+
+1. `render()` → Display a view template using a view template file name (e.g., `products/index.php`)
+2. `redirect()` → Redirect to a named route using a named route name (e.g., `products.index`)
+
+#### Displaying Views using `render()`
+
+The `render()` method takes **three** parameters:
+1. `$response` → PSR-7 response object to modify
+2. `$view_name` → Name of the view template file (e.g., `products/index.php`)
+3. `$data` → Associative array of data to pass to the view (optional)
+
+```php
+// Basic rendering
+return $this->render($response, 'products/index.php');
+
+// Passing associative array of data to view
+$data = [
+    'product' => $this->model->findById((int) $args['id']),
+    'title' => 'Product Details'
+];
+return $this->render($response, 'products/show.php', $data);
+```
+
+---
+
+#### HTTP Redirects using `redirect()`
+
+- The `redirect()` method is used to redirect the user to a named route. 
+- It is typically used after a successful **form submission** (in the Post-Redirect-Get (PRG) pattern) to prevent duplicate submissions or after **a data operation** (like delete or update).
+
+The `redirect()` method takes **five** parameters:
+1. `$request` → PSR-7 request object for route context
+2. `$response` → PSR-7 response object to modify
+3. `$route_name` → Named route to redirect to (e.g., `products.index`, `products.edit`)
+4. `$uri_args` → Replaces route placeholders like `{id}` in `/products/{id}` (optional)
+5. `$query_params` → Adds query strings like `?page=2&sort=name` (optional)
+
+**Method Signature:**
+```php
+protected function redirect(
+    Request $request,
+    Response $response,
+    string $route_name,      // Named route to redirect to
+    array $uri_args = [],    // Optional: Replaces {placeholders} in route
+    array $query_params = [] // Optional: Adds ?key=value to URL
+): Response
+```
+
+---
+
+#### Examples of Redirects
+
+```php
+// Simple redirect (no parameters)
+return $this->redirect($request, $response, 'home.index');
+
+// With route parameter (replaces {id}) → /products/123
+return $this->redirect($request, $response, 'products.show', ['id' => $productId]);
+
+// With query parameters only → /products?category=electronics&sort=price
+return $this->redirect($request, $response, 'products.index', [], [
+    'category' => 'electronics',
+    'sort' => 'price'
+]);
+
+// With BOTH route parameter and query string → /products/123/edit?tab=details
+return $this->redirect($request, $response, 'products.edit', ['id' => $productId], [
+    'tab' => 'details'
+]);
 ```
 
 ---
@@ -300,82 +373,6 @@ public function createAndGetId(array $data): string
     $this->execute('INSERT INTO products (name, price) VALUES (:name, :price)', $data);
     return $this->lastInsertId();
 }
-```
-
----
-
-## Rendering Views and Redirecting to Other Routes
-
-The `BaseController` class provides two methods for displaying views and redirecting to other routes:
-
-1. `render()` → Display a view template using a view template file name (e.g., `products/index.php`)
-2. `redirect()` → Redirect to a named route using a named route name (e.g., `products.index`)
-
-### Displaying Views using `render()`
-
-The `render()` method takes **three** parameters:
-1. `$response` → PSR-7 response object to modify
-2. `$view_name` → Name of the view template file (e.g., `products/index.php`)
-3. `$data` → Associative array of data to pass to the view (optional)
-
-```php
-// Basic rendering
-return $this->render($response, 'products/index.php');
-
-// Passing associative array of data to view
-$data = [
-    'product' => $this->model->findById((int) $args['id']),
-    'title' => 'Product Details'
-];
-return $this->render($response, 'products/show.php', $data);
-```
-
----
-
-### HTTP Redirects using `redirect()`
-
-- The `redirect()` method is used to redirect the user to a named route. 
-- It is typically used after a successful **form submission** (in the Post-Redirect-Get (PRG) pattern) to prevent duplicate submissions or after **a data operation** (like delete or update).
-
-The `redirect()` method takes **five** parameters:
-1. `$request` → PSR-7 request object for route context
-2. `$response` → PSR-7 response object to modify
-3. `$route_name` → Named route to redirect to (e.g., `products.index`, `products.edit`)
-4. `$uri_args` → Replaces route placeholders like `{id}` in `/products/{id}` (optional)
-5. `$query_params` → Adds query strings like `?page=2&sort=name` (optional)
-
-**Method Signature:**
-```php
-protected function redirect(
-    Request $request,
-    Response $response,
-    string $route_name,      // Named route to redirect to
-    array $uri_args = [],    // Optional: Replaces {placeholders} in route
-    array $query_params = [] // Optional: Adds ?key=value to URL
-): Response
-```
-
----
-
-### Examples of Redirects
-
-```php
-// Simple redirect (no parameters)
-return $this->redirect($request, $response, 'home.index');
-
-// With route parameter (replaces {id}) → /products/123
-return $this->redirect($request, $response, 'products.show', ['id' => $productId]);
-
-// With query parameters only → /products?category=electronics&sort=price
-return $this->redirect($request, $response, 'products.index', [], [
-    'category' => 'electronics',
-    'sort' => 'price'
-]);
-
-// With BOTH route parameter and query string → /products/123/edit?tab=details
-return $this->redirect($request, $response, 'products.edit', ['id' => $productId], [
-    'tab' => 'details'
-]);
 ```
 
 ---
