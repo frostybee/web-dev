@@ -272,32 +272,19 @@ Your `store()` method should validate:
 
 ## Common Mistakes to Avoid
 
-❌ **Wrong route names** → Use `admin.products.create` not `products.create` for admin routes
-
-❌ **Wrong form action** → Form action must be `/admin/products`, not `/products` or `/admin/products/create`
-
-❌ **Wrong redirect route** → Redirect to `admin.products.index` not `products.index`
-
-❌ **Forgetting to validate input** → Always validate before inserting to database
-
-❌ **Not using PRG pattern** → Always redirect after POST to prevent duplicate submissions
-
-❌ **Wrong form method** → Must be `method="POST"` (not GET)
-
-❌ **Wrong view path** → Admin views should be in `app/Views/admin/products/` not `app/Views/products/`
-
-❌ **Missing named routes** → You need a named route for `admin.products.create` to redirect back on errors
-
-❌ **Input name mismatch** → Form input `name` attributes must match the keys you use in `$formData`
-
-❌ **Hardcoding values in model** → Use the `$data` parameter, don't hardcode product names
-
-❌ **Not handling errors** → Use try-catch blocks for database errors
-
-❌ **Returning render after POST** → Always redirect, never render directly after POST
-
-❌ **Forgetting admin prefix** → Routes must be inside the `/admin` group
-
+- **Wrong route names** → Use `admin.products.create` not `products.create` for admin routes
+- **Wrong form action** → Form action must be `/admin/products`, not `/products` or `/admin/products/create`
+- **Wrong redirect route** → Redirect to `admin.products.index` not `products.index`
+- **Forgetting to validate input** → Always validate before inserting to database
+- **Not using PRG pattern** → Always redirect after POST to prevent duplicate submissions
+- **Wrong form method** → Must be `method="POST"` (not GET)
+- **Wrong view path** → Admin views should be in `app/Views/admin/products/` not `app/Views/products/`
+- **Missing named routes** → You need a named route for `admin.products.create` to redirect back on errors
+- **Input name mismatch** → Form input `name` attributes must match the keys you use in `$formData`
+- **Hardcoding values in model** → Use the `$data` parameter, don't hardcode product names
+- **Not handling errors** → Use try-catch blocks for database errors
+- **Returning render after POST** → Always redirect, never render directly after POST
+- **Forgetting admin prefix** → Routes must be inside the `/admin` group
 ---
 
 ## Testing Checklist
