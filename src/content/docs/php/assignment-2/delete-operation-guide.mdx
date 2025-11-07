@@ -1,0 +1,233 @@
+---
+title: 'DELETE Operation Cheatsheet (Admin Panel)'
+description: Quick reference for implementing DELETE operations in the Admin Panel
+sidebar:
+  label: 'DELETE Operation (Admin)'
+  order: 12
+  badge:
+    text: Assignment 2
+    variant: success
+---
+
+This cheatsheet provides step-by-step instructions for implementing the **DELETE** operation in your **Admin Panel**.
+
+:::note[Admin Panel Context]
+This guide focuses on deleting items in the **Admin Panel**. All routes will use the `/admin` prefix to separate admin functionality from public routes.
+:::
+
+## What is the DELETE Operation in Admin Panel?
+
+The DELETE operation allows **administrators** to **remove items** (products, categories, etc.) from your database. It involves:
+
+1. **User clicks delete link/button** → Browser sends GET request to delete route
+2. **Handle deletion** → Remove the item from database and redirect back to list
+
+**Admin Panel Structure:**
+- Routes use `/admin` prefix (e.g., `/admin/products/{id}/delete`).
+- Typically accessed via delete button/link on list or detail pages.
+- Authentication middleware will be added later to protect these routes.
+
+---
+
+## Prerequisites
+
+Before implementing DELETE operations, ensure you have:
+
+1. ✅ **ProductsModel** created (extends `BaseModel`, injects `PDOService`)
+2. ✅ **ProductsController** created (extends `BaseController`, injects `Container` and `ProductsModel`)
+3. ✅ **List view exists** (`app/Views/admin/products/products.IndexView.php`) - Where you'll add delete links
+
+:::tip[Authentication Later]
+For now, we'll implement the DELETE operation without authentication. Later, you'll add `AdminAuthMiddleware` to protect these routes from unauthorized access.
+:::
+
+---
+
+## Step 1: Register Admin Route
+
+In `app/Routes/web-routes.php`, register **one route** inside the `/admin` route group:
+
+### Instructions:
+1. **DELETE route (GET)**: Inside the admin group, register a GET route for `/products/{id}/delete` that calls the `delete()` method
+   - The full URI will be: `/admin/products/{id}/delete`
+   - Set a named route: `products.delete`
+
+**Example structure:**
+```php
+$app->group('/admin', function ($group) {
+    // TODO: Add GET /products/{id}/delete route here
+});
+// Note: Later you'll add ->add(AdminAuthMiddleware::class) to protect these routes
+```
+---
+
+## Step 2: Implement Controller Callback Method
+
+In `app/Controllers/ProductsController.php`, implement the delete method:
+
+### Method: `delete()` - Handle Deletion
+
+**What this method should do (see hints below):**
+1. Extract the product ID from the route parameters.
+2. Validate that the ID is valid (not empty, is a number).
+3. Call the model's `delete()` method to remove the item from database.
+4. Redirect back to the product list page.
+
+**Method signature:**
+```php
+public function delete(Request $request, Response $response, array $args): Response
+{
+    // TODO: 1. Get the product ID from $args['id']
+
+    // TODO: 2. Validate the ID (optional but recommended)
+
+    // TODO: 3. Delete the product using $this->model->delete($id)
+
+    // TODO: 4. Redirect to 'products.index' (the product list)
+}
+```
+
+:::note[Post-Redirect-Get (PRG) Pattern]
+Always **redirect** after a successful deletion to prevent duplicate deletions if the user refreshes the page
+:::
+
+**Hints:**
+- Use `(int) $args['id']` to get the ID from route parameters.
+- Use `$this->model->delete($id)` to delete the product.
+- Use `$this->redirect()` to redirect to the product list.
+- No form data needed - the ID comes from the URL.
+
+---
+
+## Step 3: Implement Model Method
+
+In `app/Models/ProductsModel.php`, create a method to delete the record:
+
+### Method: `delete()` - Remove Record from Database
+
+**What this method should do (see hints below):**
+1. Execute a DELETE query to remove the record with the given ID.
+2. Return the number of affected rows (should be 1 if successful).
+
+**Method signature:**
+```php
+public function delete(int $id): int
+{
+    // TODO: Execute DELETE query using $this->execute()
+    //       - Use named parameter :id for security
+    //       - Return the number of affected rows
+}
+```
+
+**Hints:**
+- Use `$this->execute()` for DELETE queries.
+- Use SQL: `DELETE FROM products WHERE id = :id`.
+- Use named parameter: `['id' => $id]`.
+- Return value will be the number of deleted rows (0 or 1).
+
+---
+
+## Step 4: Add Delete Links to List View
+
+In `app/Views/admin/products/products.IndexView.php`, add delete links for each product in the table:
+
+### What to add:
+
+1. **In your table's `<tr>` loop**, add a `<td>` element for the delete link
+2. **Inside the `<td>`**, create an anchor tag with:
+   - `href` attribute pointing to: `<?=APP_ADMIN_BASE_URL?>/products/{id}/delete`
+   - `onclick` attribute with JavaScript confirmation: `return confirm('Are you sure you want to delete this product?')`
+   - Link text: "Delete"
+
+**Hints:**
+- Replace `{id}` with the actual product ID using PHP: `<?php echo $product['id']; ?>`.
+- Add `onclick="return confirm('...')"` for JavaScript confirmation dialog.
+- Style the delete link with red/danger color to indicate destructive action.
+- If you have an Edit link, add the Delete link in the same `<td>` with a separator (e.g., `|` or space).
+
+:::danger[Confirmation Dialog]
+Always add a JavaScript confirmation dialog to prevent accidental deletions
+:::
+
+---
+
+## Complete Workflow (Admin Panel)
+
+When deleting a product, here's what happens:
+
+```
+1. User clicks "Delete" link → Browser requests GET /admin/products/{id}/delete
+   ↓
+2. Router calls ProductsController::delete()
+   ↓
+3. Controller:
+   - Extracts product ID from route parameters
+   - Validates the ID
+   - Calls model's delete() method
+   ↓
+4. Model:
+   - Executes DELETE query
+   - Returns number of affected rows
+   ↓
+5. Controller: Redirects to GET /admin/products (product list)
+   ↓
+6. User sees the updated product list (without the deleted item)
+```
+
+:::note[Adding Authentication Later]
+Once you implement `AdminAuthMiddleware`, it will check authentication before step 2, blocking unauthorized users from deleting products.
+:::
+
+---
+
+## Validation & Error Handling
+
+Your `delete()` method should validate:
+
+**Required validations:**
+- ✅ Product ID must not be empty
+- ✅ Product ID must be a valid integer
+- ✅ Product ID must be greater than 0
+
+**Validation hints:**
+- Use `if ($id <= 0)` to check for invalid IDs.
+- Use `try-catch` blocks for database errors.
+
+---
+
+## Common Mistakes to Avoid
+
+- **Wrong route pattern** → Use `/products/{id}/delete`, not `/products/delete/{id}`
+- **Forgetting confirmation** → Always add JavaScript confirmation to prevent accidental deletions
+- **Hardcoded IDs** → Use `$args['id']` from route parameters, don't hardcode IDs
+- **Not validating ID** → Always validate the ID before attempting to delete
+- **No error handling** → Use try-catch blocks for database errors
+- **Rendering after delete** → Always redirect, never render directly after deletion
+- **Forgetting admin prefix** → Delete route must be inside `/admin` group
+
+---
+
+## Testing Checklist
+
+After implementation, test these scenarios:
+
+### Happy Path (Success)
+- ✅ Navigate to `/admin/products` → Delete links appear for each product
+- ✅ Click delete link → Confirmation dialog appears
+- ✅ Click "OK" in dialog → Deletion happens and redirects to product list
+- ✅ Check database → Product is removed
+
+### Error Handling
+- ✅ Try to delete non-existent ID → Handles gracefully
+- ✅ Click "Cancel" in confirmation dialog → No deletion occurs
+
+### Edge Cases
+- ✅ Delete product and refresh page → No duplicate deletion (PRG pattern working)
+
+:::tip[Later: Test Authentication]
+Once you implement `AdminAuthMiddleware`, also test:
+- Accessing delete route without login → Should redirect to login
+- Accessing as non-admin user → Should be blocked
+:::
+
+---
