@@ -239,17 +239,6 @@ Add code to generate a safe filename:
 - `uniqid('prefix')` generates a unique ID based on current time in microseconds
 - Example output: `upload_67a3f2b4c5e1d.jpg`
 
-<details>
-<summary>Click to see solution</summary>
-
-```php
-// Generate safe filename
-$extension = pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION);
-$filename = uniqid($filenamePrefix) . '.' . $extension;
-```
-
-</details>
-
 ---
 
 #### Step 2.5: Create Directory and Save File
@@ -285,34 +274,6 @@ Add code to create the directory (if needed) and save the file:
 - `DIRECTORY_SEPARATOR` is a PHP constant for the OS-specific directory separator
 - `moveTo()` moves the uploaded file from temp location to permanent location
 - Always use try-catch when moving files (could fail due to permissions, disk space, etc.)
-
-<details>
-<summary>Click to see solution</summary>
-
-```php
-// Create directory if it doesn't exist
-if (!is_dir($directory)) {
-    // Note: 0755 permissions work on Unix/Linux/Mac, ignored on Windows
-    if (!mkdir($directory, 0755, true)) {
-        return Result::failure('Failed to create upload directory');
-    }
-}
-
-// Build full file path
-$destination = $directory . DIRECTORY_SEPARATOR . $filename;
-
-// Move uploaded file to permanent location
-try {
-    $uploadedFile->moveTo($destination);
-} catch (\Exception $e) {
-    return Result::failure('Failed to save uploaded file: ' . $e->getMessage());
-}
-
-// Return success with filename
-return Result::success('File uploaded successfully', ['filename' => $filename]);
-```
-
-</details>
 
 ---
 
@@ -400,7 +361,7 @@ Before creating the form, understand these essential attributes:
                 <h5>Upload an Image</h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="/upload" enctype="multipart/form-data">
+                <form method="POST" action="upload" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="myfile" class="form-label">Choose a file:</label>
                         <input
@@ -439,7 +400,7 @@ Before creating the form, understand these essential attributes:
 
 ### Step 4: Create the UploadController (Server-Side)
 
-**Objective:** Create a controller class to handle file upload requests using the BaseController pattern.
+**Objective:** Create a controller class to handle file upload requests using the `BaseController` pattern.
 
 **Why use a controller?**
 
