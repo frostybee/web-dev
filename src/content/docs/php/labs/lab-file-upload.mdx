@@ -429,21 +429,16 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 class UploadController extends BaseController
 {
-    public function __construct(Container $container)
-    {
-        parent::__construct($container);
-    }
+    //TODO: Add a constructor that calls the parent constructor.
 
     /**
      * Display the upload form.
      */
     public function index(Request $request, Response $response, array $args): Response
     {
-        $data = [
-            'title' => 'File Upload Demo'
-        ];
+        // TODO: Create a $data array with 'title' => 'File Upload Demo'
 
-        return $this->render($response, 'upload/uploadView.php', $data);
+        // TODO: Render the 'upload/uploadView.php' view and pass the data array to that view.
     }
 
     /**
@@ -451,41 +446,27 @@ class UploadController extends BaseController
      */
     public function upload(Request $request, Response $response, array $args): Response
     {
-        // Get the uploaded file from the request.
-        $uploadedFiles = $request->getUploadedFiles();
-        $uploadedFile = $uploadedFiles['myfile'];
+        // TODO: Get the uploaded files from the request using getUploadedFiles()
+        // TODO: Extract the 'myfile' uploaded file from the array
 
-        // Configure upload settings.
-        $config = [
-            'directory' => __DIR__ . '/../../public/uploads/images',
-            'allowedTypes' => ['image/jpeg', 'image/png', 'image/gif'],
-            'maxSize' => 2 * 1024 * 1024, // 2MB in bytes
-            'filenamePrefix' => 'upload_'
-        ];
+        // TODO: Create a $config array with the following settings:
+        //       - 'directory' => Use APP_BASE_DIR_PATH constant + '/public/uploads/images'
+        //       - 'allowedTypes' => ['image/jpeg', 'image/png', 'image/gif']
+        //       - 'maxSize' => 2 * 1024 * 1024 (2MB in bytes)
+        //       - 'filenamePrefix' => 'upload_'
 
-        // Use the helper to handle the upload.
-        $result = FileUploadHelper::upload($uploadedFile, $config);
+        // TODO: Call FileUploadHelper::upload() with the uploaded file and config
 
-        // Handle the result.       
-        if ($result->isSuccess()) {
-            // Get the filename from the result data.
-            $filename = $result->getData()['filename'];
+        // TODO: Check if the result is successful using isSuccess()
+        // If successful:
+        //   - TODO: Get the filename from the result data using getData()['filename']
+        //   - TODO: Use SessionManager to check if 'uploaded_files' exists, if not initialize it as an empty array
+        //   - TODO: Get the current 'uploaded_files' array from SessionManager, add the new filename, and save it back
+        //   - TODO: Display a success message using FlashMessage::success() with the result message and filename
+        // If not successful:
+        //   - TODO: Display an error message using FlashMessage::error() with the result message
 
-            // Store filename in session for display.
-            if (!isset($_SESSION['uploaded_files'])) {
-                $_SESSION['uploaded_files'] = [];
-            }
-            $_SESSION['uploaded_files'][] = $filename;
-
-            // Show success message.
-            FlashMessage::success($result->getMessage() . ": {$filename}");
-        } else {
-            // Show error message.   
-            FlashMessage::error($result->getMessage());
-        }
-
-        // Redirect back to the upload form using BaseController method.
-        return $this->redirect($request, $response, 'upload.index');
+        // TODO: Redirect back to 'upload.index' using the redirect() method
     }
 }
 ```
@@ -517,9 +498,11 @@ use App\Controllers\UploadController;
 3. Add the following routes:
 
 ```php
-// File upload routes
-$app->get('/upload', [UploadController::class, 'index'])->setName('upload.index');
-$app->post('/upload', [UploadController::class, 'upload'])->setName('upload.process');
+// TODO: Create a GET route for '/upload' that maps to UploadController::class 'index' method
+//       Set the route name to 'upload.index'
+
+// TODO: Create a POST route for '/upload' that maps to UploadController::class 'upload' method
+//       Set the route name to 'upload.process'
 ```
 
 4. Save the file.
@@ -554,7 +537,7 @@ $app->post('/upload', [UploadController::class, 'upload'])->setName('upload.proc
             <div class="col-md-4 mb-3">
                 <div class="card">
                     <img
-                        src="/uploads/images/<?= htmlspecialchars($filename) ?>"
+                        src="<?= APP_BASE_URL ?>/public/uploads/images/<?= htmlspecialchars($filename) ?>"
                         class="card-img-top"
                         alt="Uploaded image"
                         style="height: 200px; object-fit: cover;">
@@ -589,7 +572,7 @@ $app->post('/upload', [UploadController::class, 'upload'])->setName('upload.proc
 **Instructions:**
 
 1. Start your development server (if not already running)
-2. Visit `http://localhost/[your-app-name]/upload` in your browser
+2. Visit `http://localhost/[your-app-folder-name]/upload` in your browser
 3. Test the following scenarios:
 
 **Test Case 1: Valid Image Upload**
@@ -701,12 +684,12 @@ FileUploadHelper::upload(UploadedFileInterface $uploadedFile, array $config): Re
 
 **Configuration Options:**
 
-| Option | Type | Required | Description | Example |
-|--------|------|----------|-------------|---------|
-| `directory` | string | Yes | Upload directory path | `__DIR__ . '/public/uploads/images'` |
-| `allowedTypes` | array | Yes | Allowed media types | `['image/jpeg', 'image/png']` |
-| `maxSize` | int | Yes | Max size in bytes | `2 * 1024 * 1024` (2MB) |
-| `filenamePrefix` | string | No | Filename prefix | `'upload_'` (default) |
+| Option           | Type   | Required | Description           | Example                                      |
+| ---------------- | ------ | -------- | --------------------- | -------------------------------------------- |
+| `directory`      | string | Yes      | Upload directory path | APP_BASE_DIR_PATH . '/public/uploads/images'` |
+| `allowedTypes`   | array  | Yes      | Allowed media types   | `['image/jpeg', 'image/png']`                |
+| `maxSize`        | int    | Yes      | Max size in bytes     | `2 * 1024 * 1024` (2MB)                      |
+| `filenamePrefix` | string | No       | Filename prefix       | `'upload_'` (default)                        |
 
 **Return Value:**
 
@@ -718,7 +701,7 @@ Returns a `Result` object that either:
 
 ```php
 $result = FileUploadHelper::upload($uploadedFile, [
-    'directory' => __DIR__ . '/uploads',
+    'directory' => APP_BASE_DIR_PATH . '/public/uploads',
     'allowedTypes' => ['image/jpeg', 'image/png'],
     'maxSize' => 2 * 1024 * 1024,
     'filenamePrefix' => 'avatar_'
@@ -769,11 +752,13 @@ if ($result->isSuccess()) {
 
 ### Benefits of the File Upload Helper Class
 
+The general idea is to have a helper class that can be used to upload files to a specific directory. The helper class will validate the file, check the file size, check the file type, and generate a unique filename. The helper class will then move the file to the specific directory.
+
 **Code Reusability:**
 ```php
 // Use the same helper for profile pictures
 $result = FileUploadHelper::upload($file, [
-    'directory' => __DIR__ . '/uploads/avatars',
+    'directory' => App_BASE_DIR_PATH . '/public/uploads/avatars',
     'allowedTypes' => ['image/jpeg', 'image/png'],
     'maxSize' => 1 * 1024 * 1024,
     'filenamePrefix' => 'avatar_'
@@ -781,7 +766,7 @@ $result = FileUploadHelper::upload($file, [
 
 // Use it for document uploads
 $result = FileUploadHelper::upload($file, [
-    'directory' => __DIR__ . '/uploads/docs',
+    'directory' => APP_BASE_DIR_PATH . '/public/uploads/docs',
     'allowedTypes' => ['application/pdf'],
     'maxSize' => 5 * 1024 * 1024,
     'filenamePrefix' => 'doc_'
