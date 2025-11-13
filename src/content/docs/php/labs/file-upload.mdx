@@ -16,10 +16,12 @@ sidebar:
 
 ---
 
-## Part 1: Create the HTML Upload Form 
+## The File Upload Process
+
+### Step 1: Create the HTML Upload Form 
 The process begins on the client-side with an HTML form. This form is what allows the user to select a file from their computer and send it to your server.
 
-### Critical Requirements
+#### Critical Requirements
 
 The **required** attributes and HTML element for file upload forms:
 
@@ -28,7 +30,7 @@ The **required** attributes and HTML element for file upload forms:
 3.  **`<input type="file">`** - This is the specific HTML element that creates the file-selection browser interface.
 3.  **`name` attribute** - The `name` you give the file input (e.g., `name="userfile"`) is the key you will use to identify and access the file on the server.
 
-### Example
+#### Example
 
 ```html
 <form action="/upload" method="POST" enctype="multipart/form-data">
@@ -40,7 +42,10 @@ The **required** attributes and HTML element for file upload forms:
 
 ---
 
-### The $_FILES Superglobal
+### Step 2: Handling Uploads on the Server
+
+
+#### The $_FILES Superglobal 
 
 When PHP receives an uploaded file, it populates the `$_FILES` superglobal array with information about the file:
 
@@ -58,20 +63,20 @@ $_FILES['profile_picture'] = [
 
 ---
 
-## Part 2: Handling Uploads in Slim
+#### Handling Uploads in Slim
 
 Slim uses **PSR-7** which provides a clean, object-oriented interface instead of the messy `$_FILES` global array.
 
-### Accessing Files
+#### Accessing Files
+
+To access the uploaded file, you need to use the `getUploadedFiles()` method on the request object. This will return an associative array of `UploadedFileInterface` objects.
 
 ```php
 $uploadedFiles = $request->getUploadedFiles();
 $uploadedFile = $uploadedFiles['userfile'] ?? null;
 ```
 
----
-
-### UploadedFile Object Methods
+#### UploadedFile Object Methods
 
 * `getError()` - Returns upload error code. `UPLOAD_ERR_OK` (0) = success
 * `getSize()` - Returns file size in bytes
@@ -81,11 +86,11 @@ $uploadedFile = $uploadedFiles['userfile'] ?? null;
 
 ---
 
-## Part 3: Validation
+### Step 3: Validation
 
 **Never trust user input.** You must validate every file.
 
-### What to Check
+#### What to Check
 
 1. **Upload Errors:** Check `$uploadedFile->getError() === UPLOAD_ERR_OK`
 2. **File Size:** Compare `$uploadedFile->getSize()` against your maximum allowed size
@@ -93,11 +98,11 @@ $uploadedFile = $uploadedFiles['userfile'] ?? null;
 
 ---
 
-## Part 4: Moving Files
+### Step 4: Moving Files
 
 PHP stores uploaded files in a **temporary directory** that gets deleted when the script finishes. You must move files to permanent storage.
 
-### Key Points
+#### Key Points
 
 * **Create uploads directory** with proper write permissions
 * **Sanitize filenames** - The user's filename could be malicious (e.g., `../../etc/passwd`)
@@ -106,11 +111,11 @@ PHP stores uploaded files in a **temporary directory** that gets deleted when th
 
 ---
 
-## Part 5: Security is Not Optional! 
+### Step 5: Security is Not Optional! 
 
 Accepting any file without validation is a **massive security hole**. A malicious user could upload a PHP shell and take over your server.
 
-### Secure Process
+#### Secure Process
 
 1. **Check for Upload Errors** - Always verify `getError()` first
 2. **Safe Directory** - Store uploads **outside** your web root (the `public` folder) to prevent execution
@@ -122,8 +127,11 @@ Accepting any file without validation is a **massive security hole**. A maliciou
 
 ---
 
-## Complete Flow Diagram
-```
+### Complete Flow Diagram
+
+Below is a complete flow diagram of the file upload process.
+
+```text title="File Upload Process"
 User clicks Upload
        ↓
 Browser sends POST with file data
