@@ -1,7 +1,7 @@
 ---
 title: 'Lab: User Registration System (Part 1)'
 description: 'Implement secure user registration with password hashing and validation'
-draft: true
+draft: false
 sidebar:
   label: 'Lab: User Registration (Part 1)'
   order: 1
@@ -112,17 +112,14 @@ public function createUser(array $data): int
     // TODO: Hash the password using password_hash() with PASSWORD_BCRYPT
     //       Store the result in $hashedPassword variable
 
-    // TODO: Write an INSERT SQL query with named parameters
-    //       INSERT INTO users (first_name, last_name, username, email, password_hash, role)
-    //       VALUES (:first_name, :last_name, :username, :email, :password_hash, :role)
+    // TODO: Write an INSERT SQL query to insert a new user into the users table
+    //       Insert: first_name, last_name, username, email, password_hash, role
+    //       Use named parameters (e.g., :first_name, :last_name, etc.)
 
-    // TODO: Create a $params array with the following keys:
-    //       ':first_name', ':last_name', ':username', ':email', ':password_hash', ':role'
-    //       Use $data array values and $hashedPassword for password_hash
+    // TODO: Execute the query with appropriate parameters
+    //       Use $hashedPassword for the password_hash field
 
-    // TODO: Execute the query using $this->execute($query, $params)
-
-    // TODO: Return the last inserted ID using $this->lastInsertId()
+    // TODO: Return the last inserted ID
 }
 ```
 
@@ -147,15 +144,11 @@ public function createUser(array $data): int
  */
 public function findByEmail(string $email): ?array
 {
-    // TODO: Write a SELECT SQL query with a WHERE clause
-    //       SELECT * FROM users WHERE email = :email LIMIT 1
+    // TODO: Write a SELECT SQL query to find a user by email
+    //       Select all columns from the users table where email matches
+    //       Use named parameter :email and LIMIT 1
 
-    // TODO: Create a $params array with ':email' => $email
-
-    // TODO: Use $this->selectOne($query, $params) to fetch the user
-    //       Store the result in a variable
-
-    // TODO: Return the result (will be array or null)
+    // TODO: Execute the query and return the result
 }
 ```
 
@@ -176,14 +169,11 @@ public function findByEmail(string $email): ?array
  */
 public function findByUsername(string $username): ?array
 {
-    // TODO: Write a SELECT SQL query similar to findByEmail()
-    //       SELECT * FROM users WHERE username = :username LIMIT 1
+    // TODO: Write a SELECT SQL query to find a user by username
+    //       Select all columns from the users table where username matches
+    //       Use named parameter :username and LIMIT 1
 
-    // TODO: Create a $params array with ':username' => $username
-
-    // TODO: Use $this->selectOne($query, $params) to fetch the user
-
-    // TODO: Return the result
+    // TODO: Execute the query and return the result
 }
 ```
 
@@ -202,15 +192,11 @@ public function findByUsername(string $username): ?array
  */
 public function emailExists(string $email): bool
 {
-    // TODO: Write a SELECT COUNT(*) query
-    //       SELECT COUNT(*) as count FROM users WHERE email = :email
+    // TODO: Write a SELECT COUNT(*) query to count users with the given email
+    //       Alias the count as 'count'
+    //       Use named parameter :email
 
-    // TODO: Create a $params array with ':email' => $email
-
-    // TODO: Use $this->selectOne($query, $params) to fetch the result
-
-    // TODO: Return true if count > 0, false otherwise
-    //       Hint: return $result['count'] > 0;
+    // TODO: Execute the query and return true if count > 0, false otherwise
 }
 
 /**
@@ -221,14 +207,11 @@ public function emailExists(string $email): bool
  */
 public function usernameExists(string $username): bool
 {
-    // TODO: Write a SELECT COUNT(*) query similar to emailExists()
-    //       SELECT COUNT(*) as count FROM users WHERE username = :username
+    // TODO: Write a SELECT COUNT(*) query to count users with the given username
+    //       Alias the count as 'count'
+    //       Use named parameter :username
 
-    // TODO: Create a $params array with ':username' => $username
-
-    // TODO: Use $this->selectOne($query, $params) to fetch the result
-
-    // TODO: Return true if count > 0, false otherwise
+    // TODO: Execute the query and return true if count > 0, false otherwise
 }
 ```
 

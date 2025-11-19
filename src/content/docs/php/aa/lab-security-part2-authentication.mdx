@@ -1,7 +1,7 @@
 ---
 title: 'Lab: Login & Authentication System (Part 2)'
 description: 'Implement login, sessions, middleware, and role-based access control'
-draft: true
+draft: false
 sidebar:
   label: 'Lab: Authentication (Part 2)'
   order: 2
@@ -17,11 +17,11 @@ sidebar:
 
 ## Overview
 
-In this lab, you'll implement authentication and authorization for your e-commerce application. Building on Part 1 (User Registration), you'll create login functionality, manage user sessions, protect routes with middleware, and implement role-based access control.
+In this lab, you'll implement authentication and authorization for your e-commerce application. Building on **Part 1** (User Registration), you'll create login functionality, manage user sessions, protect routes with middleware, and implement role-based access control.
 
 Your e-commerce site has two protected areas:
-1. **Admin Panel** - Only administrators can access (from Assignment 2)
-2. **Checkout Process** - Only logged-in customers can checkout items from their cart
+1. **Admin Panel**: Only administrators can access (from Assignment 2)
+2. **Checkout Process**: Only logged-in customers can checkout items from their cart
 
 **Authentication** answers: "Who are you?" (verifying identity with email/password)
 **Authorization** answers: "What can you do?" (checking permissions and roles)
@@ -191,6 +191,8 @@ Create `app/Views/auth/login.php`:
 
 **Objective:** Implement authentication process in AuthController.
 
+The AuthController handles user authentication by processing login requests, verifying credentials against the database, managing user sessions, and redirecting users based on their roles (admin vs. customer).
+
 Open `app/Controllers/AuthController.php` and add:
 
 ```php
@@ -268,6 +270,8 @@ public function logout(Request $request, Response $response, array $args): Respo
 
 **Objective:** Protect routes by checking if user is logged in.
 
+AuthMiddleware acts as a gatekeeper for protected routes by intercepting requests, checking if a user is authenticated (logged in), and either allowing access or redirecting to the login page.
+
 Create `app/Middleware/AuthMiddleware.php`:
 
 ```php title="app/Middleware/AuthMiddleware.php"
@@ -318,6 +322,8 @@ class AuthMiddleware implements MiddlewareInterface
 ## Step 5: Create AdminAuthMiddleware
 
 **Objective:** Protect admin routes by checking authentication AND admin role.
+
+AdminAuthMiddleware provides enhanced protection for admin-only routes by performing two checks: verifying the user is logged in AND confirming they have the admin role, preventing regular customers from accessing administrative functions.
 
 Create `app/Middleware/AdminAuthMiddleware.php`:
 
@@ -452,15 +458,31 @@ public function dashboard(Request $request, Response $response, array $args): Re
 
 ## Step 7: Register All Routes
 
-**Objective:** Map URLs to controller methods and apply middleware.
+**Objective:** Map URLs to controller methods and apply middleware protection.
 
-Open `app/Routes/web-routes.php` and add:
+Some routes require authentication, some do not. You will need to apply the appropriate middleware to the routes.
+
+Open `app/Routes/web-routes.php` and follow the steps below.
+
+---
+
+### 7.1 Import Required Classes
+
+Add these imports at the top of your routes file:
 
 ```php
 use App\Controllers\AuthController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\AdminAuthMiddleware;
+```
 
+---
+
+### 7.2 Register Public Routes
+
+> The following routes must remain public: they don't require authentication and anyone can access them.
+
+```php
 // Public routes (no authentication required)
 // TODO: Create a GET route for '/login' that maps to AuthController::class 'login' method
 //       Set the route name to 'auth.login'
@@ -469,24 +491,76 @@ use App\Middleware\AdminAuthMiddleware;
 
 // TODO: Create a GET route for '/logout' that maps to AuthController::class 'logout' method
 //       Set the route name to 'auth.logout'
+```
 
+**What these routes do:**
+- `GET /login` → Displays the login form
+- `POST /login` → Processes the login form submission
+- `GET /logout` → Logs out the user and destroys the session
+
+**Why no middleware applied?** These are public routes. Users must be able to access the login page without being logged in.
+
+---
+
+### 7.3 Register Protected User Dashboard Route
+
+This route requires authentication but is available to all logged-in users.
+
+```php
 // Protected routes (authentication required for customers)
 // TODO: Create a GET route for '/dashboard' that maps to AuthController::class 'dashboard' method
 //       Set the route name to 'user.dashboard'
 //       Apply AuthMiddleware using ->add(AuthMiddleware::class)
+```
 
-// TODO: Protect your checkout routes (customers must be logged in to checkout)
-//       Apply AuthMiddleware to checkout-related routes:
-//       $app->get('/checkout', [CartController::class, 'checkout'])->add(AuthMiddleware::class);
-//       $app->post('/checkout', [CartController::class, 'processCheckout'])->add(AuthMiddleware::class);
-//       $app->get('/orders/confirmation', [OrdersController::class, 'confirmation'])->add(AuthMiddleware::class);
+**Example implementation:**
+```php
+$app->get('/dashboard', [AuthController::class, 'dashboard'])
+    ->setName('user.dashboard')
+    ->add(AuthMiddleware::class);
+```
+
+**How middleware works:**
+- AuthMiddleware checks if user is logged in (checks session)
+- If not logged in → redirect to login page
+- If logged in → allow access to dashboard
+
+---
+
+### 7.4 Protect Checkout Routes (Optional - If You Have Checkout Features)
+
+Customers must be logged in to checkout and place orders. Use a route group to apply AuthMiddleware to all checkout-related routes.
+
+```php
+// TODO: Create a route group for '/checkout' and apply AuthMiddleware
+//       Group should contain:
+//       - GET '' (empty string for /checkout) → CartController::class 'checkout' method
+//       - POST '' (empty string for /checkout) → CartController::class 'processCheckout' method
 //
-//       Or use a route group for all checkout routes:
+//       Example structure:
 //       $app->group('/checkout', function ($group) {
 //           $group->get('', [CartController::class, 'checkout']);
 //           $group->post('', [CartController::class, 'processCheckout']);
 //       })->add(AuthMiddleware::class);
+```
 
+**Why use a route group?**
+- Applies middleware to multiple routes at once (DRY principle)
+- Easier to maintain - add/remove routes from protection in one place
+- Groups related routes together logically
+
+**Why protect checkout?**
+- Prevents anonymous users from placing orders
+- Ensures user identity for order tracking
+- Required for associating orders with user accounts
+
+---
+
+### 7.5 Protect Admin Routes
+
+Apply AdminAuthMiddleware to all admin panel routes.
+
+```php
 // Admin routes (authentication + admin role required)
 // TODO: Apply AdminAuthMiddleware to your existing admin route group from Assignment 2
 //       Find your '/admin' route group and add ->add(AdminAuthMiddleware::class) at the end
@@ -500,10 +574,16 @@ use App\Middleware\AdminAuthMiddleware;
 //           $group->get('/orders', [OrdersController::class, 'index']);
 //           // ... your other admin routes from Assignment 2
 //       })->add(AdminAuthMiddleware::class);  // <- Add this middleware to protect all admin routes
-//
-//       Important: Make sure your admin dashboard route has the name 'admin.dashboard'
-//       so that the login redirect works correctly for admin users.
 ```
+
+**Important notes:**
+- Make sure your admin dashboard route has the name `'admin.dashboard'` so the login redirect works correctly for admin users
+- AdminAuthMiddleware checks BOTH authentication AND admin role
+- Regular customers will be denied access even if logged in
+
+**How AdminAuthMiddleware differs from AuthMiddleware:**
+- **AuthMiddleware:** Checks if user is logged in (any user)
+- **AdminAuthMiddleware:** Checks if user is logged in AND has admin role
 
 ---
 
