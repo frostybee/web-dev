@@ -1,0 +1,902 @@
+---
+title: Login System
+description: Building a secure user login system with PHP
+draft: true
+sidebar:
+  label: 'Login System'
+  order: 1
+---
+
+# Building a Secure Login System
+
+A comprehensive guide to user authentication in web applications
+
+---
+
+## What is a Login System?
+
+A **login system** is a security mechanism that:
+- Verifies user identity (Authentication)
+- Controls access to resources (Authorization)
+- Maintains user sessions across requests
+- Protects sensitive information
+
+**Real-world analogy:** Think of a building with a security desk:
+- **Registration** = Getting an ID card
+- **Login** = Showing your ID to enter
+- **Session** = Wearing a visitor badge while inside
+- **Logout** = Returning your badge and leaving
+
+---
+
+## Core Components Overview
+
+A complete login system has **three main components**:
+
+1. **User Registration** (Sign Up)
+   - Creating new user accounts
+   - Collecting user information
+   - Secure password storage
+
+2. **User Login** (Sign In)
+   - Verifying user credentials
+   - Creating authenticated sessions
+   - Managing user state
+
+3. **User Logout** (Sign Out)
+   - Destroying sessions
+   - Clearing user state
+   - Security cleanup
+
+---
+
+## Authentication vs Authorization
+
+### Authentication
+**"Who are you?"**
+- Verifying user identity
+- Checking credentials (email + password)
+- Creating sessions after successful login
+
+### Authorization
+**"What can you do?"**
+- Checking user permissions
+- Role-based access control (Admin vs Customer)
+- Protecting specific resources
+
+**Example:**
+- **Authentication**: User logs in with email/password ✅
+- **Authorization**: Admin users can access `/admin/dashboard` ✅, Regular users cannot ❌
+
+---
+
+# Part 1: User Registration
+
+Creating new user accounts securely
+
+---
+
+## User Registration Overview
+
+**What is user registration?**
+
+The process of creating a new user account in the system.
+
+**Key steps:**
+1. User fills out registration form
+2. Server validates input data
+3. Server hashes the password
+4. Server stores user in database
+5. User redirected to login page
+
+**Security principle:** NEVER store passwords in plain text!
+
+---
+
+## Registration Form Structure
+
+**Required fields for user registration:**
+
+- **First Name & Last Name** - Personalization
+- **Username** - Alternative login identifier
+- **Email** - Primary identifier, communication
+- **Password** - Authentication credential
+- **Confirm Password** - Prevent typos
+
+**Why email AND username?**
+- Flexibility: users can log in with either
+- Email for communication
+- Username for privacy (don't expose email publicly)
+
+---
+
+## Registration Validation Rules
+
+**Server-side validation is critical!**
+
+| Validation | Why It Matters |
+|------------|----------------|
+| **Required fields** | Ensure data completeness |
+| **Email format** | Must be valid email syntax |
+| **Email uniqueness** | Prevent duplicate accounts |
+| **Username uniqueness** | Prevent duplicate identifiers |
+| **Password length** | Minimum 8 characters for security |
+| **Password complexity** | Require numbers/special characters |
+| **Password match** | Confirm password typed correctly |
+
+**Remember:** Never trust client-side validation alone! Always validate on the server.
+
+---
+
+## Password Security: The Problem
+
+**Why NEVER store passwords in plain text:**
+
+**What happens if database is compromised?**
+- ❌ Attacker sees all passwords immediately
+- ❌ Users who reuse passwords are compromised everywhere
+- ❌ Your business reputation is destroyed
+- ❌ Legal liability (GDPR, data protection laws)
+
+**The solution: Password Hashing** 🔐
+
+---
+
+## Password Hashing: The Solution
+
+**What is hashing?**
+
+A **one-way mathematical function** that converts passwords into unreadable fixed-length strings.
+
+**Key properties:**
+- ✅ **One-way**: Cannot reverse hash back to password
+- ✅ **Unique**: Same password generates different hashes (salt)
+- ✅ **Slow**: Intentionally slow to prevent brute-force attacks
+- ✅ **Future-proof**: PHP upgrades to stronger algorithms automatically
+
+**Example:**
+- Input: `"myPassword123"`
+- Output: `$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi`
+
+**Critical:** The original password is NEVER stored anywhere!
+
+---
+
+## How Password Hashing Works
+
+**During Registration:**
+
+1. User types password: `"myPassword123"`
+2. Server hashes it using `password_hash()`: `$2y$10$92IXU...`
+3. Server stores ONLY the hash in database
+4. Original password is discarded immediately
+
+**Why each hash is unique (even for same password):**
+- PHP automatically adds a **salt** (random data)
+- Salt is embedded in the hash itself
+- Makes rainbow table attacks impossible
+
+**You'll implement this in the lab using PHP's `password_hash()` function!**
+
+---
+
+## Registration Flow Diagram
+
+```
+┌─────────────────┐
+│  User fills     │
+│  registration   │
+│  form           │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Validate input │
+│  - Required?    │
+│  - Valid email? │
+│  - Unique?      │
+│  - Strong pwd?  │
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    │         │
+    ▼         ▼
+  ✅ Valid   ❌ Invalid
+    │         │
+    │         └──→ Show errors,
+    │              redirect back
+    │
+    ▼
+┌─────────────────┐
+│  Hash password  │
+│  using bcrypt   │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  INSERT into    │
+│  users table    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Redirect to    │
+│  /login         │
+└─────────────────┘
+```
+
+---
+
+## Database Schema for Users
+
+**Users table structure:**
+
+**Identity:**
+- `id` - Primary key, auto-increment
+
+**User Information:**
+- `first_name`, `last_name` - User's name
+- `username` - Unique username
+- `email` - Unique email (UNIQUE constraint)
+
+**Authentication:**
+- `password_hash` - Bcrypt hash (VARCHAR 255)
+
+**Authorization:**
+- `role` - ENUM('admin', 'customer')
+
+**Audit:**
+- `created_at`, `updated_at` - Timestamps
+
+**Key points:**
+- `UNIQUE` constraints prevent duplicates
+- `VARCHAR(255)` for password_hash (bcrypt needs ~60, but 255 is future-proof)
+- `ENUM` for role restricts values to valid options
+
+---
+
+## Registration Security Checklist
+
+**Before registration completes, verify:**
+
+- ✅ All required fields present
+- ✅ Email format is valid
+- ✅ Email doesn't already exist in database
+- ✅ Username doesn't already exist in database
+- ✅ Password meets minimum length (8+ characters)
+- ✅ Password contains required complexity (numbers, special chars)
+- ✅ Password matches confirmation field
+- ✅ Password is hashed using `password_hash()`
+- ✅ SQL uses prepared statements (prevent injection)
+- ✅ Output is escaped in views (prevent XSS)
+
+**Security principle:** Defense in depth - multiple layers of protection!
+
+---
+
+# Part 2: User Login
+
+Authenticating existing users
+
+---
+
+## User Login Overview
+
+**What is user login?**
+
+The process of verifying a user's identity and granting access to the system.
+
+**Key steps:**
+1. User submits credentials (email/username + password)
+2. Server looks up user in database
+3. Server verifies password against stored hash
+4. If valid, server creates a session
+5. User is redirected to protected page
+
+**Security principle:** Never reveal whether email/username exists!
+
+---
+
+## Login Form Design
+
+**Simplified login form approach:**
+
+Use a single **"identifier"** field that accepts:
+- Email address, OR
+- Username
+
+Plus a **password** field.
+
+**Why this design?**
+- Better user experience (users choose their preferred method)
+- Single field instead of two separate forms
+- Flexibility without complexity
+
+---
+
+## Password Verification
+
+**How to verify passwords?**
+
+Use `password_verify()` - NEVER compare hashes directly!
+
+**❌ WRONG approaches:**
+
+1. Comparing plain text to hash: `$password === $hash` (Never works!)
+2. Hashing input and comparing: `password_hash($input) === $hash` (Each hash is unique due to salt!)
+3. Comparing two hashes: `$hash1 === $hash2` (Won't work!)
+
+**✅ CORRECT approach:**
+
+Use `password_verify($plainPassword, $storedHash)`
+
+**Why password_verify()?**
+- Handles salt extraction automatically
+- Constant-time comparison (prevents timing attacks)
+- Works with any hashing algorithm PHP supports
+
+---
+
+## Login Authentication Process
+
+**How authentication works:**
+
+1. **Find user** - Try to find user by email first, then by username
+2. **Check if found** - If not found, return null (invalid credentials)
+3. **Verify password** - Use `password_verify()` to compare
+4. **Return result** - If password matches, return user data; otherwise return null
+
+**Security note:** Always return `null` for ANY authentication failure!
+
+**Why not reveal specific errors?**
+- Don't say "Email not found" (reveals email doesn't exist)
+- Don't say "Wrong password" (reveals email DOES exist)
+- Always say "Invalid credentials" (reveals nothing)
+
+This prevents **user enumeration attacks**.
+
+---
+
+## Session Management
+
+**What are sessions?**
+
+A way to maintain user state across multiple HTTP requests.
+
+**Without sessions:**
+```
+Request 1: User logs in ✅
+Request 2: User visits /dashboard ❌ (Who are you? Login again!)
+Request 3: User visits /profile ❌ (Who are you? Login again!)
+```
+
+**With sessions:**
+```
+Request 1: User logs in ✅ Session created
+Request 2: User visits /dashboard ✅ (Session remembers user)
+Request 3: User visits /profile ✅ (Session remembers user)
+```
+
+**HTTP is stateless** - sessions solve this by storing user data server-side and using a session ID cookie.
+
+---
+
+## What Sessions Store
+
+**After successful login, store in session:**
+
+- **user_id** - Database ID
+- **user_email** - Email address
+- **user_name** - Full name for display
+- **user_role** - For authorization (admin/customer)
+- **is_authenticated** - Boolean flag (true = logged in)
+
+**Why store this data?**
+- Avoid database queries on every request
+- Quick access to user information
+- Enable role-based access control
+
+**Security:** Session data is stored server-side, only session ID goes to browser!
+
+---
+
+## Login Flow Diagram
+
+```
+┌─────────────────┐
+│  User enters    │
+│  email/username │
+│  + password     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Validate input │
+│  (required?)    │
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    │         │
+    ▼         ▼
+  Valid    Invalid
+    │         │
+    │         └──→ Show error,
+    │              redirect back
+    ▼
+┌─────────────────┐
+│  Find user by   │
+│  email/username │
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    │         │
+    ▼         ▼
+  Found    Not Found
+    │         │
+    │         └──→ "Invalid credentials"
+    ▼              redirect back
+┌─────────────────┐
+│  Verify password│
+│  password_verify│
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    │         │
+    ▼         ▼
+  Match    No Match
+    │         │
+    │         └──→ "Invalid credentials"
+    │              redirect back
+    ▼
+┌─────────────────┐
+│  Create session │
+│  - user_id      │
+│  - user_role    │
+│  - is_auth=true │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Redirect based │
+│  on role:       │
+│  Admin → /admin │
+│  User → /dash   │
+└─────────────────┘
+```
+
+---
+
+## Protecting Routes with Middleware
+
+**What is middleware?**
+
+Code that runs **before** your route handler, acting as a gatekeeper.
+
+**How it works:**
+
+```
+User Request → Middleware → Route Handler → Response
+                   ↓
+            Check session
+                   ↓
+          Is authenticated?
+            ↙         ↘
+          Yes         No
+           ↓           ↓
+     Continue    Redirect to login
+```
+
+**AuthMiddleware checks:**
+- Is session variable `is_authenticated` set to `true`?
+- If yes → allow access to route
+- If no → redirect to login page with error message
+
+---
+
+## Role-Based Access Control (RBAC)
+
+**What is RBAC?**
+
+Restricting access based on user roles (admin, customer, etc.)
+
+**Two levels of protection:**
+
+1. **AuthMiddleware** - Checks if user is logged in (any role)
+2. **AdminAuthMiddleware** - Checks if user is logged in AND has admin role
+
+**AdminAuthMiddleware logic:**
+- Not authenticated? → Redirect to login
+- Authenticated but not admin? → Redirect to user dashboard with "Access denied"
+- Authenticated AND admin? → Grant access
+
+---
+
+## Access Control Matrix
+
+**Who can access what?**
+
+| Route | Not Logged In | Customer | Admin |
+|-------|---------------|----------|-------|
+| `/login` | ✅ Allow | ✅ Allow | ✅ Allow |
+| `/register` | ✅ Allow | ✅ Allow | ✅ Allow |
+| `/dashboard` | ❌ → Login | ✅ Allow | ✅ Allow |
+| `/admin/dashboard` | ❌ → Login | ❌ Denied | ✅ Allow |
+| `/admin/users` | ❌ → Login | ❌ Denied | ✅ Allow |
+
+**Implementation:**
+- Public routes → No middleware
+- User routes → AuthMiddleware
+- Admin routes → AdminAuthMiddleware (which also checks authentication)
+
+---
+
+## Login Security Best Practices
+
+**Protect against common attacks:**
+
+### 1. SQL Injection → Use Prepared Statements
+Never concatenate user input into SQL queries!
+
+### 2. Timing Attacks → Consistent Error Messages
+Always return "Invalid credentials" - don't reveal whether user exists.
+
+### 3. Brute Force → Rate Limiting
+Limit login attempts per IP/user (future enhancement).
+
+### 4. Session Hijacking → Secure Session Config
+- `httponly` cookies (prevent JavaScript access)
+- `secure` flag (HTTPS only)
+- `samesite` attribute (CSRF protection)
+- Session ID regeneration
+
+---
+
+# Part 3: User Logout
+
+Safely ending user sessions
+
+---
+
+## User Logout Overview
+
+**What is logout?**
+
+The process of terminating a user's authenticated session and clearing their state.
+
+**Key steps:**
+1. User clicks "Logout" button/link
+2. Server destroys the session
+3. Server clears all session data
+4. User is redirected to login page
+5. Previous session cannot be reused
+
+**Security principle:** Always destroy sessions completely on logout!
+
+---
+
+## Session Destruction Process
+
+**What must happen during logout:**
+
+1. **Unset all session variables** - Clear `$_SESSION` array
+2. **Delete session cookie** - Remove from user's browser
+3. **Destroy session file** - Remove from server storage
+4. **Regenerate session ID** - Prevent session fixation
+
+**This ensures:**
+- ✅ All session data is cleared from memory
+- ✅ Session cookie is deleted from browser
+- ✅ Session file is removed from server
+- ✅ Old session ID cannot be reused
+
+**You'll use `SessionManager::destroy()` which handles all of this!**
+
+---
+
+## Logout Flow Diagram
+
+```
+┌─────────────────┐
+│  User clicks    │
+│  Logout button  │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  GET /logout    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Destroy Session│
+│  - Unset vars   │
+│  - Delete cookie│
+│  - Remove file  │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Show success   │
+│  message        │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Redirect to    │
+│  /login         │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  User logged    │
+│  out completely │
+└─────────────────┘
+```
+
+---
+
+## Post-Logout Security Verification
+
+**After logout, verify:**
+
+1. **Session is destroyed:**
+   - `$_SESSION` should be empty array
+   - New session ID generated if `session_start()` called again
+
+2. **Protected routes are inaccessible:**
+   - Visiting `/dashboard` → should redirect to login
+   - Visiting `/admin/dashboard` → should redirect to login
+
+3. **Session cookie is deleted:**
+   - Check browser DevTools → Application → Cookies
+   - Session cookie should be gone or expired
+
+4. **Back button doesn't expose data:**
+   - Browser cache should not show protected pages
+   - Use cache-control headers to prevent caching
+
+---
+
+## Logout Best Practices
+
+**Security considerations:**
+
+### 1. Use POST for logout (recommended)
+Prevents CSRF logout attacks where attacker logs user out maliciously.
+
+### 2. Regenerate session ID before destroy
+Extra security measure to prevent session fixation.
+
+### 3. Clear sensitive browser data
+Don't store sensitive data in `localStorage` or `sessionStorage`.
+
+### 4. Log logout events (optional)
+Audit trail for security monitoring.
+
+---
+
+# Complete Authentication Lifecycle
+
+End-to-end flow overview
+
+---
+
+## State Transitions
+
+**User journey through authentication states:**
+
+```
+Anonymous User
+      │
+      │ [Register]
+      ▼
+Registration Form → Validation → Hash Password → Database
+      │
+      ▼
+Anonymous User (redirect to login)
+      │
+      │ [Login]
+      ▼
+Login Form → Verify Credentials → Create Session
+      │
+      ▼
+Authenticated User
+      │
+      │ [Access Protected Pages]
+      ▼
+Protected Routes ← Middleware Check ← Session Valid?
+      │
+      │ [Logout]
+      ▼
+Destroy Session → Clear State
+      │
+      ▼
+Anonymous User (redirect to login)
+```
+
+---
+
+## Complete System Overview
+
+**Four main flows:**
+
+### 1. REGISTRATION
+`User → Form → Validation → Hash Password → DB → Login Page`
+
+### 2. LOGIN
+`User → Credentials → Verify → Create Session → Dashboard`
+
+### 3. PROTECTED ACCESS
+`Request → Middleware → Session Check → Allow/Deny`
+
+### 4. LOGOUT
+`User → Destroy Session → Clear State → Login Page`
+
+**All flows work together to create a secure authentication system!**
+
+---
+
+## File Structure
+
+**MVC organization you'll build:**
+
+```
+app/
+├── Controllers/
+│   └── AuthController.php (register, login, logout, dashboard)
+│
+├── Domain/Models/
+│   └── UserModel.php (create, find, authenticate)
+│
+├── Middleware/
+│   ├── SessionMiddleware.php (global session management)
+│   ├── AuthMiddleware.php (login check)
+│   └── AdminAuthMiddleware.php (role check)
+│
+├── Views/
+│   ├── auth/ (register.php, login.php)
+│   └── user/ (dashboard.php)
+│
+└── Routes/
+    └── web-routes.php (route definitions)
+```
+
+---
+
+## Security Layers
+
+**Multiple layers of protection (Defense in Depth):**
+
+| Layer | Protects Against |
+|-------|------------------|
+| **Password Hashing** | Database compromise |
+| **Prepared Statements** | SQL injection |
+| **XSS Protection** | Cross-site scripting |
+| **Input Validation** | Invalid/malicious data |
+| **Session Security** | Session hijacking |
+| **Authentication** | Unauthorized access |
+| **Authorization** | Privilege escalation |
+| **HTTPS** | Man-in-the-middle attacks |
+| **Rate Limiting** | Brute force attacks |
+
+**If one layer fails, others still protect!**
+
+---
+
+## Common Security Mistakes
+
+**DON'T do these:**
+
+### ❌ Storing plain text passwords
+Database compromise = instant access to all passwords
+
+### ❌ Comparing password hashes directly
+Each hash is unique due to salt - comparison always fails
+
+### ❌ Revealing whether user exists
+"Email not found" tells attackers which emails are registered
+
+### ❌ Concatenating SQL queries
+Opens door to SQL injection attacks
+
+### ❌ Trusting client-side validation only
+Users can bypass JavaScript validation easily
+
+### ❌ Using GET for logout
+Vulnerable to CSRF attacks
+
+---
+
+## Testing Scenarios
+
+**What you'll test in the lab:**
+
+### Registration:
+- ✅ Valid data → account created
+- ✅ Duplicate email → error message
+- ✅ Weak password → error message
+- ✅ Password mismatch → error message
+
+### Login:
+- ✅ Valid credentials → logged in
+- ✅ Wrong password → error message
+- ✅ Non-existent email → error message
+
+### Authorization:
+- ✅ Logged in user → can access dashboard
+- ✅ Admin → can access admin dashboard
+- ✅ Customer → cannot access admin dashboard
+
+### Logout:
+- ✅ Session destroyed
+- ✅ Cannot access protected pages after logout
+
+---
+
+## Key Takeaways
+
+**Essential concepts:**
+
+### 1. Authentication ≠ Authorization
+- **Authentication**: Who you are (login)
+- **Authorization**: What you can do (permissions)
+
+### 2. NEVER store plain text passwords
+- Use `password_hash()` for storage
+- Use `password_verify()` for checking
+
+### 3. Security is multi-layered
+- Validation, hashing, prepared statements, XSS protection
+- Defense in depth approach
+
+### 4. Sessions maintain state
+- Store user data after login
+- Check on every protected request
+- Destroy completely on logout
+
+### 5. Middleware protects routes
+- Acts as gatekeeper before route handlers
+- Separates security logic from business logic
+
+---
+
+## What You'll Build in the Lab
+
+**Complete authentication system with:**
+
+1. ✅ User registration with validation
+2. ✅ User login with password verification
+3. ✅ Protected user dashboard
+4. ✅ Admin-only dashboard with RBAC
+5. ✅ Logout functionality
+6. ✅ Flash messages for feedback
+7. ✅ Middleware for route protection
+8. ✅ Security best practices throughout
+
+**The lab provides step-by-step instructions to implement everything discussed in these slides!**
+
+---
+
+# Summary
+
+**Three core components:**
+
+1. **Registration** → Create accounts, hash passwords, validate input
+2. **Login** → Verify credentials, create sessions, redirect users
+3. **Logout** → Destroy sessions, clear state, redirect to login
+
+**Security principles:**
+- Hash passwords with `password_hash()`
+- Verify with `password_verify()`
+- Use prepared statements
+- Validate server-side
+- Protect routes with middleware
+- Implement RBAC for authorization
+
+**Remember:** Security is not a feature, it's a requirement! 🔐
+
+---
+
+# Questions?
+
+Ready to build your authentication system in the lab!

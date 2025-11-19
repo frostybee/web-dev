@@ -1,0 +1,1756 @@
+---
+title: 'Lab Instructions: Implementing User Registration & Authentication (ARCHIVED)'
+description: 'Lab Instructions: Implementing User Registration & Authentication - See Part 1 and Part 2 versions'
+draft: true
+sidebar:
+  label: '[ARCHIVED] Lab: Auth System'
+  order: 99
+  badge:
+    text: Archived
+    variant: caution
+---
+
+:::caution[This lab has been split into two parts]
+This is the archived original version. Please use:
+- **Part 1: User Registration** (order: 1)
+- **Part 2: Login & Authentication** (order: 2)
+:::
+
+## Additional Resources
+
+- [PHP Password Hashing Documentation](https://www.php.net/manual/en/function.password-hash.php)
+- [PHP Password Verification Documentation](https://www.php.net/manual/en/function.password-verify.php)
+- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+- [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
+- [PHP PDO Prepared Statements](https://www.php.net/manual/en/pdo.prepared-statements.php)
+- [PHP filter_var() Documentation](https://www.php.net/manual/en/function.filter-var.php)
+
+## Overview
+
+In this lab, you will implement a complete user authentication system for your Slim 4 application, including user registration, login, logout, and role-based access control. Authentication is one of the most critical features of any web application, allowing users to create accounts, securely log in, and access protected resources based on their permissions.
+
+By the end of this lab, you'll have a fully functional authentication system that:
+- Allows users to register new accounts with secure password storage
+- Validates user input to prevent security vulnerabilities
+- Authenticates users during login using password verification
+- Manages user sessions to track logged-in users
+- Protects routes using middleware (authentication and authorization)
+- Implements role-based access control (admin vs. customer)
+
+### What is Authentication vs. Authorization?
+
+**Authentication** answers the question: "Who are you?"
+- Verifying a user's identity (username/email + password)
+- Creating a session after successful login
+- Checking if a user is logged in
+
+**Authorization** answers the question: "What are you allowed to do?"
+- Checking user permissions and roles (admin, customer, etc.)
+- Granting or denying access to specific resources
+- Protecting admin-only features from regular users
+
+:::note
+Authentication and authorization are two important concepts in web development. Authentication is the process of verifying a user's identity, while authorization is the process of checking if a user has permission to access a resource.
+:::
+
+---
+
+### How Does Authentication Work (Server-Side)?
+
+1. **Registration:**
+   - User submits registration form (name, email, username, password)
+   - Server validates input (required fields, email format, uniqueness)
+   - Server hashes the password using `password_hash()` (NEVER store plain text!)
+   - Server stores user data in database with hashed password
+   - User is redirected to login page
+
+2. **Login:**
+   - User submits login form (email/username + password)
+   - Server looks up user in database by email/username
+   - Server verifies password using `password_verify()` against stored hash
+   - If valid, server creates a session and stores user data
+   - User is redirected to dashboard or protected page
+
+3. **Session Management:**
+   - SessionMiddleware starts session on every request
+   - Session stores user ID, role, and other data
+   - Middleware checks session to determine if user is logged in
+
+4. **Route Protection:**
+   - AuthMiddleware checks if user is logged in before allowing access
+   - AdminAuthMiddleware checks if user is logged in AND has admin role
+   - Redirects to login page if checks fail
+
+---
+
+## Learning Objectives
+
+By completing this lab, you will:
+- Understand how user authentication and authorization work in web applications.
+- Create a database table for storing user accounts with proper schema design.
+- Build a `UserModel` class for database operations (create, find, authenticate).
+- Implement secure password hashing using PHP's `password_hash()` function.
+- Implement password verification using PHP's `password_verify()` function.
+- Validate user input (required fields, email format, uniqueness checks, password strength).
+- Create registration and login forms with proper HTML structure.
+- Build an `AuthController` that extends `BaseController`.
+- Use BaseController methods (`render()` and `redirect()`) for clean code.
+- Implement the Post-Redirect-Get (PRG) pattern for form submissions.
+- Create middleware classes to protect routes (`AuthMiddleware`, `AdminAuthMiddleware`).
+- Manage user sessions using SessionManager helper.
+- Implement role-based access control (admin vs. customer roles).
+- Apply the Result pattern for validation and operation feedback.
+- Demonstrate proper separation of concerns (MVC pattern).
+- Apply security best practices to prevent common vulnerabilities (SQL injection, XSS, password storage).
+
+---
+
+## Prerequisites
+
+Before starting this lab, ensure you have:
+- A working Slim 4 application with the `BaseController` pattern.
+- Completed the Session Middleware lab (`SessionManager` and `SessionMiddleware`).
+- Completed the Flash Messages lab (`FlashMessage` helper).
+- Completed the Result Pattern assignment (Result class for validation).
+- A working MySQL database connection using PDOService.
+- BaseModel class available for extending models.
+- `SessionMiddleware` registered globally in your application.
+- Bootstrap CSS included in your views (for styled forms and alerts).
+- Your development environment set up and running.
+
+---
+
+## Lab Steps
+
+### Step 1: Create the Users Database Table
+
+**Objective:** Set up the database schema for storing user accounts with proper fields and constraints.
+
+**Why these fields?**
+
+- **id**: Unique identifier for each user (primary key, auto-increment)
+- **first_name, last_name**: User's full name
+- **username**: Unique username for login (alternative to email)
+- **email**: Unique email address for login and communication
+- **password_hash**: Bcrypt/Argon2 hash of password (NEVER store plain text!)
+- **role**: User role (admin or customer) for authorization
+- **created_at, updated_at**: Timestamps for auditing
+
+**Instructions:**
+
+1. Open your database management tool (phpMyAdmin, MySQL Workbench, or command line).
+2. Select your e-commerce database.
+3. Execute the following SQL statement:
+
+```sql
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'customer') DEFAULT 'customer',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+4. Verify the table was created successfully by running:
+
+```sql
+DESCRIBE users;
+```
+
+5. **(Optional)** Create a test admin user for testing:
+
+```sql
+-- Password is 'admin123' (hashed using PASSWORD_BCRYPT)
+INSERT INTO users (first_name, last_name, username, email, password_hash, role)
+VALUES ('Admin', 'User', 'admin', 'admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
+```
+
+**What you just created:**
+- A `users` table with proper schema and constraints.
+- UNIQUE constraints on email and username to prevent duplicates.
+- ENUM type for role to restrict values to 'admin' or 'customer'.
+- Automatic timestamps for tracking when records are created/updated.
+- Sufficient space for password hashes (VARCHAR(255) handles bcrypt/Argon2).
+
+---
+
+### Step 2: Create the UserModel Class
+
+**Objective:** Build a model class to handle all database operations related to users.
+
+We'll build this class step-by-step, implementing each method as we go.
+
+---
+
+#### Step 2.1: Create the Class Structure
+
+**Instructions:**
+
+1. Navigate to your `app/Domain/Models/` directory.
+2. Create a new file named `UserModel.php`.
+3. Add the following starter code:
+
+```php title="app/Domain/Models/UserModel.php"
+<?php
+
+namespace App\Domain\Models;
+
+use App\Helpers\Core\PDOService;
+
+class UserModel extends BaseModel
+{
+    /**
+     * Constructor - injects PDOService dependency.
+     */
+    public function __construct(PDOService $db_service)
+    {
+        parent::__construct($db_service);
+    }
+
+    // You'll implement methods in the following steps
+}
+```
+
+4. Save the file.
+
+**What you just created:**
+- The class structure with proper namespace
+- Extends BaseModel for access to database helper methods
+- Constructor with dependency injection for PDOService
+- Ready to add methods for user operations
+
+---
+
+#### Step 2.2: Implement the `create()` Method
+
+**Objective:** Create a method to insert a new user into the database with a hashed password.
+
+**Why hash passwords?**
+
+NEVER store passwords in plain text! If your database is compromised, attackers would have direct access to user passwords. Hashing is a one-way process that converts passwords into unreadable strings. PHP's `password_hash()` uses bcrypt or Argon2, which are specifically designed for password storage.
+
+**Instructions:**
+
+Add the following method to your `UserModel` class:
+
+```php
+/**
+ * Create a new user account.
+ *
+ * @param array $data User data (first_name, last_name, username, email, password, role)
+ * @return int The ID of the newly created user
+ */
+public function create(array $data): int
+{
+    // TODO: Hash the password using password_hash() with PASSWORD_BCRYPT
+    //       Store the result in $hashedPassword variable
+
+    // TODO: Write an INSERT SQL query with named parameters
+    //       INSERT INTO users (first_name, last_name, username, email, password_hash, role)
+    //       VALUES (:first_name, :last_name, :username, :email, :password_hash, :role)
+
+    // TODO: Create a $params array with the following keys:
+    //       ':first_name', ':last_name', ':username', ':email', ':password_hash', ':role'
+    //       Use $data array values and $hashedPassword for password_hash
+
+    // TODO: Execute the query using $this->execute($query, $params)
+
+    // TODO: Return the last inserted ID using $this->lastInsertId()
+}
+```
+
+**Hints:**
+- `password_hash($password, PASSWORD_BCRYPT)` creates a secure hash
+- Use named parameters (`:parameter_name`) in SQL for security
+- `$this->execute()` is inherited from BaseModel
+- `$this->lastInsertId()` returns the auto-increment ID of the inserted record
+
+---
+
+#### Step 2.3: Implement the `findByEmail()` Method
+
+**Objective:** Create a method to find a user by their email address.
+
+**Why find by email?**
+
+Most modern authentication systems use email as the primary identifier because:
+- Emails are unique and already validated
+- Users can remember their email more easily than usernames
+- Provides a way to contact users (password reset, notifications)
+
+**Instructions:**
+
+Add the following method to your `UserModel` class:
+
+```php
+/**
+ * Find a user by email address.
+ *
+ * @param string $email The email address to search for
+ * @return array|null User data array or null if not found
+ */
+public function findByEmail(string $email): ?array
+{
+    // TODO: Write a SELECT SQL query with a WHERE clause
+    //       SELECT * FROM users WHERE email = :email LIMIT 1
+
+    // TODO: Create a $params array with ':email' => $email
+
+    // TODO: Use $this->selectOne($query, $params) to fetch the user
+    //       Store the result in a variable
+
+    // TODO: Return the result (will be array or null)
+}
+```
+
+**Hints:**
+- Use `LIMIT 1` for efficiency (email is unique, so only one match possible)
+- `$this->selectOne()` returns an associative array or null
+- The `?array` return type means "array or null"
+
+---
+
+#### Step 2.4: Implement the `findByUsername()` Method
+
+**Objective:** Create a method to find a user by their username.
+
+**Why support username login?**
+
+Many users prefer usernames over emails for login. Supporting both provides flexibility and improves user experience.
+
+**Instructions:**
+
+Add the following method to your `UserModel` class:
+
+```php
+/**
+ * Find a user by username.
+ *
+ * @param string $username The username to search for
+ * @return array|null User data array or null if not found
+ */
+public function findByUsername(string $username): ?array
+{
+    // TODO: Write a SELECT SQL query similar to findByEmail()
+    //       SELECT * FROM users WHERE username = :username LIMIT 1
+
+    // TODO: Create a $params array with ':username' => $username
+
+    // TODO: Use $this->selectOne($query, $params) to fetch the user
+
+    // TODO: Return the result
+}
+```
+
+---
+
+#### Step 2.5: Implement Existence Check Methods
+
+**Objective:** Create methods to check if an email or username already exists (for validation during registration).
+
+**Why check for duplicates?**
+
+During registration, you need to validate that the email and username are unique. These methods allow you to check the database before attempting to insert a new user, providing better error messages to users.
+
+**Instructions:**
+
+Add the following methods to your `UserModel` class:
+
+```php
+/**
+ * Check if an email address already exists in the database.
+ *
+ * @param string $email The email address to check
+ * @return bool True if email exists, false otherwise
+ */
+public function emailExists(string $email): bool
+{
+    // TODO: Write a SELECT COUNT(*) query
+    //       SELECT COUNT(*) as count FROM users WHERE email = :email
+
+    // TODO: Create a $params array with ':email' => $email
+
+    // TODO: Use $this->selectOne($query, $params) to fetch the result
+
+    // TODO: Return true if count > 0, false otherwise
+    //       Hint: return $result['count'] > 0;
+}
+
+/**
+ * Check if a username already exists in the database.
+ *
+ * @param string $username The username to check
+ * @return bool True if username exists, false otherwise
+ */
+public function usernameExists(string $username): bool
+{
+    // TODO: Write a SELECT COUNT(*) query similar to emailExists()
+    //       SELECT COUNT(*) as count FROM users WHERE username = :username
+
+    // TODO: Create a $params array with ':username' => $username
+
+    // TODO: Use $this->selectOne($query, $params) to fetch the result
+
+    // TODO: Return true if count > 0, false otherwise
+}
+```
+
+**Hints:**
+- `COUNT(*)` counts the number of matching rows
+- `as count` creates an alias for the result column
+- Access the count using `$result['count']`
+- Return type `bool` means the method must return true or false
+
+---
+
+#### Step 2.6: Implement the `authenticate()` Method
+
+**Objective:** Create a method to verify user credentials (email/username + password) during login.
+
+**How password verification works:**
+
+1. User submits email/username and plain-text password
+2. Look up user in database by email/username
+3. If user not found, return null (invalid credentials)
+4. If user found, use `password_verify()` to compare submitted password with stored hash
+5. If password matches, return user data
+6. If password doesn't match, return null (invalid credentials)
+
+**Instructions:**
+
+Add the following method to your `UserModel` class:
+
+```php
+/**
+ * Authenticate a user by email/username and password.
+ *
+ * @param string $identifier Email or username
+ * @param string $password Plain-text password to verify
+ * @return array|null User data if authentication succeeds, null otherwise
+ */
+public function authenticate(string $identifier, string $password): ?array
+{
+    // TODO: Try to find user by email first
+    //       $user = $this->findByEmail($identifier);
+
+    // TODO: If user not found by email, try finding by username
+    //       if (!$user) {
+    //           $user = $this->findByUsername($identifier);
+    //       }
+
+    // TODO: If user still not found, return null (invalid credentials)
+
+    // TODO: Verify the password using password_verify($password, $user['password_hash'])
+    //       If password is valid, return $user
+    //       If password is invalid, return null
+
+    // Hint: Structure should be:
+    // if (password_verify($password, $user['password_hash'])) {
+    //     return $user;
+    // }
+    // return null;
+}
+```
+
+**Hints:**
+- `password_verify($plainText, $hash)` returns true if password matches the hash
+- Try email first, then username (allows login with either)
+- Always return null for invalid credentials (don't reveal whether email/username exists)
+- NEVER compare passwords directly (`$password === $user['password']` is WRONG!)
+
+---
+
+#### Step 2.7: Verify Your Complete UserModel Implementation
+
+**Check Your Work:**
+
+Your complete `UserModel.php` should now have:
+- ✅ Class structure extending BaseModel
+- ✅ Constructor with PDOService dependency injection
+- ✅ `create()` method with password hashing
+- ✅ `findByEmail()` method
+- ✅ `findByUsername()` method
+- ✅ `emailExists()` method
+- ✅ `usernameExists()` method
+- ✅ `authenticate()` method with password verification
+- ✅ All methods use prepared statements with named parameters
+- ✅ Proper PHPDoc comments for each method
+
+**Test Your Understanding:**
+
+Before moving on, make sure you can answer:
+1. Why do we use `password_hash()` instead of storing plain text passwords?
+2. Why does `password_hash()` generate a different hash each time for the same password?
+3. Why do we use `password_verify()` instead of comparing hashes directly?
+4. Why does the `authenticate()` method return null instead of false for invalid credentials?
+5. Why do we use prepared statements with named parameters?
+
+**What you just built:**
+- A complete UserModel class that encapsulates all user-related database operations.
+- Secure password hashing for storage.
+- Secure password verification for authentication.
+- Methods to prevent duplicate emails and usernames.
+- Flexible authentication (email or username).
+- Reusable across your entire application.
+- Follows best practices for security and separation of concerns.
+
+---
+
+### Step 3: Create the Registration Form View
+
+**Objective:** Create an HTML form that allows users to register for an account.
+
+**Form Fields:**
+- First Name (text input, required)
+- Last Name (text input, required)
+- Username (text input, required)
+- Email (email input, required)
+- Password (password input, required)
+- Confirm Password (password input, required)
+- Role (hidden input, default: 'customer')
+
+**Instructions:**
+
+1. Navigate to your `app/Views/` directory.
+2. Create a new folder named `auth/`
+3. Inside `auth/`, create a file named `register.php`.
+4. Add the following HTML code:
+
+```php title="app/Views/auth/register.php"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Authentication System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="text-center">Create Account</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- Flash Messages Display Area -->
+                        <?= App\Helpers\FlashMessage::render() ?>
+
+                        <!-- Registration Form -->
+                        <form method="POST" action="register">
+                            <div class="mb-3">
+                                <label for="first_name" class="form-label">First Name</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="first_name"
+                                    name="first_name"
+                                    required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="last_name" class="form-label">Last Name</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="last_name"
+                                    name="last_name"
+                                    required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="username"
+                                    name="username"
+                                    required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email Address</label>
+                                <input
+                                    type="email"
+                                    class="form-control"
+                                    id="email"
+                                    name="email"
+                                    required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="password"
+                                    name="password"
+                                    required>
+                                <div class="form-text">
+                                    Password must be at least 8 characters long and contain at least one number.
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label">Confirm Password</label>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="confirm_password"
+                                    name="confirm_password"
+                                    required>
+                            </div>
+
+                            <!-- Hidden field for role (default: customer) -->
+                            <input type="hidden" name="role" value="customer">
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">Register</button>
+                            </div>
+                        </form>
+
+                        <div class="mt-3 text-center">
+                            <p>Already have an account? <a href="login">Login here</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+```
+
+5. Save the file
+
+**What you just created:**
+- A registration form with all required fields.
+- Bootstrap styling for professional appearance.
+- Flash message display area for validation errors.
+- Password confirmation field.
+- Link to login page for existing users.
+- Hidden role field (defaults to 'customer').
+
+---
+
+### Step 4: Create the AuthController with Registration Logic
+
+**Objective:** Create a controller class to handle registration requests with validation.
+
+**Instructions:**
+
+1. Navigate to your `app/Controllers/` directory.
+2. Create a new file named `AuthController.php`.
+3. Add the following code:
+
+```php title="app/Controllers/AuthController.php"
+<?php
+
+namespace App\Controllers;
+
+use App\Domain\Models\UserModel;
+use App\Helpers\FlashMessage;
+use App\Helpers\SessionManager;
+use DI\Container;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+
+class AuthController extends BaseController
+{
+    /**
+     * Constructor - inject dependencies.
+     */
+    public function __construct(Container $container, private UserModel $userModel)
+    {
+        parent::__construct($container);
+    }
+
+    /**
+     * Display the registration form (GET request).
+     */
+    public function register(Request $request, Response $response, array $args): Response
+    {
+        // TODO: Create a $data array with 'title' => 'Register'
+
+        // TODO: Render 'auth/register.php' view and pass $data
+    }
+
+    /**
+     * Process registration form submission (POST request).
+     */
+    public function store(Request $request, Response $response, array $args): Response
+    {
+        // TODO: Get form data using getParsedBody()
+        //       Store in $formData variable
+
+        // TODO: Extract individual fields from $formData:
+        //       $firstName, $lastName, $username, $email, $password, $confirmPassword, $role
+
+        // Start validation
+        $errors = [];
+
+        // TODO: Validate required fields (first_name, last_name, username, email, password, confirm_password)
+        //       If any field is empty, add error: "All fields are required."
+        //       Hint: if (empty($firstName) || empty($lastName) || ...) { $errors[] = "..."; }
+
+        // TODO: Validate email format using filter_var()
+        //       If invalid, add error: "Invalid email format."
+        //       Hint: if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { ... }
+
+        // TODO: Check if email already exists using $this->userModel->emailExists($email)
+        //       If exists, add error: "Email already registered."
+
+        // TODO: Check if username already exists using $this->userModel->usernameExists($username)
+        //       If exists, add error: "Username already taken."
+
+        // TODO: Validate password length (minimum 8 characters)
+        //       If too short, add error: "Password must be at least 8 characters long."
+
+        // TODO: Validate password contains at least one number
+        //       If no number, add error: "Password must contain at least one number."
+        //       Hint: if (!preg_match('/[0-9]/', $password)) { ... }
+
+        // TODO: Check if password matches confirm_password
+        //       If not match, add error: "Passwords do not match."
+
+        // If validation errors exist, redirect back with error message
+        // TODO: Check if $errors array is not empty
+        //       If errors exist:
+        //         - Use FlashMessage::error() with the first error message
+        //         - Redirect back to 'auth.register' route
+
+        // If validation passes, create the user
+        try {
+            // TODO: Create $userData array with keys:
+            //       'first_name', 'last_name', 'username', 'email', 'password', 'role'
+
+            // TODO: Call $this->userModel->create($userData)
+            //       Store the returned user ID in $userId
+
+            // TODO: Display success message using FlashMessage::success()
+            //       Message: "Registration successful! Please log in."
+
+            // TODO: Redirect to 'auth.login' route
+
+        } catch (\Exception $e) {
+            // Handle database errors
+            // TODO: Display error message using FlashMessage::error()
+            //       Message: "Registration failed. Please try again."
+
+            // TODO: Redirect back to 'auth.register' route
+        }
+    }
+}
+```
+
+4. Save the file.
+
+**What you just created:**
+- An `AuthController` that extends `BaseController`.
+- A `register()` method to display the registration form.
+- A `store()` method that validates and processes registration.
+- Comprehensive validation (required fields, email format, uniqueness, password strength).
+- Secure password handling (passed to UserModel for hashing).
+- Flash messages for user feedback.
+- Post-Redirect-Get pattern for proper form handling.
+- Dependency injection for UserModel.
+
+---
+
+### Step 5: Create the Login Form View
+
+**Objective:** Create an HTML form that allows users to log in to their account.
+
+**Instructions:**
+
+1. Inside the `app/Views/auth/` directory, create a file named `login.php`.
+2. Add the following HTML code:
+
+```php title="app/Views/auth/login.php"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Authentication System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="text-center">Login</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- Flash Messages Display Area -->
+                        <?= App\Helpers\FlashMessage::render() ?>
+
+                        <!-- Login Form -->
+                        <form method="POST" action="login">
+                            <div class="mb-3">
+                                <label for="identifier" class="form-label">Email or Username</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="identifier"
+                                    name="identifier"
+                                    placeholder="Enter your email or username"
+                                    required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="password"
+                                    name="password"
+                                    placeholder="Enter your password"
+                                    required>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">Login</button>
+                            </div>
+                        </form>
+
+                        <div class="mt-3 text-center">
+                            <p>Don't have an account? <a href="register">Register here</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+```
+
+3. Save the file.
+
+**What you just created:**
+- A login form with identifier field (accepts email or username).
+- Password input field.
+- Bootstrap styling for professional appearance.
+- Flash message display area for error messages.
+- Link to registration page for new users.
+
+---
+
+### Step 6: Add Login Logic to AuthController
+
+**Objective:** Implement the login authentication process in the AuthController.
+
+**Instructions:**
+
+Open your `app/Controllers/AuthController.php` file and add the following methods:
+
+```php
+/**
+ * Display the login form (GET request).
+ */
+public function login(Request $request, Response $response, array $args): Response
+{
+    // TODO: Create a $data array with 'title' => 'Login'
+
+    // TODO: Render 'auth/login.php' view and pass $data
+}
+
+/**
+ * Process login form submission (POST request).
+ */
+public function authenticate(Request $request, Response $response, array $args): Response
+{
+    // TODO: Get form data using getParsedBody()
+
+    // TODO: Extract 'identifier' and 'password' from form data
+
+    // Start validation
+    $errors = [];
+
+    // TODO: Validate required fields (identifier and password)
+    //       If either is empty, add error: "Email/username and password are required."
+
+    // If validation errors exist, redirect back
+    // TODO: Check if $errors array is not empty
+    //       If errors exist, use FlashMessage::error() and redirect to 'auth.login'
+
+    // Attempt to authenticate user
+    // TODO: Call $this->userModel->authenticate($identifier, $password)
+    //       Store the result in $user variable
+
+    // Check if authentication was successful
+    // TODO: If $user is null (authentication failed):
+    //       - Display error message: "Invalid credentials. Please try again."
+    //       - Redirect back to 'auth.login'
+
+    // Authentication successful - create session
+    // TODO: Store user data in session using SessionManager:
+    //       SessionManager::set('user_id', $user['id']);
+    //       SessionManager::set('user_email', $user['email']);
+    //       SessionManager::set('user_name', $user['first_name'] . ' ' . $user['last_name']);
+    //       SessionManager::set('user_role', $user['role']);
+    //       SessionManager::set('is_authenticated', true);
+
+    // TODO: Display success message using FlashMessage::success()
+    //       Message: "Welcome back, {$user['first_name']}!"
+
+    // TODO: Redirect based on role:
+    //       If role is 'admin', redirect to 'admin.dashboard'
+    //       If role is 'customer', redirect to 'user.dashboard'
+    //       Hint: if ($user['role'] === 'admin') { ... } else { ... }
+}
+
+/**
+ * Logout the current user (GET request).
+ */
+public function logout(Request $request, Response $response, array $args): Response
+{
+    // TODO: Destroy the session using SessionManager::destroy()
+
+    // TODO: Display success message: "You have been logged out successfully."
+
+    // TODO: Redirect to 'auth.login' route
+}
+```
+
+**What you just added:**
+- A `login()` method to display the login form.
+- An `authenticate()` method that validates credentials and creates a session.
+- Session storage of user data (ID, email, name, role, authentication status).
+- Role-based redirection (admin vs. customer).
+- A `logout()` method that destroys the session.
+- Flash messages for feedback.
+
+---
+
+### Step 7: Create AuthMiddleware for Route Protection
+
+**Objective:** Create middleware that protects routes by checking if a user is logged in.
+
+**What does this middleware do?**
+
+- Runs before protected route handlers execute
+- Checks if user is authenticated (session contains 'is_authenticated')
+- If authenticated, allows the request to continue
+- If not authenticated, redirects to login page with error message
+
+**Instructions:**
+
+1. Navigate to your `app/Middleware/` directory.
+2. Create a new file named `AuthMiddleware.php`.
+3. Add the following code:
+
+```php title="app/Middleware/AuthMiddleware.php"
+<?php
+
+namespace App\Middleware;
+
+use App\Helpers\FlashMessage;
+use App\Helpers\SessionManager;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
+use Slim\Routing\RouteContext;
+
+class AuthMiddleware implements MiddlewareInterface
+{
+    /**
+     * Process the request - check if user is authenticated.
+     */
+    public function process(Request $request, RequestHandler $handler): Response
+    {
+        // TODO: Check if user is authenticated using SessionManager::get('is_authenticated')
+        //       Store the result in $isAuthenticated variable
+
+        // TODO: If NOT authenticated:
+        //       - Use FlashMessage::error() with message: "Please log in to access this page."
+        //       - Get RouteParser: $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+        //       - Generate login URL: $loginUrl = $routeParser->urlFor('auth.login');
+        //       - Create redirect response:
+        //         $response = new \Slim\Psr7\Response();
+        //         return $response->withHeader('Location', $loginUrl)->withStatus(302);
+
+        // If authenticated, continue to the next middleware/route handler
+        // TODO: Return $handler->handle($request);
+    }
+}
+```
+
+4. Save the file.
+
+**What you just created:**
+- Middleware that implements PSR-15 MiddlewareInterface.
+- Authentication check using SessionManager.
+- Automatic redirection to login page for unauthenticated users.
+- Flash message feedback for better user experience.
+- Can be applied to any route or route group.
+
+---
+
+### Step 8: Create AdminAuthMiddleware for Admin Route Protection
+
+**Objective:** Create middleware that protects admin routes by checking both authentication and admin role.
+
+**What does this middleware do?**
+
+- Runs before admin route handlers execute
+- Checks if user is authenticated AND has admin role
+- If both conditions are met, allows the request to continue
+- If not authenticated, redirects to login page
+- If authenticated but not admin, redirects to user dashboard with error
+
+**Instructions:**
+
+1. Inside the `app/Middleware/` directory, create a file named `AdminAuthMiddleware.php`.
+2. Add the following code:
+
+```php title="app/Middleware/AdminAuthMiddleware.php"
+<?php
+
+namespace App\Middleware;
+
+use App\Helpers\FlashMessage;
+use App\Helpers\SessionManager;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
+use Slim\Routing\RouteContext;
+
+class AdminAuthMiddleware implements MiddlewareInterface
+{
+    /**
+     * Process the request - check if user is authenticated AND is an admin.
+     */
+    public function process(Request $request, RequestHandler $handler): Response
+    {
+        // TODO: Get authentication status using SessionManager::get('is_authenticated')
+        // TODO: Get user role using SessionManager::get('user_role')
+
+        // TODO: If NOT authenticated:
+        //       - Use FlashMessage::error() with message: "Please log in to access the admin panel."
+        //       - Redirect to 'auth.login' (same pattern as AuthMiddleware)
+
+        // TODO: If authenticated but role is NOT 'admin':
+        //       - Use FlashMessage::error() with message: "Access denied. Admin privileges required."
+        //       - Redirect to 'user.dashboard' route
+
+        // If authenticated AND admin, continue to admin route
+        // TODO: Return $handler->handle($request);
+    }
+}
+```
+
+3. Save the file.
+
+**What you just created:**
+- Middleware that checks both authentication and authorization.
+- Role-based access control (RBAC) implementation.
+- Separate error messages for different scenarios.
+- Protection for admin-only routes.
+- Can be applied to admin route groups.
+
+---
+
+### Step 9: Create Dashboard Views
+
+**Objective:** Create a simple user dashboard view for logged-in users.
+
+**Note:** Students already created an admin dashboard in a previous assignment. We'll create a simple user dashboard and show how to protect both.
+
+**Instructions:**
+
+1. Navigate to your `app/Views/` directory.
+2. Create a new folder named `user/`.
+3. Inside `user/`, create a file named `dashboard.php`.
+4. Add the following code:
+
+```php title="app/Views/user/dashboard.php"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">E-Commerce</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    Welcome, <?= htmlspecialchars($_SESSION['user_name'] ?? 'Guest') ?>!
+                </span>
+                <a class="btn btn-outline-light btn-sm" href="logout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1>User Dashboard</h1>
+
+        <!-- Flash Messages -->
+        <div class="mb-4">
+            <?= App\Helpers\FlashMessage::render() ?>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">My Profile</h5>
+                        <p class="card-text">
+                            <strong>Name:</strong> <?= htmlspecialchars($_SESSION['user_name'] ?? 'N/A') ?><br>
+                            <strong>Email:</strong> <?= htmlspecialchars($_SESSION['user_email'] ?? 'N/A') ?><br>
+                            <strong>Role:</strong> <?= htmlspecialchars($_SESSION['user_role'] ?? 'N/A') ?>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Quick Actions</h5>
+                        <div class="d-grid gap-2">
+                            <a href="#" class="btn btn-primary">Browse Products</a>
+                            <a href="#" class="btn btn-secondary">My Orders</a>
+                            <a href="#" class="btn btn-info">Update Profile</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+```
+
+5. Save the file.
+
+6. Add a `dashboard()` method to your `AuthController`:
+
+```php
+/**
+ * Display user dashboard (protected route).
+ */
+public function dashboard(Request $request, Response $response, array $args): Response
+{
+    // TODO: Create a $data array with 'title' => 'Dashboard'
+
+    // TODO: Render 'user/dashboard.php' view and pass $data
+}
+```
+
+**What you just created:**
+- A simple user dashboard that displays user information from session.
+- Navigation bar with user name and logout button.
+- Profile card showing user details.
+- Quick action buttons for future features.
+- Proper XSS protection using `htmlspecialchars()`.
+
+---
+
+### Step 10: Register All Routes
+
+**Objective:** Register routes that map URLs to the AuthController methods and apply middleware.
+
+**Instructions:**
+
+1. Open your `app/Routes/web-routes.php` file.
+2. Add the imports at the top:
+
+```php
+use App\Controllers\AuthController;
+use App\Middleware\AuthMiddleware;
+use App\Middleware\AdminAuthMiddleware;
+```
+
+3. Add the following routes:
+
+```php
+// Public routes (no authentication required)
+// TODO: Create a GET route for '/register' that maps to AuthController::class 'register' method
+//       Set the route name to 'auth.register'
+
+// TODO: Create a POST route for '/register' that maps to AuthController::class 'store' method
+
+// TODO: Create a GET route for '/login' that maps to AuthController::class 'login' method
+//       Set the route name to 'auth.login'
+
+// TODO: Create a POST route for '/login' that maps to AuthController::class 'authenticate' method
+
+// TODO: Create a GET route for '/logout' that maps to AuthController::class 'logout' method
+//       Set the route name to 'auth.logout'
+
+// Protected routes (authentication required)
+// TODO: Create a GET route for '/dashboard' that maps to AuthController::class 'dashboard' method
+//       Set the route name to 'user.dashboard'
+//       Apply AuthMiddleware using ->add(AuthMiddleware::class)
+
+// Admin routes (authentication + admin role required)
+// TODO: Apply AdminAuthMiddleware to your existing admin route group
+//       Find your '/admin' route group and add ->add(AdminAuthMiddleware::class) at the end
+//       Example:
+//       $app->group('/admin', function ($group) {
+//           // Your existing admin routes here
+//       })->add(AdminAuthMiddleware::class);
+```
+
+4. Save the file.
+
+**What you just created:**
+- Public routes for registration and login (no middleware).
+- A logout route (should be accessible).
+- A protected user dashboard route (AuthMiddleware).
+- Protection for admin routes (AdminAuthMiddleware).
+- Named routes for easy use with `redirect()` method.
+
+---
+
+### Step 11: Test Your Implementation
+
+**Objective:** Verify that the authentication system works correctly and securely.
+
+**Instructions:**
+
+1. Start your development server (if not already running).
+2. Test the following scenarios:
+
+**Test Case 1: User Registration - Valid Data**
+- Visit `http://localhost/[your-app]/register`
+- Fill in all fields with valid data:
+  - First Name: John
+  - Last Name: Doe
+  - Username: johndoe
+  - Email: john@example.com
+  - Password: password123
+  - Confirm Password: password123
+- Click "Register"
+- Expected: Green success message and redirect to login page
+
+**Test Case 2: User Registration - Validation Errors**
+
+Test each validation rule separately:
+
+a) **Empty fields:**
+- Leave one or more fields empty
+- Expected: Red error message "All fields are required."
+
+b) **Invalid email format:**
+- Enter invalid email (e.g., "notanemail")
+- Expected: Red error message "Invalid email format."
+
+c) **Duplicate email:**
+- Try to register with the same email again
+- Expected: Red error message "Email already registered."
+
+d) **Duplicate username:**
+- Try to register with the same username again
+- Expected: Red error message "Username already taken."
+
+e) **Weak password:**
+- Enter password with less than 8 characters
+- Expected: Red error message "Password must be at least 8 characters long."
+
+f) **Password without number:**
+- Enter password without numbers (e.g., "password")
+- Expected: Red error message "Password must contain at least one number."
+
+g) **Password mismatch:**
+- Enter different values for password and confirm password
+- Expected: Red error message "Passwords do not match."
+
+**Test Case 3: User Login - Valid Credentials**
+- Visit `http://localhost/[your-app]/login`
+- Enter valid email/username and password
+- Click "Login"
+- Expected: Green success message and redirect to dashboard
+
+**Test Case 4: User Login - Invalid Credentials**
+
+a) **Wrong password:**
+- Enter correct email but wrong password
+- Expected: Red error message "Invalid credentials. Please try again."
+
+b) **Non-existent email:**
+- Enter email that doesn't exist
+- Expected: Red error message "Invalid credentials. Please try again."
+
+c) **Empty fields:**
+- Leave identifier or password empty
+- Expected: Red error message "Email/username and password are required."
+
+**Test Case 5: Login with Username**
+- Try logging in with username instead of email
+- Expected: Should work exactly like email login
+
+**Test Case 6: Protected Route Access - Not Logged In**
+- Visit `http://localhost/[your-app]/dashboard` WITHOUT logging in
+- Expected: Red error message and redirect to login page
+
+**Test Case 7: Protected Route Access - Logged In**
+- Log in with valid credentials
+- Visit `http://localhost/[your-app]/dashboard`
+- Expected: Dashboard displays with user information from session
+
+**Test Case 8: Admin Route Access - Regular User**
+- Log in as a regular user (role: 'customer')
+- Try to visit `http://localhost/[your-app]/admin/dashboard`
+- Expected: Red error message "Access denied. Admin privileges required." and redirect to user dashboard
+
+**Test Case 9: Admin Route Access - Admin User**
+- Log in as admin user (if you created one in Step 1)
+  - Email: admin@example.com
+  - Password: admin123
+- Visit `http://localhost/[your-app]/admin/dashboard`
+- Expected: Admin dashboard displays successfully
+
+**Test Case 10: Logout**
+- While logged in, click the "Logout" button or visit `/logout`
+- Expected: Success message "You have been logged out successfully." and redirect to login
+- Try to access `/dashboard` again
+- Expected: Redirect to login (session destroyed)
+
+**Test Case 11: Password Hashing Verification**
+- Register a new user with password "test123"
+- Open your database and view the users table
+- Check the password_hash column for the new user
+- Expected: Should see a long hashed string (NOT "test123"), starting with `$2y$` (bcrypt)
+
+**Test Case 12: Role-Based Redirection After Login**
+
+a) **Customer login:**
+- Log in as regular user (role: 'customer')
+- Expected: Redirect to `/dashboard` (user dashboard)
+
+b) **Admin login:**
+- Log in as admin user (role: 'admin')
+- Expected: Redirect to `/admin/dashboard` (admin dashboard)
+
+---
+
+## Verification Checklist
+
+Before submitting your lab, verify the following:
+
+**Database:**
+- [ ] `users` table exists with correct schema (id, first_name, last_name, username, email, password_hash, role, created_at, updated_at)
+- [ ] Email column has UNIQUE constraint
+- [ ] Username column has UNIQUE constraint
+- [ ] Role column is ENUM with values ('admin', 'customer')
+- [ ] Password_hash column is VARCHAR(255)
+
+**UserModel Implementation:**
+- [ ] `UserModel` extends `BaseModel`
+- [ ] Constructor accepts PDOService dependency
+- [ ] `create()` method hashes passwords using `password_hash()`
+- [ ] `findByEmail()` method uses prepared statements
+- [ ] `findByUsername()` method uses prepared statements
+- [ ] `emailExists()` method returns boolean
+- [ ] `usernameExists()` method returns boolean
+- [ ] `authenticate()` method uses `password_verify()`
+- [ ] All methods use named parameters for SQL queries
+
+**AuthController Implementation:**
+- [ ] `AuthController` extends `BaseController`
+- [ ] Constructor injects UserModel dependency
+- [ ] `register()` method renders registration form
+- [ ] `store()` method validates all registration fields
+- [ ] `store()` validates email format, uniqueness, password strength
+- [ ] `store()` uses UserModel to create users
+- [ ] `login()` method renders login form
+- [ ] `authenticate()` method validates credentials
+- [ ] `authenticate()` creates session on successful login
+- [ ] `authenticate()` redirects based on role (admin vs customer)
+- [ ] `logout()` method destroys session
+- [ ] `dashboard()` method renders user dashboard
+- [ ] All methods use `$this->render()` and `$this->redirect()`
+- [ ] Flash messages used for all feedback
+
+**Middleware Implementation:**
+- [ ] `AuthMiddleware` implements `MiddlewareInterface`
+- [ ] `AuthMiddleware` checks for authentication in session
+- [ ] `AuthMiddleware` redirects to login if not authenticated
+- [ ] `AdminAuthMiddleware` implements `MiddlewareInterface`
+- [ ] `AdminAuthMiddleware` checks for authentication AND admin role
+- [ ] `AdminAuthMiddleware` redirects to login if not authenticated
+- [ ] `AdminAuthMiddleware` redirects to user dashboard if not admin
+- [ ] Both middlewares use SessionManager for session access
+
+**Views:**
+- [ ] `auth/register.php` exists with all form fields
+- [ ] `auth/login.php` exists with identifier and password fields
+- [ ] `user/dashboard.php` exists and displays user info
+- [ ] All views use `htmlspecialchars()` for XSS protection
+- [ ] All views display flash messages using `FlashMessage::render()`
+- [ ] All views have Bootstrap styling
+
+**Routes:**
+- [ ] GET `/register` route registered with name 'auth.register'
+- [ ] POST `/register` route registered
+- [ ] GET `/login` route registered with name 'auth.login'
+- [ ] POST `/login` route registered
+- [ ] GET `/logout` route registered with name 'auth.logout'
+- [ ] GET `/dashboard` route registered with name 'user.dashboard'
+- [ ] `/dashboard` route has AuthMiddleware applied
+- [ ] Admin route group has AdminAuthMiddleware applied
+- [ ] Admin dashboard route has name 'admin.dashboard'
+
+**Functionality:**
+- [ ] Registration page displays correctly
+- [ ] Registration validates all fields properly
+- [ ] Registration prevents duplicate emails
+- [ ] Registration prevents duplicate usernames
+- [ ] Registration enforces password strength rules
+- [ ] Registration hashes passwords (NOT stored as plain text)
+- [ ] Registration redirects to login after success
+- [ ] Login page displays correctly
+- [ ] Login accepts email or username
+- [ ] Login verifies password correctly
+- [ ] Login creates session with user data
+- [ ] Login redirects based on role
+- [ ] Logout destroys session and redirects to login
+- [ ] Dashboard displays only when logged in
+- [ ] Dashboard shows correct user information
+- [ ] Admin routes accessible only to admin users
+- [ ] Regular users cannot access admin routes
+- [ ] Unauthenticated users redirected to login
+
+**Security:**
+- [ ] Passwords hashed using `password_hash()` with PASSWORD_BCRYPT
+- [ ] Passwords verified using `password_verify()`
+- [ ] All database queries use prepared statements
+- [ ] No plain text passwords in database
+- [ ] No SQL injection vulnerabilities
+- [ ] XSS protection using `htmlspecialchars()` in views
+- [ ] Session data validated in middleware
+- [ ] Error messages don't reveal whether email/username exists
+
+---
+
+## Understanding What You Built
+
+### Authentication Flow
+
+**Registration Flow:**
+1. User visits `/register` (GET) → `AuthController::register()` → renders form
+2. User submits form (POST) → `AuthController::store()`
+3. Controller validates input (required, format, uniqueness, strength)
+4. If validation fails → flash error → redirect to `/register`
+5. If validation passes → `UserModel::create()` hashes password and inserts user
+6. Flash success message → redirect to `/login`
+
+**Login Flow:**
+1. User visits `/login` (GET) → `AuthController::login()` → renders form
+2. User submits credentials (POST) → `AuthController::authenticate()`
+3. Controller validates input (required fields)
+4. `UserModel::authenticate()` looks up user and verifies password
+5. If invalid → flash error → redirect to `/login`
+6. If valid → create session with user data → redirect based on role
+
+**Protected Route Access Flow:**
+1. User requests `/dashboard` (protected route)
+2. AuthMiddleware runs before controller
+3. Middleware checks session for 'is_authenticated'
+4. If not authenticated → flash error → redirect to `/login`
+5. If authenticated → continue to controller → render dashboard
+
+**Admin Route Access Flow:**
+1. User requests `/admin/dashboard` (admin-protected route)
+2. AdminAuthMiddleware runs before controller
+3. Middleware checks 'is_authenticated' AND 'user_role'
+4. If not authenticated → redirect to `/login`
+5. If authenticated but not admin → redirect to `/dashboard`
+6. If authenticated AND admin → continue to admin controller
+
+### Architecture: Separation of Concerns
+
+| Component | Responsibility | Location |
+|-----------|----------------|----------|
+| **View** | Display forms and pages | `app/Views/auth/`, `app/Views/user/` |
+| **Controller** | Handle HTTP requests/responses | `app/Controllers/AuthController.php` |
+| **Model** | Database operations | `app/Domain/Models/UserModel.php` |
+| **Middleware** | Route protection | `app/Middleware/AuthMiddleware.php`, `AdminAuthMiddleware.php` |
+| **Routes** | Map URLs to controllers | `app/Routes/web-routes.php` |
+| **Session** | Store user state | SessionManager helper |
+| **Flash** | User feedback | FlashMessage helper |
+
+### Security Layers Implemented
+
+| Security Layer | Purpose | Implementation |
+|----------------|---------|----------------|
+| Password Hashing | Protect passwords if database compromised | `password_hash()` with PASSWORD_BCRYPT |
+| Password Verification | Verify without decrypting | `password_verify()` compares with hash |
+| Prepared Statements | Prevent SQL injection | Named parameters in all queries |
+| XSS Protection | Prevent cross-site scripting | `htmlspecialchars()` in all views |
+| Input Validation | Prevent invalid/malicious data | Server-side validation rules |
+| Session Management | Secure user state | SessionManager with security features |
+| Authentication Check | Verify user is logged in | AuthMiddleware on protected routes |
+| Authorization Check | Verify user has permissions | AdminAuthMiddleware for admin routes |
+| Unique Constraints | Prevent duplicate accounts | Database UNIQUE constraints on email/username |
+
+### Password Hashing Explained
+
+**Why use `password_hash()` instead of storing plain text?**
+
+Imagine your database is compromised. If passwords are stored in plain text:
+- Attacker has immediate access to all user passwords
+- Users who reuse passwords are compromised on other sites
+- Your business reputation is destroyed
+
+**How `password_hash()` protects passwords:**
+
+```php
+$password = "mySecretPass123";
+$hash = password_hash($password, PASSWORD_BCRYPT);
+// Result: $2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
+```
+
+**Key features:**
+- **One-way function**: Cannot be reversed to get original password
+- **Automatic salt**: Each hash is unique, even for same password
+- **Cost factor**: Intentionally slow to prevent brute-force attacks
+- **Future-proof**: PHP can upgrade to stronger algorithms automatically
+
+**Verifying passwords:**
+
+```php
+$inputPassword = "mySecretPass123";
+$storedHash = "$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi";
+
+if (password_verify($inputPassword, $storedHash)) {
+    echo "Password is correct!";
+} else {
+    echo "Password is incorrect!";
+}
+```
+
+**Never do this:**
+```php
+// WRONG! Don't compare hashes directly
+if ($hash1 === $hash2) { ... }
+
+// WRONG! Don't hash input and compare
+if (password_hash($input, PASSWORD_BCRYPT) === $storedHash) { ... }
+
+// WRONG! Don't decrypt hashes (impossible!)
+$plainText = password_decrypt($hash); // This function doesn't exist!
+```
+
+### Role-Based Access Control (RBAC)
+
+**What is RBAC?**
+
+Role-Based Access Control restricts system access based on user roles. In this lab:
+- **Admin role**: Can access admin panel, manage products, view all orders
+- **Customer role**: Can browse products, place orders, view own profile
+
+**How it works in this lab:**
+
+1. **Database:** Role stored in `users.role` column (ENUM: 'admin', 'customer')
+2. **Session:** Role stored in session after login (`$_SESSION['user_role']`)
+3. **Middleware:** AdminAuthMiddleware checks role before allowing access
+4. **Redirection:** Login redirects based on role (admin → `/admin/dashboard`, customer → `/dashboard`)
+
+**Implementation:**
+
+```php
+// In UserModel::create()
+$role = $data['role']; // Default: 'customer'
+
+// In AuthController::authenticate()
+SessionManager::set('user_role', $user['role']);
+
+if ($user['role'] === 'admin') {
+    return $this->redirect($request, $response, 'admin.dashboard');
+} else {
+    return $this->redirect($request, $response, 'user.dashboard');
+}
+
+// In AdminAuthMiddleware
+$userRole = SessionManager::get('user_role');
+if ($userRole !== 'admin') {
+    // Deny access
+}
+```
+
+### Common Validation Rules
+
+| Rule | Purpose | Implementation |
+|------|---------|----------------|
+| Required Fields | Ensure data is provided | `if (empty($field))` |
+| Email Format | Verify valid email syntax | `filter_var($email, FILTER_VALIDATE_EMAIL)` |
+| Email Uniqueness | Prevent duplicate accounts | `UserModel::emailExists($email)` |
+| Username Uniqueness | Prevent duplicate usernames | `UserModel::usernameExists($username)` |
+| Password Length | Enforce minimum security | `strlen($password) >= 8` |
+| Password Complexity | Require numbers | `preg_match('/[0-9]/', $password)` |
+| Password Match | Ensure correct confirmation | `$password === $confirmPassword` |
+
+---
+
+## Common Issues and Solutions
+
+### Issue 1: "All fields are required" Even When Filled
+
+**Cause:** Form field names don't match expected keys in PHP.
+
+**Solution:**
+- Check that form input `name` attributes match what you're checking in PHP
+- Example: `<input name="first_name">` should be accessed as `$formData['first_name']`
+- Use `var_dump($formData)` to see what's actually being submitted
+
+### Issue 2: Password Hash Not Saving to Database
+
+**Cause:** Password_hash column too short or query error.
+
+**Solution:**
+- Ensure `password_hash` column is `VARCHAR(255)` (bcrypt needs up to 60 chars, but 255 is recommended for future algorithms)
+- Check for SQL errors: Wrap `execute()` in try-catch and log `$e->getMessage()`
+- Verify the hash is being generated: `var_dump($hashedPassword)` before inserting
+
+### Issue 3: Login Always Fails Even with Correct Password
+
+**Cause:** Using wrong verification method or comparing hashes incorrectly.
+
+**Solution:**
+- ALWAYS use `password_verify($inputPassword, $storedHash)`
+- NEVER compare hashes directly: `$hash1 === $hash2` won't work
+- NEVER hash input password and compare: Each hash is unique due to salt
+- Debug: Check if user is found before verifying password
+
+### Issue 4: "Invalid credentials" for Existing User
+
+**Causes & Solutions:**
+
+a) **Wrong column name:**
+- Ensure you're comparing against `password_hash` column, not `password`
+
+b) **Password stored as plain text:**
+- Check database - if password_hash shows "password123" instead of "$2y$10...", it wasn't hashed
+- Delete test users and re-register with fixed `UserModel::create()`
+
+c) **Typo in password:**
+- Remember passwords are case-sensitive
+- Try resetting the password in database with a known hash
+
+### Issue 5: Middleware Not Protecting Routes
+
+**Cause:** Middleware not registered or applied incorrectly.
+
+**Solution:**
+- Ensure middleware is registered: `->add(AuthMiddleware::class)` at end of route/group
+- Middleware executes in reverse order (last added runs first)
+- Check namespace: `use App\Middleware\AuthMiddleware;`
+- Verify `MiddlewareInterface` is implemented
+
+### Issue 6: Session Data Not Persisting
+
+**Cause:** SessionMiddleware not registered globally.
+
+**Solution:**
+- Check `config/middleware.php` or where global middleware is registered
+- Ensure `$app->add(SessionMiddleware::class);` is present
+- Verify SessionMiddleware calls `SessionManager::start()`
+- Check browser cookies - session cookie should be set
+
+### Issue 7: Admin Can't Access Admin Dashboard
+
+**Causes & Solutions:**
+
+a) **Role not stored in session:**
+```php
+// Ensure this line exists in AuthController::authenticate()
+SessionManager::set('user_role', $user['role']);
+```
+
+b) **Role stored incorrectly in database:**
+- Check users table - role should be 'admin' (lowercase), not 'Admin'
+- ENUM values are case-sensitive
+
+c) **Wrong role check in middleware:**
+```php
+// Correct:
+if ($userRole !== 'admin')
+
+// Wrong:
+if ($userRole !== 'Admin') // Case matters!
+```
+
+### Issue 8: Duplicate Email Error Not Showing
+
+**Cause:** Email uniqueness check not running or wrong field checked.
+
+**Solution:**
+- Ensure `emailExists()` query is correct: `WHERE email = :email`
+- Check that validation runs BEFORE trying to insert
+- Test the method directly: `var_dump($this->userModel->emailExists('test@example.com'));`
+- Verify UNIQUE constraint exists on email column in database
+
+### Issue 9: Flash Messages Not Displaying
+
+**Cause:** FlashMessage helper not rendered in view or SessionMiddleware not running.
+
+**Solution:**
+- Ensure view includes: `<?= App\Helpers\FlashMessage::render() ?>`
+- Verify SessionMiddleware is registered globally
+- Check browser cookies - flash messages use session
+- Try accessing `$_SESSION` directly to debug: `var_dump($_SESSION);`
+
+### Issue 10: Redirect Loop (Keeps Redirecting to Login)
+
+**Cause:** Middleware incorrectly checking authentication or session not saving.
+
+**Solution:**
+- Check middleware logic: Should only redirect if NOT authenticated
+- Verify session is being set: `var_dump($_SESSION['is_authenticated']);` after login
+- Ensure SessionManager::set() is working: Add debug statements
+- Check browser console for redirect errors
+- Clear browser cookies and try again
+
+---
+
+## Test Your Understanding
+
+:::note[Answer the questions below]
+1. Why must passwords be hashed instead of stored as plain text in the database?
+2. Why does `password_hash()` generate a different hash each time for the same password?
+3. Why can't you compare two password hashes directly (e.g., `$hash1 === $hash2`) to verify a password?
+4. What is the difference between authentication and authorization? Give an example of each from this lab.
+5. Why do we use prepared statements with named parameters instead of concatenating user input into SQL queries?
+6. What would happen if you removed the UNIQUE constraint from the email column?
+7. Why does the `authenticate()` method return `null` for invalid credentials instead of returning different error messages for "user not found" vs "wrong password"?
+8. What is the purpose of the Post-Redirect-Get (PRG) pattern used in the `store()` and `authenticate()` methods?
+9. Why do we validate email format AND check for email uniqueness (two separate checks)?
+10. How does AdminAuthMiddleware differ from AuthMiddleware? Why do we need both instead of just one?
+11. What would happen if SessionMiddleware was not registered globally in the application?
+12. Why do we store the user's role in the session instead of querying the database on every request?
+13. What security vulnerability exists if you use `$_GET` parameters to pass user IDs or roles instead of storing them in the session?
+14. Why is `VARCHAR(255)` recommended for password_hash columns even though bcrypt only needs 60 characters?
+15. What is the purpose of the `PASSWORD_BCRYPT` constant in `password_hash()`? What other options exist?
+:::
+
+

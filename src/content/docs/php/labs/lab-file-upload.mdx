@@ -1,6 +1,6 @@
 ---
-title: 'Lab Instructions: Implementing File Uploads'
-description: 'Lab Instructions: Implementing File Uploads'
+title: 'Lab: Implementing File Uploads'
+description: 'Lab: Implementing File Uploads'
 draft: false
 sidebar:
   label: 'Lab: File Upload'
@@ -10,107 +10,68 @@ sidebar:
     variant: danger
 ---
 
-## Additional Resources 
+## Resources
 
-- [PHP File Upload Documentation](https://www.php.net/manual/en/features.file-upload.php)
-- [Slim 4 File Upload Documentation](https://www.slimframework.com/docs/v4/objects/request.html#uploaded-files)
+- [PHP File Upload](https://www.php.net/manual/en/features.file-upload.php)
+- [Slim 4 Uploaded Files](https://www.slimframework.com/docs/v4/objects/request.html#uploaded-files)
 - [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
-- [PHP `getimagesize()` Documentation](https://www.php.net/manual/en/function.getimagesize.php)
 
 ## Overview
 
-In this lab, you will implement secure file upload functionality for your Slim 4 application. File uploads are a common requirement in web applications, allowing users to share images, documents, and other files. By the end of this lab, you'll have a fully functional and secure file upload system with proper validation and error handling.
-
-### How Does File Uploads Work (Server-Side)?
-
-When a user uploads a file through an HTML form, the file data is sent to the server as part of an HTTP POST request with a special encoding type (`multipart/form-data`). The server receives this data and temporarily stores it in a system directory. Your PHP application then processes this temporary file and moves it to a permanent location on disk.
-
-Slim Framework makes this process straightforward by providing access to uploaded files through its PSR-7 Request object. Instead of working directly with PHP's `$_FILES` superglobal, Slim wraps uploaded files in `UploadedFileInterface` objects, which provide a clean, object-oriented API for handling file uploads.
+In this lab, you'll implement secure file upload functionality for your Slim 4 application. You'll build a reusable FileUploadHelper class, create an upload form, handle file validation, and display uploaded files.
 
 ---
 
 ## Learning Objectives
 
-By completing this lab, you will:
-- Understand how file uploads work in PHP and Slim 4.
-- Create a reusable `FileUploadHelper` class for handling file uploads.
-- Build an `UploadController` that extends `BaseController`.
-- Use BaseController methods (`render()` and `redirect()`) for clean code.
-- Handle uploaded files using Slim's PSR-7 request object.
-- Implement file validation (type, size, media type) with proper error handling.
-- Apply the Result pattern for success/failure communication.
-- Securely store uploaded files with unique filenames.
-- Display uploaded files to users.
-- Apply security best practices to prevent malicious file uploads.
-- Demonstrate proper separation of concerns (MVC pattern).
+- Create a reusable FileUploadHelper class for file uploads
+- Build an UploadController extending BaseController
+- Handle uploaded files using Slim's PSR-7 Request object
+- Implement file validation (type, size, media type)
+- Apply the Result pattern for success/failure communication
+- Securely store files with unique filenames
+- Apply security best practices for file uploads
 
 ---
 
 ## Prerequisites
 
-Before starting this lab, ensure you have:
-- A working Slim 4 application with the BaseController pattern.
-- Completed the Flash Messages lab (for user feedback).
-- Completed the Result Pattern assignment (for error handling).
-- SessionMiddleware registered for flash messages.
-- Bootstrap CSS included in your views (for styled forms and alerts).
-- A `public/` directory for serving uploaded files.
-- Your development environment set up and running.
+- Working Slim 4 application with BaseController pattern
+- Flash Messages lab completed
+- Result Pattern assignment completed
+- SessionMiddleware registered
+- Bootstrap CSS included in views
+- `public/` directory available
 
 ---
 
-## Lab Steps
+## Step 1: Create the Uploads Directory
 
-### Step 1: Create the Uploads Directory
-
-**Objective:** Set up a directory structure for storing uploaded files.
+**Objective:** Set up directory structure for storing uploaded files.
 
 **Instructions:**
 
-1. Navigate to your project's `public/` directory
-2. Create a new folder named `uploads/`
-3. Inside `uploads/`, create a subfolder named `images/`
-4. Verify the directory structure:
+1. Navigate to `public/` directory
+2. Create folder: `uploads/`
+3. Inside `uploads/`, create: `images/`
+4. Verify structure:
    ```
    public/
    └── uploads/
        └── images/
    ```
-5. **Permissions Note:**
-   - **On Windows:** No action needed. PHP will automatically have write access if you created the directory.
-   - **On Linux/Mac:** Ensure the web server has write permissions: `chmod 755 public/uploads/`
 
-**What you just created:**
-- A dedicated directory for uploaded files within the public folder.
-- A subdirectory for organizing image uploads.
-- A location accessible via URL for serving uploaded files.
+**Permissions:**
+- **Windows:** No action needed
+- **Linux/Mac:** `chmod 755 public/uploads/`
 
 ---
 
-### Step 2: Create the FileUploadHelper Class (Server-Side)
+## Step 2: Create the FileUploadHelper Class
 
-**Objective:** Build a reusable helper class to handle file upload logic with proper validation and error handling.
+### Step 2.1: Class Structure
 
-**Why create a helper class?**
-
-Separating file upload logic into a helper class provides several benefits:
-- **Reusability**: Use the same upload logic across multiple routes and controllers.
-- **Clean controllers**: Keep route handlers focused on HTTP concerns (request/response).
-- **Testability**: Easily unit test upload logic in isolation.
-- **Maintainability**: One place to fix bugs or add features.
-- **Best practices**: Demonstrates proper separation of concerns and the Single Responsibility Principle (SRP).
-
-We'll build this class step-by-step, implementing each piece of functionality as we go.
-
----
-
-#### Step 2.1: Create the Class Structure
-
-**Instructions:**
-
-1. Navigate to your `app/Helpers/` directory.
-2. Create a new file named `FileUploadHelper.php`.
-3. Add the following starter code:
+Create `app/Helpers/FileUploadHelper.php`:
 
 ```php title="app/Helpers/FileUploadHelper.php"
 <?php
@@ -139,223 +100,125 @@ class FileUploadHelper
 }
 ```
 
-4. Save the file.
-
-**What you just created:**
-- The class structure with proper namespace
-- Method signature with type hints
-- PHPDoc comments documenting parameters and return type
-- Static method that can be called without instantiating the class
-
 ---
 
-#### Step 2.2: Extract and Validate Configuration
+### Step 2.2: Extract and Validate Configuration
 
-**Objective:** Extract configuration values and validate that required settings are provided.
+Inside the `upload()` method, add:
 
-**Instructions:**
-
-Inside the `upload()` method, add code to:
-
-1. **Extract configuration values** into the following variables with defaults using the null coalescing operator (`??`):
+1. **Extract configuration values** using null coalescing operator:
    - `$directory` from `$config['directory']` (default: `null`)
-   - `$allowedTypes` from `$config['allowedTypes']` (default: empty array `[]`)
+   - `$allowedTypes` from `$config['allowedTypes']` (default: `[]`)
    - `$maxSize` from `$config['maxSize']` (default: `0`)
    - `$filenamePrefix` from `$config['filenamePrefix']` (default: `'upload_'`)
 
 2. **Validate required configuration:**
    - If `$directory` is empty, return `Result::failure('Upload directory not specified in configuration')`
    - If `$allowedTypes` is empty, return `Result::failure('Allowed file types not specified in configuration')`
-   - If `$maxSize` is less than or equal to 0, return `Result::failure('Maximum file size not specified in configuration')`
+   - If `$maxSize <= 0`, return `Result::failure('Maximum file size not specified in configuration')`
 
 **Hints:**
-- Use `$variable = $config['key'] ?? defaultValue;` for extraction
-- Use `if (!$directory)` to check if directory is null or empty
-- Use `empty($allowedTypes)` to check if array is empty
-- Use `$maxSize <= 0` to check if size is invalid
+- Use `$variable = $config['key'] ?? defaultValue;`
+- Use `!$directory` to check if null/empty
+- Use `empty($allowedTypes)` for array check
 
 ---
 
-#### Step 2.3: Validate the Uploaded File
+### Step 2.3: Validate the Uploaded File
 
-**Objective:** Check if the file uploaded successfully and validate its size and type.
-
-**Instructions:**
-
-Continue inside the `upload()` method and add validation for:
+Continue in `upload()` method:
 
 1. **Check upload errors:**
-   - Use `$uploadedFile->getError()` to get the error code
-   - Compare it to the constant `UPLOAD_ERR_OK` (which equals 0)
+   - Use `$uploadedFile->getError()`
+   - Compare to `UPLOAD_ERR_OK` (equals 0)
    - If not equal, return `Result::failure('Error uploading file')`
 
 2. **Validate file size:**
-   - Use `$uploadedFile->getSize()` to get file size in bytes
-   - Check if it's greater than `$maxSize`
-   - If too large, calculate size in MB: `round($maxSize / (1024 * 1024), 1)`
+   - Use `$uploadedFile->getSize()`
+   - Check if greater than `$maxSize`
+   - Calculate size in MB: `round($maxSize / (1024 * 1024), 1)`
    - Return `Result::failure("File too large (max {$maxSizeMB}MB)")`
 
-3. **Validate file type (media type):**
-   - Use `$uploadedFile->getClientMediaType()` to get the media type
-   - Use `in_array()` to check if it's in the `$allowedTypes` array
+3. **Validate media type:**
+   - Use `$uploadedFile->getClientMediaType()`
+   - Use `in_array()` to check against `$allowedTypes`
    - If not allowed, return `Result::failure('Invalid file type. Only ' . implode(', ', $allowedTypes) . ' allowed.')`
 
 **Hints:**
-- `getError()` returns an integer error code (0 means success)
-- `getSize()` returns file size in bytes
-- `getClientMediaType()` returns strings like 'image/jpeg', 'image/png'
-- `in_array($value, $array)` checks if value exists in array
-- `implode(', ', $array)` joins array elements into a string
+- `getError()` returns 0 for success
+- `getSize()` returns bytes
+- `getClientMediaType()` returns 'image/jpeg', 'image/png', etc.
 
 ---
 
-#### Step 2.4: Generate a Safe Filename
+### Step 2.4: Generate a Safe Filename
 
-**Objective:** Create a unique, secure filename to prevent security issues and file overwrites.
+**Why?** User filenames could be malicious: `../../etc/passwd`, `script.php`, or overwrite existing files.
 
-**Why is this critical?**
+Add code to generate safe filename:
 
-Never trust user-provided filenames! Malicious users could upload files with dangerous names like:
-- `../../etc/passwd` (path traversal attack)
-- `script.php` (executable file)
-- `existing-file.jpg` (overwrite important files)
-
-**Instructions:**
-
-Add code to generate a safe filename:
-
-1. **Extract the file extension:**
+1. **Extract file extension:**
    - Use `pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION)`
-   - Store the result in `$extension`
+   - Store in `$extension`
 
 2. **Generate unique filename:**
-   - Use `uniqid($filenamePrefix)` to create a unique ID with the prefix
-   - Append a dot and the extension: `uniqid($filenamePrefix) . '.' . $extension`
-   - Store the result in `$filename`
+   - Use `uniqid($filenamePrefix) . '.' . $extension`
+   - Store in `$filename`
 
 **Hints:**
-- `pathinfo()` extracts information about a file path
-- `PATHINFO_EXTENSION` is a constant that tells pathinfo to return just the extension
-- `uniqid('prefix')` generates a unique ID based on current time in microseconds
+- `uniqid('prefix')` generates unique ID based on current time
 - Example output: `upload_67a3f2b4c5e1d.jpg`
 
 ---
 
-#### Step 2.5: Create Directory and Save File
+### Step 2.5: Create Directory and Save File
 
-**Objective:** Ensure the upload directory exists and move the file from temporary storage to its permanent location.
+Add code to save the file:
 
-**Instructions:**
-
-Add code to create the directory (if needed) and save the file:
-
-1. **Check if directory exists and create if needed:**
-   - Use `is_dir($directory)` to check if directory exists
-   - If it doesn't exist, use `mkdir($directory, 0755, true)` to create it
-     - `0755` are permissions (ignored on Windows)
-     - `true` means create parent directories too
+1. **Check/create directory:**
+   - Use `is_dir($directory)` to check existence
+   - If doesn't exist, use `mkdir($directory, 0755, true)`
    - If mkdir fails, return `Result::failure('Failed to create upload directory')`
 
-2. **Build the full destination path:**
-   - Combine `$directory`, `DIRECTORY_SEPARATOR` constant, and `$filename`
+2. **Build destination path:**
+   - Combine: `$directory . DIRECTORY_SEPARATOR . $filename`
    - Store in `$destination`
-   - `DIRECTORY_SEPARATOR` is `/` on Unix or `\` on Windows
 
-3. **Move the file using try-catch:**
-   - Wrap `$uploadedFile->moveTo($destination)` in a try-catch block
-   - Catch `\Exception` and return `Result::failure('Failed to save uploaded file: ' . $e->getMessage())`
+3. **Move file (use try-catch):**
+   - Try: `$uploadedFile->moveTo($destination)`
+   - Catch `\Exception`: return `Result::failure('Failed to save uploaded file: ' . $e->getMessage())`
 
 4. **Return success:**
-   - After successful upload, return `Result::success('File uploaded successfully', ['filename' => $filename])`
+   - Return `Result::success('File uploaded successfully', ['filename' => $filename])`
 
 **Hints:**
-- `is_dir()` checks if a path is a directory
+- `DIRECTORY_SEPARATOR` is `/` on Unix, `\` on Windows
 - `mkdir($path, $permissions, $recursive)` creates directories
-- `DIRECTORY_SEPARATOR` is a PHP constant for the OS-specific directory separator
-- `moveTo()` moves the uploaded file from temp location to permanent location
-- Always use try-catch when moving files (could fail due to permissions, disk space, etc.)
+- Always use try-catch when moving files
 
 ---
 
-#### Step 2.6: Verify Your Complete Implementation
+## Step 3: Create the Upload Form
 
-**Check Your Work:**
+Create `app/Views/upload/uploadView.php`:
 
-Your complete `FileUploadHelper.php` should now have:
-- ✅ Class structure with proper namespace and imports
-- ✅ Static `upload()` method with proper type hints
-- ✅ Configuration extraction with defaults
-- ✅ Configuration validation (directory, types, size)
-- ✅ Upload error checking
-- ✅ File size validation
-- ✅ Media type validation
-- ✅ Unique filename generation
-- ✅ Directory creation (if needed)
-- ✅ File saving with error handling
-- ✅ Result pattern return values
-
-**Test Your Understanding:**
-
-Before moving on, make sure you can answer:
-1. Why do we use `uniqid()` instead of the original filename?
-2. What does `UPLOAD_ERR_OK` mean and why do we check for it?
-3. What's the purpose of the `try-catch` block around `moveTo()`?
-4. Why do we validate media type in addition to file extension?
-5. What happens if configuration is missing (e.g., no `allowedTypes`)?
-
-**What you just built:**
-- A static helper method that encapsulates all file upload logic.
-- Configuration-driven approach for flexibility.
-- Complete validation (errors, size, type).
-- Automatic directory creation if needed.
-- Secure filename generation using `uniqid()`.
-- Result pattern for clean success/failure handling.
-- Detailed error messages for debugging.
-- Reusable across your entire application.
-
----
-
-### Step 3: Create the HTML Upload Form (Client-Side)
-
-**Objective:** Create an HTML form that allows users to select and upload files.
-
-**Key Points About the Form:**
-
-Before creating the form, understand these essential attributes:
-
-- **`method="POST"`:** File uploads require POST requests because file data cannot be sent via GET. GET requests only support URL parameters, which are limited in size and format.
-
-- **`enctype="multipart/form-data"`:** This is the most critical attribute! It tells the browser to encode the form data as multiple parts (one for each form field, including files). Without this attribute, the browser will send only the filename as text, not the actual file content.
-
-- **`<input type="file">`:** This creates the file selection button. The `name` attribute is important - you'll use this name to access the uploaded file in your PHP code.
-
-**Instructions:**
-
-1. Navigate to your `views/` directory.
-2. Create a new folder named `upload/`
-3. Inside `upload/`, create a file named `uploadView.php`.
-4. Add the following HTML code:
-
-```html title="views/upload/uploadView.php"
+```php title="app/Views/upload/uploadView.php"
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Upload Demo</title>
-    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="container mt-5">
         <h1 class="mb-4">File Upload Demo</h1>
 
-        <!-- Flash Messages Display Area -->
         <div class="mb-4">
             <?= App\Helpers\FlashMessage::render() ?>
         </div>
 
-        <!-- Upload Form -->
         <div class="card mb-4">
             <div class="card-header">
                 <h5>Upload an Image</h5>
@@ -381,40 +244,21 @@ Before creating the form, understand these essential attributes:
         </div>
     </div>
 
-    <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 ```
 
-5. Save the file
-
-**What you just created:**
-- An HTML form with `method="POST"` for file uploads.
-- The critical `enctype="multipart/form-data"` attribute.
-- A file input field with `name="myfile"` (you'll use this name in PHP).
-- Bootstrap styling for a clean interface.
-- Flash message display area for feedback.
+**Key Points:**
+- `method="POST"` required for file uploads
+- `enctype="multipart/form-data"` **CRITICAL** - without this, files won't upload
+- `name="myfile"` is the key to access file in PHP
 
 ---
 
-### Step 4: Create the UploadController (Server-Side)
+## Step 4: Create the UploadController
 
-**Objective:** Create a controller class to handle file upload requests using the `BaseController` pattern.
-
-**Why use a controller?**
-
-Using a controller class (instead of closures in routes) provides:
-- Access to BaseController helper methods (`render()`, `redirect()`).
-- Better code organization.
-- Easier testing and maintenance.
-- Consistent with the MVC pattern.
-
-**Instructions:**
-
-1. Navigate to your `app/Controllers/` directory.
-2. Create a new file named `UploadController.php`.
-3. Add the following code:
+Create `app/Controllers/UploadController.php`:
 
 ```php title="app/Controllers/UploadController.php"
 <?php
@@ -438,7 +282,7 @@ class UploadController extends BaseController
     {
         // TODO: Create a $data array with 'title' => 'File Upload Demo'
 
-        // TODO: Render the 'upload/uploadView.php' view and pass the data array to that view.
+        // TODO: Render 'upload/uploadView.php' view and pass $data
     }
 
     /**
@@ -446,83 +290,52 @@ class UploadController extends BaseController
      */
     public function upload(Request $request, Response $response, array $args): Response
     {
-        // TODO: Get the uploaded files from the request using getUploadedFiles()
-        // TODO: Extract the 'myfile' uploaded file from the array
+        // TODO: Get uploaded files using getUploadedFiles()
+        // TODO: Extract 'myfile' from the array
 
-        // TODO: Create a $config array with the following settings:
-        //       - 'directory' => Use APP_BASE_DIR_PATH constant + '/public/uploads/images'
+        // TODO: Create $config array with:
+        //       - 'directory' => APP_BASE_DIR_PATH . '/public/uploads/images'
         //       - 'allowedTypes' => ['image/jpeg', 'image/png', 'image/gif']
         //       - 'maxSize' => 2 * 1024 * 1024 (2MB in bytes)
         //       - 'filenamePrefix' => 'upload_'
 
-        // TODO: Call FileUploadHelper::upload() with the uploaded file and config
+        // TODO: Call FileUploadHelper::upload() with uploaded file and config
 
-        // TODO: Check if the result is successful using isSuccess()
+        // TODO: Check if result is successful using isSuccess()
         // If successful:
-        //   - TODO: Get the filename from the result data using getData()['filename']
-        //   - TODO: Use SessionManager to check if 'uploaded_files' exists, if not initialize it as an empty array
-        //   - TODO: Get the current 'uploaded_files' array from SessionManager, add the new filename, and save it back
-        //   - TODO: Display a success message using FlashMessage::success() with the result message and filename
+        //   - TODO: Get filename from result data: getData()['filename']
+        //   - TODO: Use SessionManager to check/initialize 'uploaded_files' array
+        //   - TODO: Add new filename to 'uploaded_files' array and save
+        //   - TODO: Display success message using FlashMessage::success()
         // If not successful:
-        //   - TODO: Display an error message using FlashMessage::error() with the result message
+        //   - TODO: Display error message using FlashMessage::error()
 
-        // TODO: Redirect back to 'upload.index' using the redirect() method
+        // TODO: Redirect back to 'upload.index'
     }
 }
 ```
 
-4. Save the file.
-
-**What you just created:**
-- An `UploadController` that extends `BaseController`.
-- An `index()` method that uses `$this->render()` to display the form.
-- An `upload()` method that processes uploads and uses `$this->redirect()`.
-- Clean separation: controller handles HTTP, helper handles file logic.
-- Proper use of BaseController helper methods.
-
 ---
 
-### Step 5: Register the Routes
+## Step 5: Register Routes
 
-**Objective:** Register routes that map URLs to the UploadController methods.
-
-**Instructions:**
-
-1. Open your `app/Routes/web-routes.php` file.
-2. Add the import at the top:
+Open `app/Routes/web-routes.php` and add:
 
 ```php
 use App\Controllers\UploadController;
+
+// TODO: Create GET route for '/upload' → UploadController::class 'index'
+//       Route name: 'upload.index'
+
+// TODO: Create POST route for '/upload' → UploadController::class 'upload'
+//       Route name: 'upload.process'
 ```
-
-3. Add the following routes:
-
-```php
-// TODO: Create a GET route for '/upload' that maps to UploadController::class 'index' method
-//       Set the route name to 'upload.index'
-
-// TODO: Create a POST route for '/upload' that maps to UploadController::class 'upload' method
-//       Set the route name to 'upload.process'
-```
-
-4. Save the file.
-5. Test by visiting `/upload` in your browser - you should see the upload form
-
-**What you just created:**
-- A GET route that calls `UploadController::index()` to display the form
-- A POST route that calls `UploadController::upload()` to process uploads
-- Named routes for easy use with `redirect()` method
 
 ---
 
-### Step 6: Display Uploaded Files (Optional Enhancement)
+## Step 6: Display Uploaded Files (Optional)
 
-**Objective:** Update the view to show a gallery of uploaded files.
-
-**Instructions:**
-
-1. Open `views/upload/uploadView.php`
-2. Add the following code after the upload form (before the closing `</div>` tag):
+Add to `app/Views/upload/uploadView.php` after the upload form:
 
 ```php
 <!-- Uploaded Files Display -->
@@ -555,319 +368,93 @@ use App\Controllers\UploadController;
 <?php endif; ?>
 ```
 
-3. Save the file
-
-**What you just added:**
-- Check if uploaded files exist in session.
-- Display files in a responsive grid layout.
-- Show each image with its filename.
-- Most recent uploads appear first.
-
 ---
 
-### Step 7: Test Your Implementation
+## Testing Your Implementation
 
-**Objective:** Verify that file uploads work correctly and securely.
+Visit `http://localhost/[your-app]/upload` and test:
 
-**Instructions:**
-
-1. Start your development server (if not already running)
-2. Visit `http://localhost/[your-app-folder-name]/upload` in your browser
-3. Test the following scenarios:
-
-**Test Case 1: Valid Image Upload**
-- Click "Choose File" and select a valid image (JPEG, PNG, or GIF)
+### Test Case 1: Valid Upload
+- Select valid image (JPEG, PNG, GIF)
 - Click "Upload File"
-- Expected: Green success message and image appears below
+- **Expected:** Green success message, image appears below
 
-**Test Case 2: Invalid File Type**
-- Try to upload a .txt or .pdf file
-- Expected: Red error message about invalid file type
+### Test Case 2: Invalid File Type
+- Upload .txt or .pdf file
+- **Expected:** Red error message about invalid file type
 
-**Test Case 3: Large File**
-- Try to upload an image larger than 2MB
-- Expected: Red error message "File too large (max 2MB)"
+### Test Case 3: Large File
+- Upload image larger than 2MB
+- **Expected:** "File too large (max 2MB)"
 
-**Test Case 4: Invalid File Type**
-- Try to upload a .txt, .pdf, or .exe file
-- Expected: Red error message about invalid file type
+### Test Case 4: Multiple Uploads
+- Upload several images
+- **Expected:** All appear in gallery with unique filenames like `upload_673abc123def.jpg`
 
-**Test Case 5: Multiple Uploads**
-- Upload several different images
-- Expected: All images appear in the gallery below
-- Each file should have a unique filename like `upload_673abc123def.jpg`
-
-**Expected Behavior:**
-
-- ✅ Valid images upload successfully
-- ✅ Success messages appear for successful uploads
-- ✅ Error messages appear for invalid uploads
-- ✅ Uploaded files appear in the `public/uploads/images/` directory
-- ✅ Images display correctly in the gallery (if you added Step 8)
-- ✅ Invalid file types are rejected
-- ✅ Files larger than 2MB are rejected
-- ✅ Each uploaded file has a unique filename with `upload_` prefix
-
-**If uploads don't work:**
-- Check that `public/uploads/images/` directory exists
-- Verify write permissions on the uploads directory (0755)
-- Check `upload_max_filesize` in php.ini (should be at least 2MB)
-- Check `post_max_size` in php.ini (should be larger than upload_max_filesize)
-- Ensure the form has `enctype="multipart/form-data"`
-- Check browser console and PHP error logs
-- Verify SessionMiddleware is registered for flash messages
-- Make sure FlashMessage helper is available
+**Troubleshooting:**
+- Check `public/uploads/images/` exists
+- Verify write permissions (0755)
+- Check `upload_max_filesize` in php.ini (≥ 2MB)
+- Check `post_max_size` in php.ini (> upload_max_filesize)
+- Ensure form has `enctype="multipart/form-data"`
+- Verify SessionMiddleware is registered
 
 ---
 
-## Verification Checklist
+## Common Issues
 
-Before submitting your lab, verify the following:
-
-**File Structure:**
-- [ ] `app/Helpers/FileUploadHelper.php` exists and is properly implemented
-- [ ] `app/Controllers/UploadController.php` exists and extends BaseController
-- [ ] `public/uploads/images/` directory exists (permissions handled automatically on Windows)
-- [ ] `views/upload/uploadView.php` exists with the upload form
-
-**Controller Implementation:**
-- [ ] `UploadController` extends `BaseController`
-- [ ] `index()` method uses `$this->render()` to display the form
-- [ ] `upload()` method uses `FileUploadHelper::upload()` for file processing
-- [ ] `upload()` method uses `$this->redirect()` to redirect back to the form
-- [ ] Controller handles Result object properly (checks `isSuccess()`)
-
-**Routes:**
-- [ ] GET route `/upload` is registered using `[UploadController::class, 'index']`
-- [ ] POST route `/upload` is registered using `[UploadController::class, 'upload']`
-- [ ] Both routes have proper names ('upload.index', 'upload.process')
-
-**FileUploadHelper Implementation:**
-- [ ] Helper has static `upload()` method that accepts `UploadedFileInterface` and `$config` array
-- [ ] Helper returns `Result` object (success or failure)
-- [ ] Helper validates upload errors using `getError()`
-- [ ] Helper validates file size against `maxSize` config
-- [ ] Helper validates media type against `allowedTypes` config
-- [ ] Helper generates unique filenames using `uniqid()`
-- [ ] Helper uses `moveTo()` to save files
-- [ ] Helper creates upload directory if it doesn't exist
-
-**Functionality:**
-- [ ] Upload page (`/upload`) displays the form correctly
-- [ ] Valid images (JPEG, PNG, GIF) upload successfully
-- [ ] Invalid file types are rejected with appropriate error messages
-- [ ] Files larger than 2MB are rejected
-- [ ] Uploaded files have unique filenames with `upload_` prefix
-- [ ] Uploaded images display in the gallery (if Step 6 completed)
-- [ ] Flash messages work correctly for success and error cases
-- [ ] Files are actually saved to `public/uploads/images/` directory
-
-**Code Quality:**
-- [ ] Controller methods are clean and focused on HTTP concerns
-- [ ] No validation logic is mixed into the controller
-- [ ] Configuration is clearly defined in the controller
-- [ ] Result pattern is used correctly for success/failure handling
-- [ ] BaseController methods (`render()`, `redirect()`) are used properly
-- [ ] Controller follows MVC pattern with proper separation of concerns
-
----
-
-## Understanding What You Built
-
-### FileUploadHelper API
-
-The `FileUploadHelper` class provides a simple, static API for handling file uploads:
-
-```php
-FileUploadHelper::upload(UploadedFileInterface $uploadedFile, array $config): Result
-```
-
-**Configuration Options:**
-
-| Option           | Type   | Required | Description           | Example                                      |
-| ---------------- | ------ | -------- | --------------------- | -------------------------------------------- |
-| `directory`      | string | Yes      | Upload directory path | APP_BASE_DIR_PATH . '/public/uploads/images'` |
-| `allowedTypes`   | array  | Yes      | Allowed media types   | `['image/jpeg', 'image/png']`                |
-| `maxSize`        | int    | Yes      | Max size in bytes     | `2 * 1024 * 1024` (2MB)                      |
-| `filenamePrefix` | string | No       | Filename prefix       | `'upload_'` (default)                        |
-
-**Return Value:**
-
-Returns a `Result` object that either:
-- **Success**: Contains `['filename' => 'upload_abc123.jpg']` in data
-- **Failure**: Contains error message describing what went wrong
-
-**Example Usage:**
-
-```php
-$result = FileUploadHelper::upload($uploadedFile, [
-    'directory' => APP_BASE_DIR_PATH . '/public/uploads',
-    'allowedTypes' => ['image/jpeg', 'image/png'],
-    'maxSize' => 2 * 1024 * 1024,
-    'filenamePrefix' => 'avatar_'
-]);
-
-if ($result->isSuccess()) {
-    $filename = $result->getData()['filename'];
-    echo "Uploaded: {$filename}";
-} else {
-    echo "Error: " . $result->getMessage();
-}
-```
-
-### How File Upload Works (With File Upload Helper Class)
-
-1. **Form submission:** User selects file and submits form with `enctype="multipart/form-data"`
-2. **File reception:** PHP receives file in `$_FILES` superglobal, Slim wraps it in PSR-7 UploadedFileInterface.
-3. **Route mapping:** Slim routes the POST request to `UploadController::upload()`.
-4. **Controller handling:** Controller retrieves the file using `$request->getUploadedFiles()`.
-5. **Helper call:** Controller calls `FileUploadHelper::upload()` with file and configuration.
-6. **Helper validation:** Helper validates upload errors, media type, and file size.
-7. **Unique naming:** Helper generates unique filename using `uniqid()`.
-8. **Storage:** Helper moves file to permanent location using `moveTo()`.
-9. **Result return:** Helper returns Result object (success with filename, or failure with error).
-10. **Controller response:** Controller checks result, sets flash message, stores filename in session.
-11. **Redirect:** Controller uses `$this->redirect()` to send user back to upload form (PRG pattern).
-
-### Architecture: Separation of Concerns
-
-| Component | Responsibility | Location |
-|-----------|----------------|----------|
-| **View** | Display form and images | `views/upload/uploadView.php` |
-| **Controller** | Handle HTTP request/response | `app/Controllers/UploadController.php` |
-| **Route** | Map URLs to controller methods | `app/Routes/web-routes.php` |
-| **Helper** | Validate and save files | `app/Helpers/FileUploadHelper.php` |
-| **Result** | Communicate success/failure | `Result` class |
-| **Flash** | Display user feedback | `FlashMessage` helper |
-
-### Security Layers Implemented
-
-| Security Layer | Purpose | Implementation |
-|----------------|---------|----------------|
-| Error Check | Ensure upload succeeded | `getError() !== UPLOAD_ERR_OK` |
-| Size Validation | Prevent large file attacks | `getSize() > maxSize` check |
-| Media Type Check | Verify file type from browser | `getClientMediaType()` + whitelist |
-| Unique Filenames | Prevent path traversal & overwrites | `uniqid('upload_')` |
-| Directory Isolation | Store files in safe location | `public/uploads/images/` |
-
-### Benefits of the File Upload Helper Class
-
-The general idea is to have a helper class that can be used to upload files to a specific directory. The helper class will validate the file, check the file size, check the file type, and generate a unique filename. The helper class will then move the file to the specific directory.
-
-**Code Reusability:**
-```php
-// Use the same helper for profile pictures
-$result = FileUploadHelper::upload($file, [
-    'directory' => App_BASE_DIR_PATH . '/public/uploads/avatars',
-    'allowedTypes' => ['image/jpeg', 'image/png'],
-    'maxSize' => 1 * 1024 * 1024,
-    'filenamePrefix' => 'avatar_'
-]);
-
-// Use it for document uploads
-$result = FileUploadHelper::upload($file, [
-    'directory' => APP_BASE_DIR_PATH . '/public/uploads/docs',
-    'allowedTypes' => ['application/pdf'],
-    'maxSize' => 5 * 1024 * 1024,
-    'filenamePrefix' => 'doc_'
-]);
-```
-
-**Clean Controller Methods:**
-- Controllers stay focused on HTTP concerns.
-- No validation logic mixed with controller logic.
-- Easy to read and maintain.
-- Consistent error handling across all upload operations.
-- Proper use of BaseController helper methods (`render()`, `redirect()`).
-
-**Testability:**
-- Test helper independently of HTTP layer.
-- Mock UploadedFileInterface for unit tests.
-- Test configuration handling.
-- Verify Result objects are returned correctly.
-
-### PHP File Upload Error Codes
-
-| Error Code | Constant | Meaning |
-|------------|----------|---------|
-| 0 | `UPLOAD_ERR_OK` | Upload successful |
-| 1 | `UPLOAD_ERR_INI_SIZE` | Exceeds `upload_max_filesize` |
-| 2 | `UPLOAD_ERR_FORM_SIZE` | Exceeds `MAX_FILE_SIZE` in form |
-| 3 | `UPLOAD_ERR_PARTIAL` | File partially uploaded |
-| 4 | `UPLOAD_ERR_NO_FILE` | No file uploaded |
-| 6 | `UPLOAD_ERR_NO_TMP_DIR` | Missing temp directory |
-| 7 | `UPLOAD_ERR_CANT_WRITE` | Failed to write to disk |
-| 8 | `UPLOAD_ERR_EXTENSION` | PHP extension stopped upload |
-
----
-
-## Common Issues and Solutions
-
-### Issue 1: "No file was uploaded" Error
-
-**Cause:** Form missing `enctype="multipart/form-data"` attribute
-
-**Solution:**
-- Ensure form tag has: `<form method="POST" enctype="multipart/form-data">`
-- This attribute is REQUIRED for file uploads
+### Issue 1: "No file was uploaded"
+**Solution:** Ensure form has `enctype="multipart/form-data"`
 
 ### Issue 2: File Size Limit Exceeded
+**Solution:** Edit `php.ini`:
+```ini
+upload_max_filesize = 10M
+post_max_size = 12M
+```
+Restart web server after changes.
 
-**Cause:** PHP configuration limits are too low
+### Issue 3: Permission Denied
+**Windows:** Right-click folder → Properties → Security → Ensure "Users" has "Modify"
+**Linux/Mac:** `chmod 755 public/uploads/`
 
-**Solution:**
-- Edit `php.ini` and increase:
-  ```ini
-  upload_max_filesize = 10M
-  post_max_size = 12M
-  ```
-- Restart your web server after changes
+### Issue 4: Files Not in Gallery
+**Solution:** Verify filenames stored in `$_SESSION['uploaded_files']` and SessionMiddleware is registered
 
-### Issue 3: Permission Denied Errors
+### Issue 5: Images Not Displaying
+**Solution:** Check image src path: `APP_BASE_URL/public/uploads/images/filename.jpg`
 
-**Cause:** Web server doesn't have write permissions
+---
 
-**Solution:**
+## Key Concepts
 
-**On Windows:**
-- Usually not an issue for local development - if you created the folder, PHP should have access.
-- If you see permission errors, right-click folder → Properties → Security → Edit permissions.
-- Ensure "Users" group has "Modify" permissions.
+### FileUploadHelper Configuration
 
-**On Linux/Mac:**
-- Run: `chmod 755 public/uploads/`.
-- Or: `chmod 777 public/uploads/` (less secure, but works for development).
-- Ensure the directory is owned by the web server user (e.g., `www-data`, `apache`).
+| Option | Type | Required | Example |
+|--------|------|----------|---------|
+| `directory` | string | Yes | `APP_BASE_DIR_PATH . '/public/uploads/images'` |
+| `allowedTypes` | array | Yes | `['image/jpeg', 'image/png']` |
+| `maxSize` | int | Yes | `2 * 1024 * 1024` (2MB) |
+| `filenamePrefix` | string | No | `'upload_'` (default) |
 
-**Note:** The `0755` parameter in `mkdir()` is automatically ignored on Windows, so you don't need to change the code.
+### Security Layers
 
-### Issue 4: Files Not Appearing in Gallery
+| Layer | Purpose | Implementation |
+|-------|---------|----------------|
+| Error Check | Ensure upload succeeded | `getError() === UPLOAD_ERR_OK` |
+| Size Validation | Prevent large file attacks | `getSize() > maxSize` check |
+| Media Type Check | Verify file type | `getClientMediaType()` whitelist |
+| Unique Filenames | Prevent path traversal | `uniqid('upload_')` |
+| Directory Isolation | Safe storage | `public/uploads/images/` |
 
-**Cause:** Uploaded files not tracked in session.
+### Upload Error Codes
 
-**Solution:**
-- Verify you're storing filenames in `$_SESSION['uploaded_files']`.
-- Check that SessionMiddleware is registered.
-- Ensure session_start() is called.
-
-### Issue 5: Images Not Displaying (Broken Images)
-
-**Cause:** Incorrect file path in `src` attribute.
-
-**Solution:**
-- Verify image src uses: `/uploads/images/filename.jpg`.
-- Check that files exist in `public/uploads/images/`.
-- Open browser dev tools to see 404 errors.
-
-### Issue 6: Security Warning - File Type Bypass
-
-**Cause:** Relying only on client-side validation.
-
-**Solution:**
-- ALWAYS validate on server-side in your POST route.
-- Check file errors, size, and media type.
-- Never trust client-provided media types alone.
-- Consider adding `getimagesize()` check for extra security.
+| Code | Constant | Meaning |
+|------|----------|---------|
+| 0 | `UPLOAD_ERR_OK` | Success |
+| 1 | `UPLOAD_ERR_INI_SIZE` | Exceeds `upload_max_filesize` |
+| 4 | `UPLOAD_ERR_NO_FILE` | No file uploaded |
+| 7 | `UPLOAD_ERR_CANT_WRITE` | Failed to write to disk |
 
 ---
 
@@ -885,4 +472,3 @@ $result = FileUploadHelper::upload($file, [
 9. What does `UPLOAD_ERR_OK` indicate, and why do we check for it?
 10. What would happen if you didn't call `moveTo()` on the uploaded file?
 :::
-

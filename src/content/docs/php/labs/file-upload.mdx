@@ -8,146 +8,102 @@ sidebar:
     variant: note
 ---
 
-## Introduction
+## Overview
 
-- File uploads are a common feature in web applications, allowing users to **submit** documents, images, and other files to your server. 
-- When a user uploads a file through an HTML form, the file data is sent to the server as part of an **HTTP POST request**. The server then processes this data and saves the file to a designated location on disk.
-- Slim makes this process straightforward by providing access to uploaded files through its Request object.
+File uploads allow users to submit documents, images, and other files to your server via HTTP POST requests. Slim Framework provides clean access to uploaded files through PSR-7 Request objects.
 
 ---
 
-## The File Upload Process
+## HTML Upload Form
 
-### Step 1: Create the HTML Upload Form 
-The process begins on the client-side with an HTML form. This form is what allows the user to select a file from their computer and send it to your server.
+### Required Form Attributes
 
-#### Critical Requirements
+1. **`method="POST"`** - File uploads must use POST
+2. **`enctype="multipart/form-data"`** - Required for file transmission
+3. **`<input type="file">`** - Creates file selection interface
+4. **`name` attribute** - Key to access file on server
 
-The **required** attributes and HTML element for file upload forms:
-
-1.  **`method="POST"`** - File uploads must use POST (GET cannot handle file data)
-2.  **`enctype="multipart/form-data"`** - Tells the browser to encode form data in multiple parts, allowing files to be sent. **Without this, files won't upload.**
-3.  **`<input type="file">`** - This is the specific HTML element that creates the file-selection browser interface.
-3.  **`name` attribute** - The `name` you give the file input (e.g., `name="userfile"`) is the key you will use to identify and access the file on the server.
-
-#### Example
+### Example
 
 ```html
 <form action="/upload" method="POST" enctype="multipart/form-data">
-    <label for="userfile">Select a file to upload:</label>
+    <label for="userfile">Select a file:</label>
     <input type="file" name="userfile" id="userfile">
-    <input type="submit" value="Upload File">
+    <input type="submit" value="Upload">
 </form>
 ```
 
 ---
 
-### Step 2: Handling Uploads on the Server
+## Handling Uploads in Slim
 
-
-#### The $_FILES Superglobal 
-
-When PHP receives an uploaded file, it populates the `$_FILES` superglobal array with information about the file:
-
-```php
-$_FILES['profile_picture'] = [
-    'name' => 'avatar.jpg',           // Original filename
-    'type' => 'image/jpeg',           // Media type (user-provided, don't trust!)
-    'tmp_name' => '/tmp/phpXXXXXX',   // Temporary location
-    'error' => 0,                      // Error code
-    'size' => 524288                   // File size in bytes
-];
-```
-
-**Important:** The uploaded file is initially stored in a temporary location and will be **deleted automatically** after the script finishes unless you move it somewhere permanent.
-
----
-
-#### Handling Uploads in Slim
-
-Slim uses **PSR-7** which provides a clean, object-oriented interface instead of the messy `$_FILES` global array.
-
-#### Accessing Files
-
-To access the uploaded file, you need to use the `getUploadedFiles()` method on the request object. This will return an associative array of `UploadedFileInterface` objects.
+### Accessing Uploaded Files
 
 ```php
 $uploadedFiles = $request->getUploadedFiles();
 $uploadedFile = $uploadedFiles['userfile'] ?? null;
 ```
 
-#### UploadedFile Object Methods
+### UploadedFile Methods
 
-* `getError()` - Returns upload error code. `UPLOAD_ERR_OK` (0) = success
-* `getSize()` - Returns file size in bytes
-* `getClientFilename()` - Original filename. **Never trust this!**
-* `getClientMediaType()` - Media type from browser. **Do not fully trust this!**
-* `moveTo($path)` - Moves file from temp location to permanent destination
-
----
-
-### Step 3: Validation
-
-**Never trust user input.** You must validate every file.
-
-#### What to Check
-
-1. **Upload Errors:** Check `$uploadedFile->getError() === UPLOAD_ERR_OK`
-2. **File Size:** Compare `$uploadedFile->getSize()` against your maximum allowed size
-3. **File Type:** Use `$uploadedFile->getClientMediaType()` to check media type against a whitelist. **Don't trust file extensions alone!**
+| Method | Description |
+|--------|-------------|
+| `getError()` | Upload error code. `UPLOAD_ERR_OK` (0) = success |
+| `getSize()` | File size in bytes |
+| `getClientFilename()` | Original filename. **Never trust!** |
+| `getClientMediaType()` | Media type from browser. **Don't fully trust!** |
+| `moveTo($path)` | Move file from temp to permanent location |
 
 ---
 
-### Step 4: Moving Files
+## Validation (Required!)
 
-PHP stores uploaded files in a **temporary directory** that gets deleted when the script finishes. You must move files to permanent storage.
+**Never trust user input.** Always validate:
 
-#### Key Points
-
-* **Create uploads directory** with proper write permissions
-* **Sanitize filenames** - The user's filename could be malicious (e.g., `../../etc/passwd`)
-* **Generate new unique filenames** to prevent collisions and attacks
-* **Use `moveTo()`** method: `$uploadedFile->moveTo($targetPath)`
+1. **Upload Errors:** `$uploadedFile->getError() === UPLOAD_ERR_OK`
+2. **File Size:** Compare against maximum allowed size
+3. **File Type:** Check media type against whitelist
 
 ---
 
-### Step 5: Security is Not Optional! 
+## Moving Files
 
-Accepting any file without validation is a **massive security hole**. A malicious user could upload a PHP shell and take over your server.
+Uploaded files are stored temporarily and deleted after script execution. You must move them to permanent storage.
 
-#### Secure Process
+**Key Points:**
+- Create uploads directory with write permissions
+- Sanitize filenames (user's filename could be malicious: `../../etc/passwd`)
+- Generate unique filenames to prevent collisions
+- Use `moveTo()` method
 
-1. **Check for Upload Errors** - Always verify `getError()` first
-2. **Safe Directory** - Store uploads **outside** your web root (the `public` folder) to prevent execution
-   * Good: `my-project/uploads/`
-   * Bad: `my-project/public/uploads/`
-3. **Validate File Type** - Use a **whitelist** of allowed media types
+```php
+$uploadedFile->moveTo($targetPath);
+```
+
+---
+
+## Security Best Practices
+
+**Critical:** Accepting files without validation is a security hole. Malicious users can upload PHP shells.
+
+### Secure Process
+
+1. **Check Upload Errors** - Verify `getError()` first
+2. **Safe Directory** - Store **outside** web root (public folder)
+   - ✅ Good: `my-project/uploads/`
+   - ❌ Bad: `my-project/public/uploads/`
+3. **Validate File Type** - Use whitelist of allowed types
 4. **Validate File Size** - Set reasonable limits (e.g., 5MB)
-5. **Generate Secure Filenames** - **Never** use client filenames. Generate unique, random names
+5. **Generate Secure Filenames** - Never use client filenames
 
 ---
 
-### Complete Flow Diagram
+## Upload Process Flow
 
-Below is a complete flow diagram of the file upload process.
-
-```text title="File Upload Process"
-User clicks Upload
-       ↓
-Browser sends POST with file data
-       ↓
-Slim route receives request
-       ↓
-Get uploaded file object
-       ↓
-Check for errors
-       ↓
-Validate size & type
-       ↓
-Generate safe filename
-       ↓
-Move to permanent location
-       ↓
-Send success response
+```text
+User selects file → Browser POST request → Slim route
+→ Get uploaded file object → Check errors
+→ Validate size & type → Generate safe filename
+→ Move to permanent location → Success response
 ```
 ---

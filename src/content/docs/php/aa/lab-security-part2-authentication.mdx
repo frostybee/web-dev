@@ -1,0 +1,715 @@
+---
+title: 'Lab: Login & Authentication System (Part 2)'
+description: 'Implement login, sessions, middleware, and role-based access control'
+draft: true
+sidebar:
+  label: 'Lab: Authentication (Part 2)'
+  order: 2
+  badge:
+    text: In-Class Lab
+    variant: danger
+---
+
+## Resources
+
+- [PHP Password Verification](https://www.php.net/manual/en/function.password-verify.php)
+- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+
+## Overview
+
+In this lab, you'll implement authentication and authorization for your e-commerce application. Building on Part 1 (User Registration), you'll create login functionality, manage user sessions, protect routes with middleware, and implement role-based access control.
+
+Your e-commerce site has two protected areas:
+1. **Admin Panel** - Only administrators can access (from Assignment 2)
+2. **Checkout Process** - Only logged-in customers can checkout items from their cart
+
+**Authentication** answers: "Who are you?" (verifying identity with email/password)
+**Authorization** answers: "What can you do?" (checking permissions and roles)
+
+---
+
+## Learning Objectives
+
+- Implement password verification using `password_verify()`
+- Create login forms and authentication logic
+- Manage user sessions using SessionManager
+- Build middleware to protect routes (AuthMiddleware, AdminAuthMiddleware)
+- Implement role-based access control (admin vs. customer)
+- Create protected dashboard views
+- Apply security best practices for session management
+
+---
+
+## Prerequisites
+
+- **Part 1 completed:** User registration system with `UserModel`
+- Session Middleware lab completed (SessionManager and SessionMiddleware)
+- Flash Messages lab completed
+- SessionMiddleware registered globally in application
+- `UserModel` and `AuthController` classes implemented
+
+---
+
+## How Authentication Works
+
+**Login Flow:**
+1. User submits email/username + password
+2. Server looks up user in database
+3. Server verifies password using `password_verify()` against stored hash
+4. If valid, server creates session and stores user data
+5. User redirected to dashboard based on role
+
+**Session Management:**
+- SessionMiddleware starts session on every request
+- Session stores user ID, role, and other data
+- Middleware checks session to determine if user is logged in
+
+**Route Protection:**
+- **AuthMiddleware** - Checks if user is logged in (for customer checkout, user dashboard)
+- **AdminAuthMiddleware** - Checks if user is logged in AND has admin role (for admin panel)
+- Redirects to login page if checks fail
+
+---
+
+## Step 1: Add `verifyCredentials()` Method to UserModel
+
+**Objective:** Verify user credentials during login.
+
+Open `app/Domain/Models/UserModel.php` and add:
+
+```php
+/**
+ * Verify user credentials by email/username and password.
+ *
+ * @param string $identifier Email or username
+ * @param string $password Plain-text password to verify
+ * @return array|null User data if credentials are valid, null otherwise
+ */
+public function verifyCredentials(string $identifier, string $password): ?array
+{
+    // TODO: Try to find user by email first
+    //       $user = $this->findByEmail($identifier);
+
+    // TODO: If user not found by email, try finding by username
+    //       if (!$user) {
+    //           $user = $this->findByUsername($identifier);
+    //       }
+
+    // TODO: If user still not found, return null (invalid credentials)
+
+    // TODO: Verify the password using password_verify($password, $user['password_hash'])
+    //       If password is valid, return $user
+    //       If password is invalid, return null
+
+    // Hint: Structure should be:
+    // if (password_verify($password, $user['password_hash'])) {
+    //     return $user;
+    // }
+    // return null;
+}
+```
+
+**Key Points:**
+- Try email first, then username (supports both login methods)
+- Use `password_verify()` to compare password with hash
+- Always return null for invalid credentials (don't reveal whether email exists)
+- **Never** compare passwords directly
+
+---
+
+## Step 2: Create the Login Form View
+
+**Objective:** Create HTML form for user login.
+
+Create `app/Views/auth/login.php`:
+
+```php title="app/Views/auth/login.php"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Authentication System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="text-center">Login</h3>
+                    </div>
+                    <div class="card-body">
+                        <?= App\Helpers\FlashMessage::render() ?>
+
+                        <form method="POST" action="login">
+                            <div class="mb-3">
+                                <label for="identifier" class="form-label">Email or Username</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="identifier"
+                                    name="identifier"
+                                    placeholder="Enter your email or username"
+                                    required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input
+                                    type="password"
+                                    class="form-control"
+                                    id="password"
+                                    name="password"
+                                    placeholder="Enter your password"
+                                    required>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">Login</button>
+                            </div>
+                        </form>
+
+                        <div class="mt-3 text-center">
+                            <p>Don't have an account? <a href="register">Register here</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+```
+
+---
+
+## Step 3: Add Login Logic to AuthController
+
+**Objective:** Implement authentication process in AuthController.
+
+Open `app/Controllers/AuthController.php` and add:
+
+```php
+/**
+ * Display the login form (GET request).
+ */
+public function login(Request $request, Response $response, array $args): Response
+{
+    // TODO: Create a $data array with 'title' => 'Login'
+
+    // TODO: Render 'auth/login.php' view and pass $data
+}
+
+/**
+ * Process login form submission (POST request).
+ */
+public function authenticate(Request $request, Response $response, array $args): Response
+{
+    // TODO: Get form data using getParsedBody()
+
+    // TODO: Extract 'identifier' and 'password' from form data
+
+    // Start validation
+    $errors = [];
+
+    // TODO: Validate required fields (identifier and password)
+    //       If either is empty, add error: "Email/username and password are required."
+
+    // If validation errors exist, redirect back
+    // TODO: Check if $errors array is not empty
+    //       If errors exist, use FlashMessage::error() and redirect to 'auth.login'
+
+    // Attempt to verify user credentials
+    // TODO: Call $this->userModel->verifyCredentials($identifier, $password)
+    //       Store the result in $user variable
+
+    // Check if authentication was successful
+    // TODO: If $user is null (authentication failed):
+    //       - Display error message: "Invalid credentials. Please try again."
+    //       - Redirect back to 'auth.login'
+
+    // Authentication successful - create session
+    // TODO: Store user data in session using SessionManager:
+    //       SessionManager::set('user_id', $user['id']);
+    //       SessionManager::set('user_email', $user['email']);
+    //       SessionManager::set('user_name', $user['first_name'] . ' ' . $user['last_name']);
+    //       SessionManager::set('user_role', $user['role']);
+    //       SessionManager::set('is_authenticated', true);
+
+    // TODO: Display success message using FlashMessage::success()
+    //       Message: "Welcome back, {$user['first_name']}!"
+
+    // TODO: Redirect based on role:
+    //       If role is 'admin', redirect to 'admin.dashboard'
+    //       If role is 'customer', redirect to 'user.dashboard'
+    //       Hint: if ($user['role'] === 'admin') { ... } else { ... }
+}
+
+/**
+ * Logout the current user (GET request).
+ */
+public function logout(Request $request, Response $response, array $args): Response
+{
+    // TODO: Destroy the session using SessionManager::destroy()
+
+    // TODO: Display success message: "You have been logged out successfully."
+
+    // TODO: Redirect to 'auth.login' route
+}
+```
+
+---
+
+## Step 4: Create AuthMiddleware
+
+**Objective:** Protect routes by checking if user is logged in.
+
+Create `app/Middleware/AuthMiddleware.php`:
+
+```php title="app/Middleware/AuthMiddleware.php"
+<?php
+
+namespace App\Middleware;
+
+use App\Helpers\FlashMessage;
+use App\Helpers\SessionManager;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
+use Slim\Routing\RouteContext;
+
+class AuthMiddleware implements MiddlewareInterface
+{
+    /**
+     * Process the request - check if user is authenticated.
+     */
+    public function process(Request $request, RequestHandler $handler): Response
+    {
+        // TODO: Check if user is authenticated using SessionManager::get('is_authenticated')
+        //       Store the result in $isAuthenticated variable
+
+        // TODO: If NOT authenticated:
+        //       - Use FlashMessage::error() with message: "Please log in to access this page."
+        //       - Get RouteParser: $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+        //       - Generate login URL: $loginUrl = $routeParser->urlFor('auth.login');
+        //       - Create redirect response:
+        //         $response = new \Slim\Psr7\Response();
+        //         return $response->withHeader('Location', $loginUrl)->withStatus(302);
+
+        // If authenticated, continue to the next middleware/route handler
+        // TODO: Return $handler->handle($request);
+    }
+}
+```
+
+**How it works:**
+- Runs before protected route handlers
+- Checks session for authentication
+- Redirects to login if not authenticated
+- Allows request to continue if authenticated
+
+---
+
+## Step 5: Create AdminAuthMiddleware
+
+**Objective:** Protect admin routes by checking authentication AND admin role.
+
+Create `app/Middleware/AdminAuthMiddleware.php`:
+
+```php title="app/Middleware/AdminAuthMiddleware.php"
+<?php
+
+namespace App\Middleware;
+
+use App\Helpers\FlashMessage;
+use App\Helpers\SessionManager;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
+use Slim\Routing\RouteContext;
+
+class AdminAuthMiddleware implements MiddlewareInterface
+{
+    /**
+     * Process the request - check if user is authenticated AND is an admin.
+     */
+    public function process(Request $request, RequestHandler $handler): Response
+    {
+        // TODO: Get authentication status using SessionManager::get('is_authenticated')
+        // TODO: Get user role using SessionManager::get('user_role')
+
+        // TODO: If NOT authenticated:
+        //       - Use FlashMessage::error() with message: "Please log in to access the admin panel."
+        //       - Redirect to 'auth.login' (same pattern as AuthMiddleware)
+
+        // TODO: If authenticated but role is NOT 'admin':
+        //       - Use FlashMessage::error() with message: "Access denied. Admin privileges required."
+        //       - Redirect to 'user.dashboard' route
+
+        // If authenticated AND admin, continue to admin route
+        // TODO: Return $handler->handle($request);
+    }
+}
+```
+
+**Key Difference from AuthMiddleware:**
+- Checks both authentication AND role
+- Redirects to user dashboard if authenticated but not admin
+- Only allows admin users to continue
+
+---
+
+## Step 6: Create Dashboard View
+
+**Objective:** Create user dashboard for logged-in users.
+
+Create `app/Views/user/dashboard.php`:
+
+```php title="app/Views/user/dashboard.php"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">E-Commerce</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    Welcome, <?= htmlspecialchars($_SESSION['user_name'] ?? 'Guest') ?>!
+                </span>
+                <a class="btn btn-outline-light btn-sm" href="logout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1>User Dashboard</h1>
+
+        <div class="mb-4">
+            <?= App\Helpers\FlashMessage::render() ?>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">My Profile</h5>
+                        <p class="card-text">
+                            <strong>Name:</strong> <?= htmlspecialchars($_SESSION['user_name'] ?? 'N/A') ?><br>
+                            <strong>Email:</strong> <?= htmlspecialchars($_SESSION['user_email'] ?? 'N/A') ?><br>
+                            <strong>Role:</strong> <?= htmlspecialchars($_SESSION['user_role'] ?? 'N/A') ?>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Quick Actions</h5>
+                        <div class="d-grid gap-2">
+                            <a href="#" class="btn btn-primary">Browse Products</a>
+                            <a href="#" class="btn btn-secondary">My Orders</a>
+                            <a href="#" class="btn btn-info">Update Profile</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+```
+
+Add to `AuthController.php`:
+
+```php
+/**
+ * Display user dashboard (protected route).
+ */
+public function dashboard(Request $request, Response $response, array $args): Response
+{
+    // TODO: Create a $data array with 'title' => 'Dashboard'
+
+    // TODO: Render 'user/dashboard.php' view and pass $data
+}
+```
+
+---
+
+## Step 7: Register All Routes
+
+**Objective:** Map URLs to controller methods and apply middleware.
+
+Open `app/Routes/web-routes.php` and add:
+
+```php
+use App\Controllers\AuthController;
+use App\Middleware\AuthMiddleware;
+use App\Middleware\AdminAuthMiddleware;
+
+// Public routes (no authentication required)
+// TODO: Create a GET route for '/login' that maps to AuthController::class 'login' method
+//       Set the route name to 'auth.login'
+
+// TODO: Create a POST route for '/login' that maps to AuthController::class 'authenticate' method
+
+// TODO: Create a GET route for '/logout' that maps to AuthController::class 'logout' method
+//       Set the route name to 'auth.logout'
+
+// Protected routes (authentication required for customers)
+// TODO: Create a GET route for '/dashboard' that maps to AuthController::class 'dashboard' method
+//       Set the route name to 'user.dashboard'
+//       Apply AuthMiddleware using ->add(AuthMiddleware::class)
+
+// TODO: Protect your checkout routes (customers must be logged in to checkout)
+//       Apply AuthMiddleware to checkout-related routes:
+//       $app->get('/checkout', [CartController::class, 'checkout'])->add(AuthMiddleware::class);
+//       $app->post('/checkout', [CartController::class, 'processCheckout'])->add(AuthMiddleware::class);
+//       $app->get('/orders/confirmation', [OrdersController::class, 'confirmation'])->add(AuthMiddleware::class);
+//
+//       Or use a route group for all checkout routes:
+//       $app->group('/checkout', function ($group) {
+//           $group->get('', [CartController::class, 'checkout']);
+//           $group->post('', [CartController::class, 'processCheckout']);
+//       })->add(AuthMiddleware::class);
+
+// Admin routes (authentication + admin role required)
+// TODO: Apply AdminAuthMiddleware to your existing admin route group from Assignment 2
+//       Find your '/admin' route group and add ->add(AdminAuthMiddleware::class) at the end
+//
+//       Your admin group should look like this:
+//       $app->group('/admin', function ($group) {
+//           $group->get('/dashboard', [AdminController::class, 'dashboard'])->setName('admin.dashboard');
+//           $group->get('/users', [UsersController::class, 'index']);
+//           $group->get('/products', [ProductsController::class, 'index']);
+//           $group->get('/categories', [CategoriesController::class, 'index']);
+//           $group->get('/orders', [OrdersController::class, 'index']);
+//           // ... your other admin routes from Assignment 2
+//       })->add(AdminAuthMiddleware::class);  // <- Add this middleware to protect all admin routes
+//
+//       Important: Make sure your admin dashboard route has the name 'admin.dashboard'
+//       so that the login redirect works correctly for admin users.
+```
+
+---
+
+## Testing Your Implementation
+
+### Test Case 1: Valid Login
+
+1. Visit `http://localhost/[your-app]/login`
+2. Enter valid credentials from Part 1
+3. Click "Login"
+4. **Expected:** Success message and redirect to dashboard
+
+### Test Case 2: Invalid Credentials
+
+**a) Wrong password:**
+- Enter correct email but wrong password
+- **Expected:** "Invalid credentials. Please try again."
+
+**b) Non-existent email:**
+- Enter email that doesn't exist
+- **Expected:** "Invalid credentials. Please try again."
+
+**c) Empty fields:**
+- Leave identifier or password empty
+- **Expected:** "Email/username and password are required."
+
+### Test Case 3: Login with Username
+
+- Try logging in with username instead of email
+- **Expected:** Should work exactly like email login
+
+### Test Case 4: Protected Route Access - Not Logged In
+
+1. Visit `http://localhost/[your-app]/dashboard` WITHOUT logging in
+2. **Expected:** Error message and redirect to login page
+
+### Test Case 5: Protected Route Access - Logged In
+
+1. Log in with valid credentials
+2. Visit `http://localhost/[your-app]/dashboard`
+3. **Expected:** Dashboard displays with user information
+
+### Test Case 6: Admin Route Access - Regular User
+
+1. Log in as regular user (role: 'customer')
+2. Try to visit `http://localhost/[your-app]/admin/dashboard`
+3. **Expected:** "Access denied. Admin privileges required." → redirect to user dashboard
+
+### Test Case 7: Admin Route Access - Admin User
+
+1. Create an admin user in database:
+```sql
+INSERT INTO users (first_name, last_name, username, email, password_hash, role)
+VALUES ('Admin', 'User', 'admin', 'admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
+```
+(Password: admin123)
+
+2. Log in as admin user
+3. Visit `http://localhost/[your-app]/admin/dashboard`
+4. **Expected:** Admin dashboard displays successfully
+
+### Test Case 8: Logout
+
+1. While logged in, click "Logout" button or visit `/logout`
+2. **Expected:** Success message and redirect to login
+3. Try to access `/dashboard` again
+4. **Expected:** Redirect to login (session destroyed)
+
+### Test Case 9: Role-Based Redirection
+
+**a) Customer login:**
+- Log in as regular user
+- **Expected:** Redirect to `/dashboard` (user dashboard)
+
+**b) Admin login:**
+- Log in as admin user
+- **Expected:** Redirect to `/admin/dashboard` (admin dashboard)
+
+---
+
+## Understanding Role-Based Access Control (RBAC)
+
+**What is RBAC?**
+Role-Based Access Control restricts system access based on user roles in your e-commerce application:
+
+**Admin Role:**
+- Access admin panel (`/admin/*` routes)
+- Manage products (create, edit, delete)
+- Manage categories
+- View and manage all customer orders
+- Manage user accounts
+
+**Customer Role:**
+- Browse products (public access)
+- Add items to shopping cart (public access)
+- **Checkout process (requires login)** ← AuthMiddleware
+- View own orders
+- View/edit own profile
+
+**How RBAC Works in Your E-Commerce App:**
+
+1. **Database:** Role stored in `users.role` ENUM('admin', 'customer')
+2. **Login:** Role stored in session after successful authentication
+3. **Middleware Protection:**
+   - **AdminAuthMiddleware** → Protects `/admin/*` routes (admin only)
+   - **AuthMiddleware** → Protects checkout, orders, profile (any logged-in user)
+4. **Role-Based Redirect:** After login, users redirected based on role
+
+```php
+// In AuthController::authenticate() method
+if ($user['role'] === 'admin') {
+    // Redirect admin users to admin dashboard
+    return $this->redirect($request, $response, 'admin.dashboard');
+} else {
+    // Redirect customers to user dashboard (or back to shopping)
+    return $this->redirect($request, $response, 'user.dashboard');
+}
+
+// In AdminAuthMiddleware::process()
+$userRole = SessionManager::get('user_role');
+if ($userRole !== 'admin') {
+    // Non-admin users cannot access admin panel
+    // Redirect to customer dashboard with error message
+}
+```
+
+**Key Difference:**
+- **AuthMiddleware** = "Must be logged in" (customers checking out)
+- **AdminAuthMiddleware** = "Must be logged in AND be an admin" (admin panel access)
+
+---
+
+## Common Issues and Solutions
+
+### Issue 1: Login Always Fails
+
+**Cause:** Wrong password verification method.
+
+**Solution:**
+- Always use `password_verify($inputPassword, $storedHash)`
+- Never compare hashes directly
+- Never hash input and compare
+
+### Issue 2: Session Data Not Persisting
+
+**Cause:** SessionMiddleware not registered globally.
+
+**Solution:**
+- Check `config/middleware.php` has `$app->add(SessionMiddleware::class);`
+- Verify SessionMiddleware calls `SessionManager::start()`
+
+### Issue 3: Middleware Not Protecting Routes
+
+**Cause:** Middleware not applied correctly.
+
+**Solution:**
+- Add `->add(AuthMiddleware::class)` at end of route
+- Check namespace imports
+- Verify MiddlewareInterface is implemented
+
+### Issue 4: Admin Can't Access Admin Dashboard
+
+**Cause:** Role not stored in session or wrong role check.
+
+**Solution:**
+- Ensure `SessionManager::set('user_role', $user['role'])` in authenticate()
+- Check role is 'admin' (lowercase) in database
+- Verify case-sensitive comparison: `$userRole !== 'admin'`
+
+### Issue 5: Redirect Loop
+
+**Cause:** Middleware incorrectly checking authentication.
+
+**Solution:**
+- Check session is being set after login
+- Verify `is_authenticated` is set to `true`
+- Clear browser cookies and try again
+
+---
+
+## Security Best Practices Implemented
+
+| Practice | Purpose | Implementation |
+|----------|---------|----------------|
+| Password Verification | Verify without decrypting | `password_verify()` |
+| Session Management | Secure user state | SessionManager |
+| Authentication Check | Verify user logged in | AuthMiddleware |
+| Authorization Check | Verify user permissions | AdminAuthMiddleware |
+| XSS Protection | Prevent script injection | `htmlspecialchars()` |
+| Generic Error Messages | Don't reveal user existence | Return null for all auth failures |
+
+---
+
+## Test Your Understanding
+
+:::note[Answer the questions below]
+1. Why can't you compare two password hashes directly (e.g., `$hash1 === $hash2`) to verify a password?
+2. What is the difference between authentication and authorization? Provide examples from this lab.
+3. Why does the `verifyCredentials()` method return `null` for invalid credentials instead of different error messages for "user not found" vs "wrong password"?
+4. How does middleware work in the request-response cycle? What happens if middleware denies access?
+5. What would happen if SessionMiddleware was not registered globally in the application?
+6. Why do we store the user's role in the session instead of querying the database on every request?
+7. What security vulnerability exists if you use `$_GET` parameters to pass user IDs or roles instead of storing them in the session?
+8. How does AdminAuthMiddleware differ from AuthMiddleware? Why do we need both?
+9. What is Role-Based Access Control (RBAC) and how is it implemented in this lab?
+10. Why is it important to use `password_verify()` instead of hashing the input password and comparing it to the stored hash?
+11. What is the purpose of the Post-Redirect-Get (PRG) pattern after login?
+12. Why should session data be validated in middleware rather than trusting it blindly?
+:::

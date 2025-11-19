@@ -30,6 +30,13 @@ export default
           }
         },
         {
+          label: "Authentication & Authorization",
+          collapsed: true,
+          autogenerate: {
+            directory: "php/aa",
+          }
+        },
+        {
           label: "Working with Slim Framework",
           collapsed: false,
           items: [
