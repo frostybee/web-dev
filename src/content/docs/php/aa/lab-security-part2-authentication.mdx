@@ -270,7 +270,7 @@ public function logout(Request $request, Response $response, array $args): Respo
 
 **Objective:** Protect routes by checking if user is logged in.
 
-AuthMiddleware acts as a gatekeeper for protected routes by intercepting requests, checking if a user is authenticated (logged in), and either allowing access or redirecting to the login page.
+`AuthMiddleware` acts as a gatekeeper for protected routes by intercepting requests, checking if a user is authenticated (logged in), and either allowing access or **redirecting** to the login page.
 
 Create `app/Middleware/AuthMiddleware.php`:
 
@@ -301,8 +301,11 @@ class AuthMiddleware implements MiddlewareInterface
         //       - Use FlashMessage::error() with message: "Please log in to access this page."
         //       - Get RouteParser: $routeParser = RouteContext::fromRequest($request)->getRouteParser();
         //       - Generate login URL: $loginUrl = $routeParser->urlFor('auth.login');
-        //       - Create redirect response:
-        //         $response = new \Slim\Psr7\Response();
+        //       - Create a response object using the Psr17Factory:
+        //         $psr17Factory = new \Nyholm\Psr7\Factory\Psr17Factory();
+        //         $response = $psr17Factory->createResponse(302);// You can pass a
+        //         status code to the createResponse method. 
+        //       - Redirect to the login page:
         //         return $response->withHeader('Location', $loginUrl)->withStatus(302);
 
         // If authenticated, continue to the next middleware/route handler
@@ -323,7 +326,7 @@ class AuthMiddleware implements MiddlewareInterface
 
 **Objective:** Protect admin routes by checking authentication AND admin role.
 
-AdminAuthMiddleware provides enhanced protection for admin-only routes by performing two checks: verifying the user is logged in AND confirming they have the admin role, preventing regular customers from accessing administrative functions.
+`AdminAuthMiddleware` provides enhanced protection for admin-only routes by performing two checks: verifying the user is logged in AND confirming they have the admin role, preventing regular customers from accessing administrative functions.
 
 Create `app/Middleware/AdminAuthMiddleware.php`:
 
@@ -352,11 +355,13 @@ class AdminAuthMiddleware implements MiddlewareInterface
 
         // TODO: If NOT authenticated:
         //       - Use FlashMessage::error() with message: "Please log in to access the admin panel."
-        //       - Redirect to 'auth.login' (same pattern as AuthMiddleware)
+        //       - Create a redirect response using the Psr17Factory (same pattern as AuthMiddleware)
+        //       - Redirect to 'auth.login' route (same pattern as AuthMiddleware)
 
         // TODO: If authenticated but role is NOT 'admin':
         //       - Use FlashMessage::error() with message: "Access denied. Admin privileges required."
-        //       - Redirect to 'user.dashboard' route
+        //       - Create a redirect response using the Psr17Factory (same pattern as AuthMiddleware)
+        //       - Redirect to 'user.dashboard' route (same pattern as AuthMiddleware)
 
         // If authenticated AND admin, continue to admin route
         // TODO: Return $handler->handle($request);
