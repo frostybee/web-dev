@@ -1,7 +1,7 @@
 ---
 title: 'Lab: Live Search with AJAX'
 description: 'Implement live search functionality with AJAX to filter products as users type'
-draft: false
+draft: true
 sidebar:
   label: 'Lab: Live Search with AJAX'
   order: 11
@@ -25,17 +25,17 @@ In this lab, you'll implement a live search feature for your e-commerce applicat
 Live search (also called "instant search" or "search-as-you-type") is a dynamic search feature where results update automatically as the user types their query. Instead of requiring users to type their complete search term and click a button, results appear immediately with each keystroke.
 
 **Real-World Applications:**
-- E-commerce platforms (Amazon, eBay) - Product search
-- Social media (Twitter, Facebook) - User/content search
-- Documentation sites - Article search
-- Admin dashboards - Data filtering
+- E-commerce platforms (Amazon, eBay) - Product search.
+- Social media (Twitter, Facebook) - User/content search.
+- Documentation sites - Article search.
+- Admin dashboards - Data filtering.
 
 **How It Works:**
-1. User types in search box → JavaScript detects input
-2. JavaScript waits briefly (debouncing) to avoid excessive requests
-3. AJAX request sent to backend with search query and filters
-4. Backend queries database and returns JSON results
-5. JavaScript receives data and dynamically updates the page
+1. User types in search box → JavaScript detects input.
+2. JavaScript waits briefly (debouncing) to avoid excessive requests.
+3. AJAX request sent to backend with search query and filters.  
+4. Backend queries database and returns JSON results.
+5. JavaScript receives data and dynamically updates the page.
 6. All without page reload!
 
 ---
@@ -44,15 +44,15 @@ Live search (also called "instant search" or "search-as-you-type") is a dynamic 
 
 By completing this lab, you will:
 
-- Understand AJAX and how it enables asynchronous web interactions
-- Create REST API endpoints that return JSON data
-- Implement backend search logic using SQL LIKE queries and JOINs
-- Handle JavaScript events (input, change) for real-time interactions
-- Implement debouncing to optimize performance and reduce server load
-- Dynamically update the DOM based on server responses
-- Filter data by multiple criteria (search term + category)
-- Handle loading states, errors, and empty results gracefully
-- Separate concerns between backend data and frontend presentation
+- Understand AJAX and how it enables asynchronous web interactions.
+- Create REST API endpoints that return JSON data.
+- Implement backend search logic using SQL LIKE queries and JOINs.
+- Handle JavaScript events (input, change) for real-time interactions.
+- Implement debouncing to optimize performance and reduce server load.
+- Dynamically update the DOM based on server responses.
+- Filter data by multiple criteria (search term + category).
+- Handle loading states, errors, and empty results gracefully.
+- Separate concerns between backend data and frontend presentation.
 
 ---
 
@@ -60,17 +60,16 @@ By completing this lab, you will:
 
 Before starting this lab, ensure you have:
 
-- Completed CRUD operations labs (Create, Read, Update, Delete)
+- Completed CRUD operations labs (Create, Read, Update, Delete).
 - Database tables created:
-  - `products` table with columns: id, category_id, name, description, price, stock_quantity
-  - `categories` table with columns: id, name, description
-  - `product_images` table with columns: id, product_id, file_path, is_primary
-- Existing ProductsController and ProductsModel classes
+  - `products` table with columns: id, category_id, name, description, price, stock_quantity.
+  - `categories` table with columns: id, name, description.
+  - `product_images` table with columns: id, product_id, file_path, is_primary.
+- Existing ProductsController and ProductsModel classes.
 - Basic understanding of:
-  - JavaScript (variables, functions, arrays, objects)
-  - JSON format
-  - Asynchronous programming concepts
-- Your development environment running (XAMPP, WAMP, or similar)
+  - JavaScript (variables, functions, arrays, objects).
+  - JSON format.
+  - Asynchronous programming concepts.
 
 ---
 
@@ -99,13 +98,13 @@ User Input → Debounce → AJAX Request → Backend Processing → JSON Respons
      "products": [...]
    }
    ```
-6. **JavaScript updates DOM**: Renders product cards dynamically
+6. **JavaScript updates DOM**: Renders product cards dynamically.
 
 **Benefits:**
-- ✅ Instant feedback - users see results immediately
-- ✅ Better UX - no page reloads or button clicks needed
-- ✅ Reduced clicks - faster path to finding products
-- ✅ Modern feel - matches expectations from major platforms
+- Instant feedback - users see results immediately.
+- Better UX - no page reloads or button clicks needed.
+- Reduced clicks - faster path to finding products.
+- Modern feel - matches expectations from major platforms.
 
 ---
 
@@ -113,264 +112,149 @@ User Input → Debounce → AJAX Request → Backend Processing → JSON Respons
 
 ### Step 1: Add Search Method to ProductsModel
 
-**Objective:** Create the backend logic to search products by name/description and optionally filter by category.
-
-**Instructions:**
-
-1. Open `app/Models/ProductsModel.php`
-2. Add the following method after your existing CRUD methods:
+Open `app/Models/ProductsModel.php` and add this method:
 
 ```php title="app/Models/ProductsModel.php"
-/**
- * Search products by name/description with optional category filter
- *
- * @param string $searchTerm Search query for product name/description
- * @param int|null $categoryId Optional category ID to filter by
- * @return array Array of products matching search criteria
- */
 public function searchProducts(string $searchTerm = '', ?int $categoryId = null): array
 {
-    // Base SQL query with JOINs
-    $sql = "
-        SELECT
-            p.id,
-            p.name,
-            p.description,
-            p.price,
-            p.stock_quantity,
-            c.name AS category_name,
-            c.id AS category_id,
-            pi.file_path AS image_path
-        FROM products p
-        LEFT JOIN categories c ON p.category_id = c.id
-        LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = 1
-        WHERE 1=1
-    ";
+    // TODO: Create base SQL query with LEFT JOINs
+    // - Join products (p) with categories (c) on category_id
+    // - Join with product_images (pi) where is_primary = 1
+    // - Select: p.id, p.name, p.description, p.price, p.stock_quantity,
+    //          c.name AS category_name, c.id AS category_id, pi.file_path AS image_path
+    // - Start with WHERE 1=1 to make adding conditions easier
 
-    $params = [];
+    // TODO: Initialize empty params array
 
-    // Add search term condition if provided
-    if (!empty($searchTerm)) {
-        $sql .= " AND (p.name LIKE :search OR p.description LIKE :search)";
-        $params['search'] = '%' . $searchTerm . '%';
-    }
+    // TODO: If searchTerm is not empty:
+    // - Add condition: (p.name LIKE :search OR p.description LIKE :search)
+    // - Add to params: 'search' => '%' . $searchTerm . '%'
 
-    // Add category filter if provided
-    if ($categoryId !== null && $categoryId > 0) {
-        $sql .= " AND p.category_id = :category_id";
-        $params['category_id'] = $categoryId;
-    }
+    // TODO: If categoryId is provided and > 0:
+    // - Add condition: p.category_id = :category_id
+    // - Add to params: 'category_id' => $categoryId
 
-    // Group by product ID to avoid duplicate rows from multiple images
-    $sql .= " GROUP BY p.id ORDER BY p.name ASC";
+    // TODO: Add GROUP BY p.id and ORDER BY p.name ASC
 
-    return $this->selectAll($sql, $params);
+    // TODO: Return results using $this->selectAll($sql, $params)
 }
 ```
 
-**What This Code Does:**
+**Requirements:**
+- Accept search term (string) and optional category ID (int or null).
+- Return array of products matching search criteria.
+- Search both product name AND description.
+- Filter by category if provided.
+- Include category name and primary image in results.
 
-- **JOINs**: Combines products with categories and images to get complete data
-- **LEFT JOIN**: Ensures products without categories or images still appear
-- **WHERE 1=1**: Trick to make adding AND conditions easier
-- **LIKE with %**: Enables partial matching (e.g., "lap" matches "laptop")
-- **:named parameters**: Prevents SQL injection attacks
-- **GROUP BY**: Handles products with multiple images (only returns once)
+**Hints:**
+- Use LEFT JOIN to include products without categories/images.
+- Use prepared statements with named parameters (:search, :category_id).
+- GROUP BY prevents duplicate rows from multiple images.
+- LIKE with % enables partial matching ("lap" matches "laptop").
+- WHERE 1=1 trick makes it easy to append AND conditions.
 
-**Testing:**
-Test this method by temporarily adding this to your controller:
-```php
-$results = $this->model->searchProducts('laptop', null);
-var_dump($results); die();
-```
+**Verify:** Add to controller temporarily: `var_dump($this->model->searchProducts('laptop', null)); die();`
 
 ---
 
 ### Step 2: Add API Search Endpoint to ProductsController
 
-**Objective:** Create a controller method that accepts search requests and returns JSON responses.
-
-**Instructions:**
-
-1. Open `app/Controllers/ProductsController.php`
-2. Add this new method:
+Open `app/Controllers/ProductsController.php` and add this method:
 
 ```php title="app/Controllers/ProductsController.php"
-/**
- * API endpoint for product search
- * Returns JSON response with search results
- *
- * @param Request $request
- * @param Response $response
- * @param array $args
- * @return Response JSON response with products
- */
 public function search(Request $request, Response $response, array $args): Response
 {
-    // Extract query parameters
-    $queryParams = $request->getQueryParams();
-    $searchTerm = trim($queryParams['q'] ?? '');
-    $categoryId = isset($queryParams['category']) && $queryParams['category'] !== ''
-        ? (int) $queryParams['category']
-        : null;
+    // TODO: Extract query parameters using $request->getQueryParams()
+    // - Get 'q' parameter, trim it, default to empty string if not set
+    // - Get 'category' parameter, convert to int if set, otherwise null
 
-    // Validate search term (optional: add length limits)
-    if (strlen($searchTerm) > 100) {
-        $searchTerm = substr($searchTerm, 0, 100);
-    }
+    // TODO: Validate search term length
+    // - If longer than 100 characters, truncate it using substr()
 
-    // Search products using model
-    $products = $this->model->searchProducts($searchTerm, $categoryId);
+    // TODO: Call $this->model->searchProducts() with search term and category ID
 
-    // Prepare JSON response
-    $responseData = [
-        'success' => true,
-        'count' => count($products),
-        'query' => $searchTerm,
-        'category_id' => $categoryId,
-        'products' => $products
-    ];
+    // TODO: Create response data array with these keys:
+    // - 'success' => true
+    // - 'count' => count of products
+    // - 'query' => the search term
+    // - 'category_id' => the category ID
+    // - 'products' => the products array
 
-    // Set JSON header and return response
-    $response->getBody()->write(json_encode($responseData));
-    return $response
-        ->withHeader('Content-Type', 'application/json')
-        ->withStatus(200);
+    // TODO: Convert response data to JSON and write to response body
+    // @see: https://www.slimframework.com/docs/v4/objects/response.html#returning-json
+    // - Use json_encode()
+    // - Use $response->getBody()->write()
+
+    // TODO: Return response with proper headers
+    // - Set Content-Type: application/json
+    // - Set status code 200
 }
 ```
 
-**What This Code Does:**
+**Requirements:**
+- Accept GET request with query parameters: `q` (search term) and `category` (category ID).
+- Validate and sanitize input.
+- Return JSON response with search results.
+- Include metadata: success status, result count, search parameters.
 
-- **getQueryParams()**: Extracts ?q=laptop&category=1 from URL
-- **trim()**: Removes whitespace from search term
-- **Ternary operator**: Safely gets category ID or null
-- **Validation**: Prevents malicious long inputs
-- **json_encode()**: Converts PHP array to JSON string
-- **Content-Type header**: Tells browser this is JSON data
-- **Status 200**: HTTP success code
+**Hints:**
+- Use `??` operator for default values.
+- Use `trim()` to remove whitespace.
+- Use `isset()` and ternary operator for optional category.
+- Use `$response->withHeader()` to set headers.
+- Chain `->withStatus()` for status code.
 
-**Example API Response:**
-```json
-{
-  "success": true,
-  "count": 2,
-  "query": "laptop",
-  "category_id": 1,
-  "products": [
-    {
-      "id": 5,
-      "name": "Gaming Laptop",
-      "description": "High-performance laptop for gaming",
-      "price": "1299.99",
-      "stock_quantity": 15,
-      "category_name": "Electronics",
-      "category_id": 1,
-      "image_path": "/uploads/products/laptop.jpg"
-    }
-  ]
-}
-```
+**Verify:** Visit `http://localhost/[subdirectory]/api/products/search?q=laptop` in browser - should return JSON
 
 ---
 
 ### Step 3: Register API Route
 
-**Objective:** Create a route that maps URL requests to your search controller method.
-
-**Instructions:**
-
-1. Open `app/Routes/web-routes.php`
-2. Add this route with your other product routes:
+Open `app/Routes/web-routes.php` and add this route:
 
 ```php title="app/Routes/web-routes.php"
-// API endpoint for product search (AJAX)
 $app->get('/api/products/search', [ProductsController::class, 'search'])
     ->setName('api.products.search');
 ```
 
-**Route Explanation:**
-- **Path**: `/api/products/search` - REST API convention (prefix with /api)
-- **Method**: GET - Reading data (searching)
-- **Controller**: `ProductsController::search` - Method we just created
-- **Named route**: `api.products.search` - For easy reference in code
-
-**Testing:**
-Visit in browser: `http://localhost/[your-subdirectory-name]/api/products/search?q=laptop`
-
-**IMPORTANT:** Replace `[your-subdirectory-name]` with your actual project folder name (e.g., if your project is in `htdocs/ecommerce`, use `http://localhost/ecommerce/api/products/search?q=laptop`).
-
-You should see JSON response with product data.
+**Test:** Visit `http://localhost/[your-subdirectory]/api/products/search?q=laptop` (replace `[your-subdirectory]` with your folder name, e.g., `ecommerce`). You should see JSON response.
 
 ---
 
 ### Step 4: Get Categories for Dropdown Filter
 
-**Objective:** Fetch all categories to populate the filter dropdown in the view.
-
-**Option A: Add method to ProductsModel**
-
-If you don't have a separate CategoriesModel, add this to ProductsModel:
+Add this method to `ProductsModel.php`:
 
 ```php title="app/Models/ProductsModel.php"
-/**
- * Get all categories for dropdown filter
- *
- * @return array All categories ordered by name
- */
 public function getAllCategories(): array
 {
-    return $this->selectAll('SELECT id, name FROM categories ORDER BY name ASC');
+    // TODO: Select id and name from categories table
+    // - Order by name ASC
+    // - Use $this->selectAll() with SQL query
 }
 ```
 
-**Option B: Use existing CategoriesModel**
-
-If you have a CategoriesModel, inject it into your controller:
-
-```php title="app/Controllers/ProductsController.php"
-public function __construct(
-    Container $container,
-    private ProductsModel $productsModel,
-    private CategoriesModel $categoriesModel
-) {
-    parent::__construct($container);
-}
-```
-
-**Update your userIndex() method:**
-
-Modify the controller method that displays the products page (user-facing, not admin):
+Update your `userIndex()` method in `ProductsController.php`:
 
 ```php title="app/Controllers/ProductsController.php"
 public function userIndex(Request $request, Response $response, array $args): Response
 {
-    // Get all products
-    $products = $this->model->getAllProducts(); // or $this->productsModel->getAllProducts()
+    // TODO: Get all products using $this->model->getAllProducts()
 
-    // Get categories for filter dropdown
-    $categories = $this->model->getAllCategories(); // or $this->categoriesModel->getAllCategories()
+    // TODO: Get all categories using $this->model->getAllCategories()
 
-    // Pass both to view
-    return $this->render($response, 'products/userProductIndexView.php', [
-        'products' => $products,
-        'categories' => $categories,
-        'page_title' => 'Products'
-    ]);
+    // TODO: Render the view 'products/userProductIndexView.php'
+    // - Pass products, categories, and page_title in the data array
 }
 ```
-
-**Note:** This method is separate from the admin panel's `index()` method which is used in the `/admin` route group.
+**Verify:** Check that category dropdown populates when you load the products page
 
 ---
 
 ### Step 5: Update Products View with Search UI
 
-**Objective:** Add the HTML structure for search input, category dropdown, and results container.
-
-**Instructions:**
-
-1. Open `app/Views/products/userProductIndexView.php`
-2. Add this search interface at the top of your content area (after loading header):
+Open `app/Views/products/userProductIndexView.php` and add this search interface:
 
 ```php title="app/Views/products/userProductIndexView.php"
 <?php
@@ -463,139 +347,55 @@ ViewHelper::loadHeader($page_title);
 <?php ViewHelper::loadFooter(); ?>
 ```
 
-**HTML Structure Explained:**
-
-- **Search Input**: Text field with ID `searchInput` for JavaScript to target
-- **Category Dropdown**: Populated from `$categories` passed by controller
-- **Loading Spinner**: Hidden by default, shown during AJAX requests
-- **searchResults**: Container where JavaScript will insert filtered products
-- **defaultProducts**: Original products shown when page loads
-- **Base URL Script**: Passes `APP_BASE_URL` to JavaScript for correct API paths
-- **Bootstrap classes**: Makes it responsive and styled
-
-**Important Note:** The `window.APP_BASE_URL` variable ensures that AJAX requests work correctly regardless of whether your project is in a subdirectory (e.g., `localhost/my-project/`) or at the root.
+**Key Elements:** Search input (#searchInput), category dropdown (#categoryFilter), loading spinner, results container (#searchResults), default products display, and base URL passed to JavaScript for correct API paths in subdirectories.
 
 ---
 
 ### Step 6: Create Debounce Function (JavaScript)
 
-**Objective:** Implement a debounce utility to prevent excessive API calls while typing.
-
-**Instructions:**
-
-1. Create a new file: `public/js/product-search.js`
-2. Add this debounce function:
+Create `public/js/product-search.js` and add this debounce function (prevents excessive API calls while typing):
 
 ```javascript title="public/js/product-search.js"
-/**
- * Debounce Function
- *
- * Delays execution of a function until after a specified wait time has elapsed
- * since the last time it was invoked. This prevents the function from being
- * called too frequently (e.g., on every keystroke).
- *
- * @param {Function} func - The function to debounce
- * @param {number} delay - The delay in milliseconds
- * @returns {Function} - The debounced function
- *
- * Example: If user types "laptop", without debounce we'd make 6 API calls.
- * With 300ms debounce, we only make 1 call after they stop typing.
- */
 function debounce(func, delay) {
     let timeoutId;
-
     return function (...args) {
-        // Clear the previous timeout
         clearTimeout(timeoutId);
-
-        // Set a new timeout
-        timeoutId = setTimeout(() => {
-            func.apply(this, args);
-        }, delay);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
     };
 }
-```
-
-**How Debouncing Works:**
-
-```
-User types: L → a → p → t → o → p
-Without debounce: 6 API calls (terrible!)
-With 300ms debounce: 1 API call (great!)
-
-Timeline:
-0ms:   Type "L" → Start timer (300ms)
-100ms: Type "a" → Cancel timer, restart (300ms)
-150ms: Type "p" → Cancel timer, restart (300ms)
-200ms: Type "t" → Cancel timer, restart (300ms)
-250ms: Type "o" → Cancel timer, restart (300ms)
-300ms: Type "p" → Cancel timer, restart (300ms)
-600ms: Timer expires → Make API call with "laptop"
 ```
 
 ---
 
 ### Step 7: Create Fetch Function for API Requests
 
-**Objective:** Create a function that sends AJAX requests to the backend and retrieves search results.
-
-**Instructions:**
-
-Add this function to `public/js/product-search.js`:
+Add these functions to `public/js/product-search.js`:
 
 ```javascript title="public/js/product-search.js"
-/**
- * Fetch products from API based on search term and category filter
- *
- * @param {string} searchTerm - The search query
- * @param {string} categoryId - The selected category ID (empty string for all)
- * @returns {Promise<Array>} - Promise that resolves to array of products
- */
 async function fetchProducts(searchTerm, categoryId) {
     try {
-        // Build query string
         const params = new URLSearchParams();
-        if (searchTerm) {
-            params.append('q', searchTerm);
-        }
-        if (categoryId) {
-            params.append('category', categoryId);
-        }
+        if (searchTerm) params.append('q', searchTerm);
+        if (categoryId) params.append('category', categoryId);
 
-        // Make API request using base URL
-        // IMPORTANT: Use window.APP_BASE_URL to ensure correct path with subdirectories
         const response = await fetch(`${window.APP_BASE_URL}/api/products/search?${params.toString()}`);
 
-        // Check if response is OK (status 200-299)
         if (!response.ok) {
-            throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+            throw new Error(`HTTP Error: ${response.status}`);
         }
 
-        // Parse JSON response
         const data = await response.json();
-
-        // Return products array
         return data.products || [];
 
     } catch (error) {
-        // Log error for debugging
         console.error('Fetch error:', error);
-
-        // Show user-friendly error message
         showError('Failed to load products. Please try again.');
-
         return [];
     }
 }
 
-/**
- * Display error message to user
- *
- * @param {string} message - Error message to display
- */
 function showError(message) {
-    const resultsContainer = document.getElementById('searchResults');
-    resultsContainer.innerHTML = `
+    document.getElementById('searchResults').innerHTML = `
         <div class="col-12">
             <div class="alert alert-danger" role="alert">
                 <i class="bi bi-exclamation-triangle"></i> ${message}
@@ -605,50 +405,22 @@ function showError(message) {
 }
 ```
 
-**Fetch API Explained:**
-
-- **URLSearchParams**: Safely builds query string (`?q=laptop&category=1`)
-- **window.APP_BASE_URL**: Uses base URL from PHP to handle subdirectories correctly
-- **fetch()**: Modern way to make HTTP requests (replaces jQuery.ajax)
-- **async/await**: Makes asynchronous code look synchronous
-- **response.ok**: Checks HTTP status (200-299 = success)
-- **response.json()**: Parses JSON string into JavaScript object
-- **try/catch**: Handles network errors gracefully
-
-**Why use APP_BASE_URL?**
-- If your project is in `htdocs/ecommerce/`, the API path needs to be `/ecommerce/api/products/search`
-- Using `window.APP_BASE_URL` automatically includes the correct subdirectory
-- Makes your code work in any environment (root, subdirectory, production, etc.)
+**Note:** Uses `window.APP_BASE_URL` to handle subdirectory paths (e.g., `/ecommerce/api/products/search`).
 
 ---
 
 ### Step 8: Create DOM Rendering Function
 
-**Objective:** Create a function that takes product data and dynamically generates HTML to display results.
-
-**Instructions:**
-
-Add this function to `public/js/product-search.js`:
+Add these functions to `public/js/product-search.js`:
 
 ```javascript title="public/js/product-search.js"
-/**
- * Render products to the DOM
- *
- * @param {Array} products - Array of product objects from API
- */
 function renderProducts(products) {
     const resultsContainer = document.getElementById('searchResults');
     const defaultContainer = document.getElementById('defaultProducts');
 
-    // Hide default products when search is active
-    if (defaultContainer) {
-        defaultContainer.style.display = 'none';
-    }
-
-    // Clear previous results
+    if (defaultContainer) defaultContainer.style.display = 'none';
     resultsContainer.innerHTML = '';
 
-    // Handle empty results
     if (products.length === 0) {
         resultsContainer.innerHTML = `
             <div class="col-12">
@@ -660,30 +432,19 @@ function renderProducts(products) {
         return;
     }
 
-    // Create product cards
     products.forEach(product => {
-        const productCard = createProductCard(product);
-        resultsContainer.appendChild(productCard);
+        resultsContainer.appendChild(createProductCard(product));
     });
 }
 
-/**
- * Create a product card element
- *
- * @param {Object} product - Product data object
- * @returns {HTMLElement} - Product card div element
- */
 function createProductCard(product) {
-    // Create column div
     const col = document.createElement('div');
     col.className = 'col-md-4 mb-4';
 
-    // Truncate description
     const description = product.description.length > 100
         ? product.description.substring(0, 100) + '...'
         : product.description;
 
-    // Build card HTML
     col.innerHTML = `
         <div class="card h-100">
             <img
@@ -707,12 +468,6 @@ function createProductCard(product) {
     return col;
 }
 
-/**
- * Escape HTML to prevent XSS attacks
- *
- * @param {string} text - Text to escape
- * @returns {string} - Escaped text safe for HTML
- */
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -720,69 +475,36 @@ function escapeHtml(text) {
 }
 ```
 
-**Rendering Process:**
-
-1. **Clear old results**: `innerHTML = ''`
-2. **Handle empty**: Show "No products found" message
-3. **Loop through products**: `products.forEach()`
-4. **Create elements**: `createElement('div')`
-5. **Build HTML**: Template literal with product data
-6. **Escape output**: Prevent XSS attacks
-7. **Append to DOM**: `appendChild(productCard)`
-
-**Security Note:** The `escapeHtml()` function prevents XSS attacks by converting special characters like `<` and `>` to HTML entities.
+**Note:** `escapeHtml()` prevents XSS attacks by converting special characters to HTML entities.
 
 ---
 
 ### Step 9: Wire Up Event Listeners
 
-**Objective:** Connect all the pieces together by attaching event listeners to the search input and category dropdown.
-
-**Instructions:**
-
 Add this initialization code to `public/js/product-search.js`:
 
 ```javascript title="public/js/product-search.js"
-/**
- * Initialize live search functionality
- * This function runs when the page loads
- */
 document.addEventListener('DOMContentLoaded', function() {
-    // Get DOM elements
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const loadingSpinner = document.getElementById('loadingSpinner');
 
-    /**
-     * Perform search with current input values
-     */
     async function performSearch() {
         const searchTerm = searchInput.value.trim();
         const categoryId = categoryFilter.value;
 
-        // Show loading spinner
         loadingSpinner.style.display = 'block';
-
-        // Fetch results
         const products = await fetchProducts(searchTerm, categoryId);
-
-        // Hide loading spinner
         loadingSpinner.style.display = 'none';
 
-        // Render results
         renderProducts(products);
     }
 
-    // Create debounced version of search function
     const debouncedSearch = debounce(performSearch, 300);
 
-    // Attach event listener to search input (with debounce)
     searchInput.addEventListener('input', debouncedSearch);
-
-    // Attach event listener to category filter (no debounce needed)
     categoryFilter.addEventListener('change', performSearch);
 
-    // Optional: Clear search on Escape key
     searchInput.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             searchInput.value = '';
@@ -793,392 +515,125 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 ```
 
-**Event Listener Breakdown:**
-
-- **DOMContentLoaded**: Waits for HTML to load before running JavaScript
-- **input event**: Fires on every keystroke (good for live search)
-- **change event**: Fires when dropdown selection changes
-- **Debounced on input**: Waits 300ms after typing stops
-- **Immediate on change**: Dropdown changes trigger instant search
-- **Escape key**: Clears search (UX enhancement)
-
-**Complete Flow:**
-```
-User types → input event → debounce (300ms) → performSearch() →
-fetchProducts() → API call → JSON response → renderProducts() → DOM updates
-```
+**Key Points:** Debounced input event (300ms delay), immediate category change event, Escape key to clear search.
 
 ---
 
 ## Testing Your Implementation
 
-### Test Case 1: Search with No Input
+Test these scenarios to ensure everything works:
 
-**Steps:**
-1. Load the products page
-2. Click in the search box but don't type anything
-3. Select a category from the dropdown
-
-**Expected Result:**
-- Shows all products in the selected category
-- Loading spinner appears briefly
-- Products render correctly
-
----
-
-### Test Case 2: Search with Partial Match
-
-**Steps:**
-1. Type "lap" in the search box
-2. Wait 300ms
-
-**Expected Result:**
-- Products matching "lap" appear (e.g., "Laptop", "Gaming Laptop")
-- Search works on both name and description
-- Case-insensitive matching
-
----
-
-### Test Case 3: Combined Filter (Search + Category)
-
-**Steps:**
-1. Type "game" in search box
-2. Select "Electronics" from category dropdown
-
-**Expected Result:**
-- Only products matching BOTH criteria appear
-- Example: "Gaming Laptop" (name contains "game" AND category is Electronics)
-
----
-
-### Test Case 4: No Results
-
-**Steps:**
-1. Type "zzzzz" (nonsense search term)
-
-**Expected Result:**
-- Blue info alert appears: "No products found matching your search"
-- No product cards displayed
-- No errors in browser console
-
----
-
-### Test Case 5: Debouncing Works
-
-**Steps:**
-1. Open browser Developer Tools (F12) → Network tab
-2. Type "laptop" quickly (one character at a time)
-
-**Expected Result:**
-- Only ONE network request appears in Network tab
-- Request appears ~300ms after you finish typing
-- NOT six separate requests (one per letter)
-
----
-
-### Test Case 6: Network Error Handling
-
-**Steps:**
-1. Stop your Apache/PHP server
-2. Try searching for something
-
-**Expected Result:**
-- Red error alert appears: "Failed to load products"
-- Error logged to browser console
-- Page doesn't crash or freeze
-
----
-
-### Test Case 7: Category Dropdown Change
-
-**Steps:**
-1. Select "Books" from category dropdown
-
-**Expected Result:**
-- Search fires immediately (no debounce delay)
-- Shows all books
-- Loading spinner appears briefly
-
----
-
-### Test Case 8: Clear Search with Escape
-
-**Steps:**
-1. Type something in search box
-2. Press Escape key
-
-**Expected Result:**
-- Search box clears
-- Category dropdown resets to "All Categories"
-- Shows all products again
+1. **Partial Search:** Type "lap" → Should show products matching "laptop"
+2. **Combined Filter:** Search "game" + select category → Shows products matching both
+3. **Empty Results:** Type "zzzzz" → Shows "No products found" message
+4. **Debouncing:** Open Network tab (F12), type "laptop" quickly → Only ONE request after 300ms
+5. **Category Filter:** Select category → Immediate search (no delay)
+6. **Escape Key:** Type something, press Escape → Clears search and shows all products
+7. **Error Handling:** Stop server, search → Shows error message without crashing
+8. **API Test:** Visit `http://localhost/[subdirectory]/api/products/search?q=test` → Returns JSON
 
 ---
 
 ## Debugging Tips
 
-### Issue: "Search doesn't trigger"
+### Inspecting AJAX Requests with Network Tab
 
-**Check:**
-- Browser console for JavaScript errors (F12 → Console)
-- Ensure JavaScript file is loaded: `<script src="/js/product-search.js"></script>`
-- Verify element IDs match: `searchInput`, `categoryFilter`, `searchResults`
-- Check that JavaScript runs after DOM loads (`DOMContentLoaded`)
+**How to Use Browser Network Tab:**
+1. Open Developer Tools (F12 or Right-click → Inspect)
+2. Click the **Network** tab
+3. Type in the search box to trigger AJAX request
+4. Look for request to `/api/products/search` in the list
+5. Click on it to see details
 
-**Debug:**
-```javascript
-// Add console.log to verify function is called
-searchInput.addEventListener('input', function() {
-    console.log('Input event fired!');
-    debouncedSearch();
-});
-```
+**What to Check:**
+- **Request URL**: Should be `http://localhost/[subdirectory]/api/products/search?q=yourterm&category=1`
+- **Status Code**: Should be `200 OK` (not 404, 500, etc.)
+- **Request Method**: Should be `GET`
+- **Query String Parameters**: Verify `q` and `category` values are correct
+- **Response Tab**: Should show JSON with `success`, `count`, `products` array
+- **Headers Tab**: `Content-Type` should be `application/json`
 
----
-
-### Issue: "API returns error or nothing"
-
-**Check:**
-- Visit API directly in browser: `http://localhost/[your-subdirectory]/api/products/search?q=test`
-  - Replace `[your-subdirectory]` with your actual folder name (e.g., `ecommerce`)
-- Check for PHP errors in Apache error logs
-- Verify route is registered correctly in `web-routes.php`
-- Ensure ProductsModel method exists and has no syntax errors
-- Verify `window.APP_BASE_URL` is defined (check browser console: `console.log(window.APP_BASE_URL)`)
-
-**Debug:**
-```php
-// In controller search() method, log data
-error_log('Search term: ' . $searchTerm);
-error_log('Products found: ' . count($products));
-```
+**Common Issues Found in Network Tab:**
+- **404 Error**: Route not registered or wrong URL (missing subdirectory)
+- **500 Error**: PHP error in controller/model (check Apache error logs)
+- **Empty Response**: Controller not returning JSON
+- **HTML Instead of JSON**: PHP error page being returned
 
 ---
 
-### Issue: "Products don't display"
+### Other Debugging Tips
 
-**Check:**
-- Browser console for JavaScript errors
-- Inspect Network tab: is JSON response valid?
-- Check element IDs: `searchResults` container exists
-- Verify `renderProducts()` function is called
+**Search doesn't trigger:**
+- Check browser console (F12) for JavaScript errors
+- Verify element IDs: `searchInput`, `categoryFilter`, `searchResults`
+- Ensure JavaScript file is loaded
+- Add `console.log('Input fired')` in event listener
 
-**Debug:**
-```javascript
-// Log products array
-function renderProducts(products) {
-    console.log('Products to render:', products);
-    // ... rest of function
-}
-```
+**API returns error:**
+- Test API directly: `http://localhost/[subdirectory]/api/products/search?q=test`
+- Check Apache error logs for PHP errors
+- Verify route is registered in `web-routes.php`
+- Check `window.APP_BASE_URL` in console: `console.log(window.APP_BASE_URL)`
 
----
+**Products don't display:**
+- Check browser console and Network tab for errors
+- Verify JSON response is valid
+- Add `console.log(products)` in `renderProducts()`
 
-### Issue: "Images don't load"
-
-**Check:**
-- Image paths in database are correct
-- Images exist in `public/uploads/products/` directory
-- Paths are relative to web root: `/uploads/products/image.jpg`
-- Placeholder image exists: `/images/placeholder.jpg`
-
-**Fix:**
-```javascript
-// Use absolute path
-src="${product.image_path || '/images/placeholder.jpg'}"
-```
-
----
-
-### Issue: "Special characters break display"
-
-**Check:**
-- Using `escapeHtml()` function on all dynamic content
-- JSON response is UTF-8 encoded
-- Database charset is utf8mb4
-
-**Fix:**
-```php
-// In controller, ensure UTF-8 encoding
-return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
-```
+**Images don't load:**
+- Verify image paths in database and files exist in `public/uploads/products/`
+- Check placeholder image exists: `/images/placeholder.jpg`
 
 ---
 
 ## Common Issues and Solutions
 
-### Problem: 404 Not Found - API Endpoint Not Working
+**404 Not Found:**
+- Missing `window.APP_BASE_URL` script in view (Step 5)
+- Fetch not using `${window.APP_BASE_URL}/api/products/search`
+- Test: `console.log(window.APP_BASE_URL)` should show `/your-subdirectory`
+- Manually visit: `http://localhost/ecommerce/api/products/search?q=test`
 
-**Symptom:** Browser console shows "404 Not Found" or "Failed to load products"
+**JSON Parse Error:**
+- Backend returning HTML instead of JSON (likely PHP error)
+- Check for PHP syntax errors
+- Verify `Content-Type: application/json` header is set
 
-**Cause:** Incorrect API path - not including subdirectory name
-
-**Solution:**
-1. **Verify you added the base URL script** in your view (Step 5):
-   ```php
-   <script>
-       window.APP_BASE_URL = '<?= APP_BASE_URL ?>';
-   </script>
-   ```
-
-2. **Check the fetch call uses window.APP_BASE_URL** (Step 7):
-   ```javascript
-   // CORRECT - includes base URL
-   const response = await fetch(`${window.APP_BASE_URL}/api/products/search?${params.toString()}`);
-
-   // WRONG - missing base URL (only works if at server root)
-   const response = await fetch(`/api/products/search?${params.toString()}`);
-   ```
-
-3. **Test in browser console:**
-   ```javascript
-   console.log(window.APP_BASE_URL); // Should show: /your-subdirectory or empty string
-   ```
-
-4. **Manual test:**
-   - If your project folder is `htdocs/ecommerce/`
-   - Visit: `http://localhost/ecommerce/api/products/search?q=test`
-   - Should return JSON, not 404 error
-
----
-
-### Problem: CORS Errors
-
-**Symptom:** Browser console shows "CORS policy blocked" error
-
-**Solution:**
-- Ensure API route is on same domain/port as frontend
-- If using different ports (e.g., frontend on 3000, backend on 8000), add CORS headers:
-  ```php
-  $response = $response->withHeader('Access-Control-Allow-Origin', '*');
-  ```
-
----
-
-### Problem: JSON Parse Error
-
-**Symptom:** "SyntaxError: Unexpected token < in JSON"
-
-**Solution:**
-- Backend is returning HTML instead of JSON (usually PHP error page)
-- Check for syntax errors in PHP code
-- Ensure you're using `json_encode()` and not echoing HTML
-- Verify Content-Type header is set to `application/json`
-
----
-
-### Problem: Search Is Too Slow
-
-**Symptoms:**
-- Delay before results appear
-- Database queries taking long time
-
-**Solutions:**
-1. Add database indexes:
-   ```sql
-   CREATE INDEX idx_product_name ON products(name);
-   CREATE INDEX idx_category_id ON products(category_id);
-   ```
-
-2. Limit results:
-   ```php
-   $sql .= " LIMIT 50"; // Max 50 results
-   ```
-
-3. Increase debounce delay:
-   ```javascript
-   const debouncedSearch = debounce(performSearch, 500); // 500ms instead of 300ms
-   ```
-
----
-
-### Problem: Too Many Database Connections
-
-**Symptom:** "Too many connections" error in logs
-
-**Solution:**
-- Debouncing should prevent this, but verify it's working
-- Close database connections properly in BaseModel
-- Check for infinite loops in JavaScript
+**Search Too Slow:**
+- Add database indexes: `CREATE INDEX idx_product_name ON products(name);`
+- Limit results: `$sql .= " LIMIT 50";`
+- Increase debounce: `debounce(performSearch, 500)`
 
 ---
 
 ## Security Considerations
 
-### 1. SQL Injection Protection ✅
+**SQL Injection Prevention:**
+- Use prepared statements with named parameters
+- Never concatenate user input: `"WHERE name LIKE '%$searchTerm%'"`
+- Always use: `$params = ['search' => '%' . $searchTerm . '%']`
 
-**Protected by:**
-- Using prepared statements in BaseModel
-- Named parameters (`:search`, `:category_id`)
+**XSS Prevention:**
+- Escape output in PHP: `hs()` function
+- Escape output in JavaScript: `escapeHtml()` function
+- Never: `col.innerHTML = product.name`
+- Always: `col.innerHTML = escapeHtml(product.name)`
 
-**Bad (vulnerable):**
+**Input Validation:**
 ```php
-$sql = "SELECT * FROM products WHERE name LIKE '%$searchTerm%'"; // NEVER DO THIS!
+// Limit length
+if (strlen($searchTerm) > 100) $searchTerm = substr($searchTerm, 0, 100);
+
+// Validate category ID
+if ($categoryId !== null && !is_numeric($categoryId)) $categoryId = null;
 ```
 
-**Good (protected):**
+**Rate Limiting (Optional):**
 ```php
-$sql = "SELECT * FROM products WHERE name LIKE :search";
-$params = ['search' => '%' . $searchTerm . '%'];
-return $this->selectAll($sql, $params);
-```
-
----
-
-### 2. XSS (Cross-Site Scripting) Protection ✅
-
-**Protected by:**
-- Escaping output in PHP: `hs()` function
-- Escaping output in JavaScript: `escapeHtml()` function
-
-**Bad (vulnerable):**
-```javascript
-col.innerHTML = `<h5>${product.name}</h5>`; // If name contains <script>, it will execute!
-```
-
-**Good (protected):**
-```javascript
-col.innerHTML = `<h5>${escapeHtml(product.name)}</h5>`;
-```
-
----
-
-### 3. Input Validation
-
-**Implement in controller:**
-```php
-// Limit search term length
-if (strlen($searchTerm) > 100) {
-    $searchTerm = substr($searchTerm, 0, 100);
+if (!isset($_SESSION['last_search_time'])) $_SESSION['last_search_time'] = 0;
+if ((time() - $_SESSION['last_search_time']) < 1) {
+    return $response->withStatus(429);
 }
-
-// Validate category ID is a number
-if ($categoryId !== null && !is_numeric($categoryId)) {
-    $categoryId = null;
-}
-
-// Sanitize input (remove dangerous characters)
-$searchTerm = preg_replace('/[^a-zA-Z0-9\s\-]/', '', $searchTerm);
-```
-
----
-
-### 4. Rate Limiting (Advanced)
-
-**Problem:** Malicious user could spam API with thousands of requests
-
-**Solution:**
-```php
-// Simple session-based rate limiting
-if (!isset($_SESSION['last_search_time'])) {
-    $_SESSION['last_search_time'] = 0;
-}
-
-$now = time();
-if (($now - $_SESSION['last_search_time']) < 1) {
-    // Less than 1 second since last search
-    return $response->withStatus(429); // Too Many Requests
-}
-
-$_SESSION['last_search_time'] = $now;
+$_SESSION['last_search_time'] = time();
 ```
 
