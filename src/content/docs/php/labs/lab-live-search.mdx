@@ -86,7 +86,7 @@ User Input → Debounce → AJAX Request → Backend Processing → JSON Respons
 
 1. **User types in search box**: `"lap"`
 2. **Debounce waits 300ms**: Prevents sending request on every keystroke
-3. **AJAX request fires**: `GET /api/products/search?q=lap&category=1`
+3. **AJAX request fires**: `GET http://localhost/[sub-directory-name]/api/products/search?q=lap&category=1`
 4. **Backend processes**:
    - Extract parameters
    - Query database: `SELECT * FROM products WHERE name LIKE '%lap%'`
@@ -295,7 +295,9 @@ $app->get('/api/products/search', [ProductsController::class, 'search'])
 - **Named route**: `api.products.search` - For easy reference in code
 
 **Testing:**
-Visit in browser: `http://localhost/your-app/api/products/search?q=laptop`
+Visit in browser: `http://localhost/[your-subdirectory-name]/api/products/search?q=laptop`
+
+**IMPORTANT:** Replace `[your-subdirectory-name]` with your actual project folder name (e.g., if your project is in `htdocs/ecommerce`, use `http://localhost/ecommerce/api/products/search?q=laptop`).
 
 You should see JSON response with product data.
 
@@ -335,12 +337,12 @@ public function __construct(
 }
 ```
 
-**Update your index() method:**
+**Update your userIndex() method:**
 
-Modify the controller method that displays the products page:
+Modify the controller method that displays the products page (user-facing, not admin):
 
 ```php title="app/Controllers/ProductsController.php"
-public function index(Request $request, Response $response, array $args): Response
+public function userIndex(Request $request, Response $response, array $args): Response
 {
     // Get all products
     $products = $this->model->getAllProducts(); // or $this->productsModel->getAllProducts()
@@ -349,13 +351,15 @@ public function index(Request $request, Response $response, array $args): Respon
     $categories = $this->model->getAllCategories(); // or $this->categoriesModel->getAllCategories()
 
     // Pass both to view
-    return $this->render($response, 'products/productIndexView.php', [
+    return $this->render($response, 'products/userProductIndexView.php', [
         'products' => $products,
         'categories' => $categories,
         'page_title' => 'Products'
     ]);
 }
 ```
+
+**Note:** This method is separate from the admin panel's `index()` method which is used in the `/admin` route group.
 
 ---
 
@@ -365,10 +369,10 @@ public function index(Request $request, Response $response, array $args): Respon
 
 **Instructions:**
 
-1. Open `app/Views/products/productIndexView.php`
+1. Open `app/Views/products/userProductIndexView.php`
 2. Add this search interface at the top of your content area (after loading header):
 
-```php title="app/Views/products/productIndexView.php"
+```php title="app/Views/products/userProductIndexView.php"
 <?php
 $page_title = 'Products';
 ViewHelper::loadHeader($page_title);
@@ -447,8 +451,14 @@ ViewHelper::loadHeader($page_title);
     </div>
 </div>
 
+<!-- Pass base URL to JavaScript -->
+<script>
+    // Make APP_BASE_URL available to JavaScript
+    window.APP_BASE_URL = '<?= APP_BASE_URL ?>';
+</script>
+
 <!-- Load JavaScript for live search -->
-<script src="/js/product-search.js"></script>
+<script src="<?=APP_BASE_URL?>/public/js/product-search.js"></script>
 
 <?php ViewHelper::loadFooter(); ?>
 ```
@@ -460,7 +470,10 @@ ViewHelper::loadHeader($page_title);
 - **Loading Spinner**: Hidden by default, shown during AJAX requests
 - **searchResults**: Container where JavaScript will insert filtered products
 - **defaultProducts**: Original products shown when page loads
+- **Base URL Script**: Passes `APP_BASE_URL` to JavaScript for correct API paths
 - **Bootstrap classes**: Makes it responsive and styled
+
+**Important Note:** The `window.APP_BASE_URL` variable ensures that AJAX requests work correctly regardless of whether your project is in a subdirectory (e.g., `localhost/my-project/`) or at the root.
 
 ---
 
@@ -549,8 +562,9 @@ async function fetchProducts(searchTerm, categoryId) {
             params.append('category', categoryId);
         }
 
-        // Make API request
-        const response = await fetch(`/api/products/search?${params.toString()}`);
+        // Make API request using base URL
+        // IMPORTANT: Use window.APP_BASE_URL to ensure correct path with subdirectories
+        const response = await fetch(`${window.APP_BASE_URL}/api/products/search?${params.toString()}`);
 
         // Check if response is OK (status 200-299)
         if (!response.ok) {
@@ -594,11 +608,17 @@ function showError(message) {
 **Fetch API Explained:**
 
 - **URLSearchParams**: Safely builds query string (`?q=laptop&category=1`)
+- **window.APP_BASE_URL**: Uses base URL from PHP to handle subdirectories correctly
 - **fetch()**: Modern way to make HTTP requests (replaces jQuery.ajax)
 - **async/await**: Makes asynchronous code look synchronous
 - **response.ok**: Checks HTTP status (200-299 = success)
 - **response.json()**: Parses JSON string into JavaScript object
 - **try/catch**: Handles network errors gracefully
+
+**Why use APP_BASE_URL?**
+- If your project is in `htdocs/ecommerce/`, the API path needs to be `/ecommerce/api/products/search`
+- Using `window.APP_BASE_URL` automatically includes the correct subdirectory
+- Makes your code work in any environment (root, subdirectory, production, etc.)
 
 ---
 
@@ -918,10 +938,12 @@ searchInput.addEventListener('input', function() {
 ### Issue: "API returns error or nothing"
 
 **Check:**
-- Visit API directly in browser: `http://localhost/your-app/api/products/search?q=test`
+- Visit API directly in browser: `http://localhost/[your-subdirectory]/api/products/search?q=test`
+  - Replace `[your-subdirectory]` with your actual folder name (e.g., `ecommerce`)
 - Check for PHP errors in Apache error logs
 - Verify route is registered correctly in `web-routes.php`
 - Ensure ProductsModel method exists and has no syntax errors
+- Verify `window.APP_BASE_URL` is defined (check browser console: `console.log(window.APP_BASE_URL)`)
 
 **Debug:**
 ```php
@@ -983,6 +1005,41 @@ return $response->withHeader('Content-Type', 'application/json; charset=utf-8');
 ---
 
 ## Common Issues and Solutions
+
+### Problem: 404 Not Found - API Endpoint Not Working
+
+**Symptom:** Browser console shows "404 Not Found" or "Failed to load products"
+
+**Cause:** Incorrect API path - not including subdirectory name
+
+**Solution:**
+1. **Verify you added the base URL script** in your view (Step 5):
+   ```php
+   <script>
+       window.APP_BASE_URL = '<?= APP_BASE_URL ?>';
+   </script>
+   ```
+
+2. **Check the fetch call uses window.APP_BASE_URL** (Step 7):
+   ```javascript
+   // CORRECT - includes base URL
+   const response = await fetch(`${window.APP_BASE_URL}/api/products/search?${params.toString()}`);
+
+   // WRONG - missing base URL (only works if at server root)
+   const response = await fetch(`/api/products/search?${params.toString()}`);
+   ```
+
+3. **Test in browser console:**
+   ```javascript
+   console.log(window.APP_BASE_URL); // Should show: /your-subdirectory or empty string
+   ```
+
+4. **Manual test:**
+   - If your project folder is `htdocs/ecommerce/`
+   - Visit: `http://localhost/ecommerce/api/products/search?q=test`
+   - Should return JSON, not 404 error
+
+---
 
 ### Problem: CORS Errors
 
@@ -1125,248 +1182,3 @@ if (($now - $_SESSION['last_search_time']) < 1) {
 $_SESSION['last_search_time'] = $now;
 ```
 
----
-
-## Best Practices
-
-### 1. Debouncing ✅
-
-**Why it matters:**
-- Typing "laptop" = 6 keystrokes
-- Without debounce = 6 API calls
-- With 300ms debounce = 1 API call
-- **Saves bandwidth, reduces server load, improves UX**
-
----
-
-### 2. Loading States ✅
-
-**Why it matters:**
-- Users need feedback during async operations
-- Prevents confusion ("Is it broken?")
-- Shows app is working
-
-**Implementation:**
-```javascript
-loadingSpinner.style.display = 'block'; // Show
-const products = await fetchProducts(...);
-loadingSpinner.style.display = 'none'; // Hide
-```
-
----
-
-### 3. Empty States ✅
-
-**Why it matters:**
-- Clear messaging when no results found
-- Prevents blank page confusion
-- Guides user to adjust search
-
-**Implementation:**
-```javascript
-if (products.length === 0) {
-    resultsContainer.innerHTML = `<div class="alert alert-info">No products found</div>`;
-}
-```
-
----
-
-### 4. Accessibility ✅
-
-**Implement:**
-```html
-<!-- Screen reader labels -->
-<input aria-label="Search products" />
-
-<!-- Role attributes -->
-<div role="status">Loading...</div>
-<div role="alert">Error occurred</div>
-
-<!-- Keyboard navigation -->
-<input onkeydown="handleKeyPress(event)" />
-```
-
----
-
-### 5. Progressive Enhancement
-
-**Basic Approach:**
-- Page works without JavaScript (shows all products)
-- With JavaScript, adds live search enhancement
-
-**Implementation:**
-```php
-<!-- Default products always rendered in PHP -->
-<div id="defaultProducts">
-    <?php foreach ($products as $product): ?>
-        <!-- Product cards -->
-    <?php endforeach; ?>
-</div>
-
-<!-- JavaScript hides defaults when search is active -->
-<script>
-    defaultContainer.style.display = 'none'; // Only if search is active
-</script>
-```
-
----
-
-## Bonus/Extension Ideas
-
-### 1. Search History with localStorage
-
-```javascript
-// Save search history
-function saveSearchHistory(term) {
-    let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-    history.unshift(term);
-    history = history.slice(0, 5); // Keep last 5
-    localStorage.setItem('searchHistory', JSON.stringify(history));
-}
-
-// Show history as suggestions
-function showSearchSuggestions() {
-    const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
-    // Display as dropdown below search box
-}
-```
-
----
-
-### 2. Highlight Matching Terms
-
-```javascript
-function highlightMatch(text, searchTerm) {
-    const regex = new RegExp(`(${searchTerm})`, 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
-}
-
-// Use in rendering
-<h5>${highlightMatch(product.name, searchTerm)}</h5>
-```
-
----
-
-### 3. Sort Options
-
-```html
-<select id="sortOrder">
-    <option value="name_asc">Name (A-Z)</option>
-    <option value="name_desc">Name (Z-A)</option>
-    <option value="price_asc">Price (Low to High)</option>
-    <option value="price_desc">Price (High to Low)</option>
-</select>
-```
-
-```php
-// In model, add ORDER BY based on sort parameter
-if ($sortOrder === 'price_asc') {
-    $sql .= " ORDER BY p.price ASC";
-}
-```
-
----
-
-### 4. Pagination
-
-```javascript
-let currentPage = 1;
-const perPage = 12;
-
-function fetchProducts(searchTerm, categoryId, page = 1) {
-    const params = new URLSearchParams({
-        q: searchTerm,
-        category: categoryId,
-        page: page,
-        per_page: perPage
-    });
-    // ...
-}
-```
-
-```php
-// In model
-$offset = ($page - 1) * $perPage;
-$sql .= " LIMIT :limit OFFSET :offset";
-$params['limit'] = $perPage;
-$params['offset'] = $offset;
-```
-
----
-
-### 5. Autocomplete/Suggestions
-
-```php
-// New API endpoint: /api/products/suggest
-public function suggest(Request $request, Response $response): Response {
-    $term = $request->getQueryParams()['q'] ?? '';
-
-    // Get only product names (fast query)
-    $suggestions = $this->model->selectAll(
-        'SELECT DISTINCT name FROM products WHERE name LIKE :term LIMIT 10',
-        ['term' => '%' . $term . '%']
-    );
-
-    return $response->withJson($suggestions);
-}
-```
-
-```javascript
-// Show suggestions as dropdown while typing
-searchInput.addEventListener('input', async function() {
-    const suggestions = await fetch(`/api/products/suggest?q=${this.value}`);
-    showSuggestionsDropdown(suggestions);
-});
-```
-
----
-
-## Summary
-
-You've successfully implemented a complete live search feature! Here's what you built:
-
-**Backend:**
-- ✅ SQL search method with LIKE queries and JOINs
-- ✅ REST API endpoint returning JSON
-- ✅ Route registration
-- ✅ Category filtering
-
-**Frontend:**
-- ✅ Search UI with Bootstrap styling
-- ✅ Debounce function for performance
-- ✅ Fetch API for AJAX requests
-- ✅ Dynamic DOM rendering
-- ✅ Event listeners and state management
-
-**Features:**
-- ✅ Live search as you type (no submit button)
-- ✅ Combined search term + category filtering
-- ✅ Loading states and error handling
-- ✅ Empty state messaging
-- ✅ SQL injection protection
-- ✅ XSS protection
-- ✅ Responsive design
-- ✅ Accessibility considerations
-
-**Skills Gained:**
-- Asynchronous JavaScript (async/await, Promises)
-- AJAX and the Fetch API
-- REST API design
-- JSON encoding/decoding
-- DOM manipulation
-- Event handling and debouncing
-- SQL LIKE queries and JOINs
-- Security best practices
-
----
-
-## Next Steps
-
-- Experiment with the bonus features (search history, highlighting, sorting)
-- Add more advanced filters (price range, stock availability)
-- Implement pagination for large result sets
-- Add analytics to track what users search for
-- Create an autocomplete feature for popular searches
-- Optimize database queries with indexes for better performance
-
-Great job completing this lab! You now have a modern, production-ready live search feature. 🎉
