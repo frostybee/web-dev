@@ -1,0 +1,1204 @@
+---
+title: 'Lab: Localization & Multi-language Support'
+description: 'Implement internationalization using Symfony Translation with JSON files'
+draft: true
+sidebar:
+  label: 'Lab: Localization'
+  order: 10
+  badge:
+    text: In-Class Lab
+    variant: danger
+---
+
+## Resources
+
+- [Symfony Translation Documentation](https://symfony.com/doc/current/translation.html)
+- [PHP Internationalization (i18n)](https://www.php.net/manual/en/book.intl.php)
+- [W3C Internationalization Best Practices](https://www.w3.org/International/quicktips/)
+
+## Overview
+
+In this lab, you'll implement a complete localization (i18n) system for your e-commerce application using Symfony Translation component. You'll enable your application to support multiple languages, allowing users to view content in their preferred language.
+
+**What is Localization?**
+Localization (also called internationalization or i18n) is the process of adapting your application to support multiple languages and regional settings. Instead of hardcoding text like "Welcome" in your views, you'll use translation keys like `trans('home.welcome')` that display different text based on the user's language preference.
+
+**Real-World Applications:**
+- E-commerce sites serving multiple countries
+- SaaS applications with global user base
+- Government and educational websites
+- Mobile applications with international users
+
+---
+
+## Key Features of Symfony Translation
+
+Symfony Translation is a powerful and flexible component that provides enterprise-grade internationalization (i18n) capabilities. Here are the main features you'll be using in this lab:
+
+### 1. **Multi-Language Support**
+Easily support multiple languages by organizing translations in separate files. Switch between languages seamlessly at runtime.
+
+```php
+// English
+trans('home.welcome')  // → "Welcome to our e-commerce store"
+
+// French (when locale is set to 'fr')
+trans('home.welcome')  // → "Bienvenue dans notre boutique en ligne"
+```
+
+### 2. **Dynamic Content with Placeholders**
+Insert dynamic values into translations using placeholders, making your translations flexible and reusable.
+
+```php
+// Translation: "Hello, %name%! You have %count% new messages."
+trans('user.greeting', ['%name%' => 'John', '%count%' => 5])
+// → "Hello, John! You have 5 new messages."
+```
+
+### 3. **Automatic Fallback Mechanism**
+If a translation is missing in the requested language, Symfony automatically falls back to your default language, ensuring your application never displays broken text.
+
+```php
+// If 'products.new_arrival' doesn't exist in French
+trans('products.new_arrival')  // → Falls back to English version
+```
+
+### 4. **Multiple File Format Support**
+Symfony supports various translation file formats. In this lab, we'll use JSON for its simplicity and readability, but you can also use YAML, PHP arrays, XLIFF, and more.
+
+```json
+// Clean, readable JSON format
+{
+  "nav": {
+    "home": "Home",
+    "products": "Products"
+  }
+}
+```
+
+### 5. **Organized Translation Keys**
+Use dot notation to organize translations hierarchically, keeping your translation files clean and maintainable.
+
+```php
+trans('errors.404.title')           // → "404 - Page Not Found"
+trans('errors.404.message')         // → "Oops! The page..."
+trans('products.add_to_cart')       // → "Add to Cart"
+trans('common.save')                // → "Save"
+```
+
+### 6. **Locale Detection and Management**
+Built-in support for locale management with easy switching between languages using query parameters, sessions, or custom logic.
+
+```php
+// Switch to French
+$translator->setLocale('fr');
+
+// Get current locale
+$translator->getLocale();  // → "fr"
+```
+
+### 7. **Translation Domains**
+Organize translations into domains (categories) to separate different parts of your application or share translations across projects.
+
+```php
+// In this lab we use the 'messages' domain (default)
+trans('home.welcome', [], 'messages')
+```
+
+### 8. **Performance Optimized**
+Symfony Translation uses caching to ensure translations are loaded efficiently, even with large translation files.
+
+---
+
+## Learning Objectives
+
+- Install and configure Symfony Translation component
+- Create and organize JSON translation files
+- Build a TranslationHelper service to manage translations
+- Implement LocaleMiddleware for language detection via URL parameters
+- Update views to use translation keys instead of hardcoded text
+- Detect user language from URL parameters
+- Apply XSS protection when displaying translated content
+- Understand fallback mechanisms for missing translations
+
+---
+
+## Prerequisites
+
+- Flash Messages lab completed
+- Session Middleware lab completed
+- Understanding of middleware concept
+- Working e-commerce application with views
+- Basic understanding of JSON format
+- Familiarity with dependency injection
+
+---
+
+## How Localization Works
+
+**Translation Flow:**
+1. User visits your application with language parameter (e.g., `?lang=fr`)
+2. LocaleMiddleware detects requested language (French)
+3. Application loads French translation file (`lang/fr/messages.json`)
+4. Views use `trans('home.welcome')` instead of "Welcome"
+5. TranslationHelper returns "Bienvenue" from French translations
+6. User sees content in French
+
+**Language Detection Priority:**
+1. **URL Parameter** - `?lang=fr` (user explicitly selects language)
+2. **Default Locale** - English (fallback when no parameter is specified)
+
+**File Organization:**
+```
+/lang
+  /en
+    messages.json  → English translations
+  /fr
+    messages.json  → French translations
+```
+
+**Translation Keys:**
+Use dot notation to organize translations hierarchically:
+```json
+{
+  "home": {
+    "title": "Home",
+    "welcome": "Welcome to our store"
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products"
+  }
+}
+```
+
+Access with: `trans('home.welcome')` or `trans('nav.home')`
+
+---
+## Lab Instructions
+
+The following steps will guide you through the process of implementing localization in your application. Please follow the steps in order and complete each step before moving on to the next one.
+
+## Step 1: Install Symfony Translation Component
+
+**Objective:** Add Symfony Translation library to your project.
+
+Open your terminal in the project root and run:
+
+```bash
+composer require symfony/translation
+```
+
+**What Gets Installed:**
+- `symfony/translation` - Core translation functionality
+- `symfony/translation-contracts` - Translation interfaces
+- `symfony/polyfill-mbstring` - Multi-byte string support
+- `symfony/deprecation-contracts` - Compatibility layer
+
+**Verify Installation:**
+Check that `vendor/symfony/translation` directory exists and `composer.json` includes the dependency.
+
+---
+
+## Step 2: Create Directory Structure
+
+**Objective:** Set up folders for translation files.
+
+Create the following directory structure in your project root:
+
+```bash
+mkdir lang
+mkdir lang/en
+mkdir lang/fr
+```
+
+**Result:**
+```
+/lang
+  /en     (English translations)
+  /fr     (French translations)
+```
+
+**Why separate folders?** Each language gets its own folder to keep translations organized and make it easy to add new languages later.
+
+---
+
+## Step 3: Create Translation Files
+
+**Objective:** Create JSON files with translations for English and French.
+
+### 3.1: Create English Translation File
+
+Create `lang/en/messages.json`:
+
+```json title="lang/en/messages.json"
+{
+  "app": {
+    "title": "E-Commerce Application",
+    "description": "A lightweight PHP MVC e-commerce platform",
+    "name": "E-Shop"
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "cart": "Cart",
+    "checkout": "Checkout",
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register"
+  },
+  "home": {
+    "title": "Home",
+    "welcome": "Welcome to our e-commerce store",
+    "heading": "E-Commerce Application",
+    "description": "Browse our products and enjoy a seamless shopping experience.",
+    "featured_products": "Featured Products",
+    "view_all": "View All Products"
+  },
+  "products": {
+    "title": "Products",
+    "add_to_cart": "Add to Cart",
+    "price": "Price",
+    "description": "Description",
+    "category": "Category",
+    "in_stock": "In Stock",
+    "out_of_stock": "Out of Stock"
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Your cart is empty",
+    "item": "Item",
+    "quantity": "Quantity",
+    "total": "Total",
+    "remove": "Remove",
+    "continue_shopping": "Continue Shopping",
+    "proceed_checkout": "Proceed to Checkout"
+  },
+  "common": {
+    "welcome": "Welcome",
+    "hello": "Hello",
+    "yes": "Yes",
+    "no": "No",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "submit": "Submit",
+    "close": "Close"
+  },
+  "errors": {
+    "404": {
+      "title": "404 - Page Not Found",
+      "message": "Oops! The page you are looking for does not exist.",
+      "back_home": "Go back to Home"
+    },
+    "500": {
+      "title": "500 - Server Error",
+      "message": "Something went wrong on our end."
+    }
+  }
+}
+```
+
+### 3.2: Create French Translation File
+
+Create `lang/fr/messages.json`:
+
+```json title="lang/fr/messages.json"
+{
+  "app": {
+    "title": "Application E-Commerce",
+    "description": "Une plateforme e-commerce MVC PHP légère",
+    "name": "E-Shop"
+  },
+  "nav": {
+    "home": "Accueil",
+    "products": "Produits",
+    "cart": "Panier",
+    "checkout": "Commander",
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "register": "S'inscrire"
+  },
+  "home": {
+    "title": "Accueil",
+    "welcome": "Bienvenue dans notre boutique en ligne",
+    "heading": "Application E-Commerce",
+    "description": "Parcourez nos produits et profitez d'une expérience d'achat fluide.",
+    "featured_products": "Produits en Vedette",
+    "view_all": "Voir Tous les Produits"
+  },
+  "products": {
+    "title": "Produits",
+    "add_to_cart": "Ajouter au Panier",
+    "price": "Prix",
+    "description": "Description",
+    "category": "Catégorie",
+    "in_stock": "En Stock",
+    "out_of_stock": "Rupture de Stock"
+  },
+  "cart": {
+    "title": "Panier d'Achat",
+    "empty": "Votre panier est vide",
+    "item": "Article",
+    "quantity": "Quantité",
+    "total": "Total",
+    "remove": "Retirer",
+    "continue_shopping": "Continuer les Achats",
+    "proceed_checkout": "Passer à la Commande"
+  },
+  "common": {
+    "welcome": "Bienvenue",
+    "hello": "Bonjour",
+    "yes": "Oui",
+    "no": "Non",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "search": "Rechercher",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "submit": "Soumettre",
+    "close": "Fermer"
+  },
+  "errors": {
+    "404": {
+      "title": "404 - Page Non Trouvée",
+      "message": "Oups! La page que vous recherchez n'existe pas.",
+      "back_home": "Retour à l'Accueil"
+    },
+    "500": {
+      "title": "500 - Erreur Serveur",
+      "message": "Quelque chose s'est mal passé de notre côté."
+    }
+  }
+}
+```
+
+**Key Points:**
+- Both files have **identical structure** (same keys)
+- Use dot notation: `home.welcome`, `errors.404.title`
+- JSON must be valid (use a validator if unsure)
+- Save files with UTF-8 encoding to support special characters (é, à, ç)
+
+---
+
+## Step 4: Create TranslationHelper Class
+
+**Objective:** Build a service to manage translations using Symfony Translation component.
+
+The TranslationHelper wraps Symfony's Translator to provide a clean interface for your application. It loads translation files, manages the current locale, and provides methods to translate text.
+
+Create `app/Helpers/TranslationHelper.php`:
+
+```php title="app/Helpers/TranslationHelper.php"
+<?php
+
+declare(strict_types=1);
+
+namespace App\Helpers;
+
+use Symfony\Component\Translation\Translator;
+use Symfony\Component\Translation\Loader\JsonFileLoader;
+
+/**
+ * Translation Helper
+ *
+ * Provides translation functionality using Symfony Translation component.
+ * Supports multiple locales with JSON-based translation files.
+ */
+class TranslationHelper
+{
+    private Translator $translator;
+    private string $currentLocale;
+    private string $defaultLocale;
+    private string $langPath;
+    private array $availableLocales;
+
+    /**
+     * Initialize the Translation Helper
+     *
+     * @param string $langPath Path to language files directory
+     * @param string $defaultLocale Default locale (fallback)
+     * @param array $availableLocales List of available locales
+     */
+    public function __construct(
+        string $langPath,
+        string $defaultLocale = 'en',
+        array $availableLocales = ['en', 'fr']
+    ) {
+        // TODO: Store constructor parameters in class properties
+        //       $this->langPath = $langPath;
+        //       $this->defaultLocale = $defaultLocale;
+        //       $this->currentLocale = $defaultLocale;
+        //       $this->availableLocales = $availableLocales;
+
+        // TODO: Initialize Symfony Translator with current locale
+        //       $this->translator = new Translator($this->currentLocale);
+
+        // TODO: Set fallback locales (if translation missing, use default)
+        //       $this->translator->setFallbackLocales([$this->defaultLocale]);
+
+        // TODO: Register JSON file loader so Symfony can read .json files
+        //       $this->translator->addLoader('json', new JsonFileLoader());
+
+        // TODO: Load all translation files by calling loadTranslations() method
+        //       $this->loadTranslations();
+    }
+
+    /**
+     * Load translation files for all available locales
+     */
+    private function loadTranslations(): void
+    {
+        // TODO: Loop through each available locale
+        //       foreach ($this->availableLocales as $locale) {
+        //           ...
+        //       }
+
+        // TODO: For each locale, build file path to messages.json
+        //       Example: lang/en/messages.json
+        //       $filePath = $this->langPath . DIRECTORY_SEPARATOR . $locale . DIRECTORY_SEPARATOR . 'messages.json';
+
+        // TODO: Check if file exists using file_exists($filePath)
+
+        // TODO: If file exists, add it as a resource to the translator
+        //       $this->translator->addResource('json', $filePath, $locale, 'messages');
+
+        // Hint: The complete loop structure should be:
+        // foreach ($this->availableLocales as $locale) {
+        //     $filePath = $this->langPath . DIRECTORY_SEPARATOR . $locale . DIRECTORY_SEPARATOR . 'messages.json';
+        //     if (file_exists($filePath)) {
+        //         $this->translator->addResource('json', $filePath, $locale, 'messages');
+        //     }
+        // }
+    }
+
+    /**
+     * Translate a message
+     *
+     * @param string $key Translation key (supports dot notation: 'home.welcome')
+     * @param array $parameters Parameters to replace in translation
+     * @param string|null $locale Override current locale for this translation
+     * @return string Translated message
+     */
+    public function trans(string $key, array $parameters = [], ?string $locale = null): string
+    {
+        // TODO: Use provided locale or fall back to current locale
+        //       $locale = $locale ?? $this->currentLocale;
+
+        // TODO: Use Symfony translator to translate the key
+        //       return $this->translator->trans($key, $parameters, 'messages', $locale);
+
+        // Hint: The trans() method uses the translator's trans() method:
+        // return $this->translator->trans($key, $parameters, 'messages', $locale);
+    }
+
+    /**
+     * Set the current locale
+     *
+     * @param string $locale Locale code (e.g., 'en', 'fr')
+     * @throws \InvalidArgumentException If locale is not available
+     */
+    public function setLocale(string $locale): void
+    {
+        // TODO: Check if the locale is available using in_array()
+        //       If not available, throw InvalidArgumentException
+
+        // TODO: If available, update currentLocale property
+        //       $this->currentLocale = $locale;
+
+        // TODO: Update the translator's locale as well
+        //       $this->translator->setLocale($locale);
+
+        // Hint: Structure should be:
+        // if (!in_array($locale, $this->availableLocales)) {
+        //     throw new \InvalidArgumentException("Locale '{$locale}' is not available.");
+        // }
+        // $this->currentLocale = $locale;
+        // $this->translator->setLocale($locale);
+    }
+
+    /**
+     * Get the current locale
+     *
+     * @return string Current locale code
+     */
+    public function getLocale(): string
+    {
+        // TODO: Return the current locale
+        //       return $this->currentLocale;
+    }
+
+    /**
+     * Get the default locale
+     *
+     * @return string Default locale code
+     */
+    public function getDefaultLocale(): string
+    {
+        // TODO: Return the default locale
+        //       return $this->defaultLocale;
+    }
+
+    /**
+     * Get all available locales
+     *
+     * @return array List of available locale codes
+     */
+    public function getAvailableLocales(): array
+    {
+        // TODO: Return the available locales array
+        //       return $this->availableLocales;
+    }
+
+    /**
+     * Check if a locale is available
+     *
+     * @param string $locale Locale code to check
+     * @return bool True if locale is available
+     */
+    public function isLocaleAvailable(string $locale): bool
+    {
+        // TODO: Check if locale exists in availableLocales array
+        //       return in_array($locale, $this->availableLocales);
+    }
+}
+```
+
+**What This Class Does:**
+- **Constructor**: Initializes Symfony Translator, sets up fallback locale, loads all translation files
+- **loadTranslations()**: Reads JSON files from `lang/{locale}/messages.json` and registers them
+- **trans()**: Translates a key (e.g., "home.welcome") to the current language
+- **setLocale()**: Changes the active language (validates it's available first)
+- **Getter methods**: Provide access to current locale, available locales, etc.
+
+---
+
+## Step 5: Create LocaleMiddleware
+
+**Objective:** Build middleware to automatically detect and set the user's preferred language from URL parameters.
+
+LocaleMiddleware runs on every request and determines which language to use based on URL parameters or falls back to the default locale.
+
+Create `app/Middleware/LocaleMiddleware.php`:
+
+```php title="app/Middleware/LocaleMiddleware.php"
+<?php
+
+declare(strict_types=1);
+
+namespace App\Middleware;
+
+use App\Helpers\TranslationHelper;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Server\MiddlewareInterface;
+
+/**
+ * Locale Middleware
+ *
+ * Detects and sets the application locale based on:
+ * 1. Query parameter (?lang=fr)
+ * 2. Default locale (fallback)
+ */
+class LocaleMiddleware implements MiddlewareInterface
+{
+    private TranslationHelper $translator;
+
+    /**
+     * Initialize the Locale Middleware
+     *
+     * @param TranslationHelper $translator Translation helper service
+     */
+    public function __construct(TranslationHelper $translator)
+    {
+        // TODO: Store the translator in the class property
+        //       $this->translator = $translator;
+    }
+
+    /**
+     * Process an incoming server request.
+     *
+     * Detects the user's preferred locale from query parameters and sets it in the translation helper.
+     */
+    public function process(Request $request, RequestHandler $handler): ResponseInterface
+    {
+        // TODO: Step 1 - Check for locale in query parameter (?lang=en)
+        //       Get query parameters: $queryParams = $request->getQueryParams();
+        //       Extract 'lang' parameter: $locale = $queryParams['lang'] ?? null;
+
+        // TODO: Step 2 - If we found a valid locale, set it in the translator
+        //       if ($locale && $this->translator->isLocaleAvailable($locale)) {
+        //           $this->translator->setLocale($locale);
+        //       }
+
+        // TODO: Step 3 - Store current locale in request attribute for later use
+        //       $request = $request->withAttribute('locale', $this->translator->getLocale());
+
+        // TODO: Step 4 - Continue to next middleware/route handler
+        //       return $handler->handle($request);
+
+        // Hint: The complete structure should be:
+        // $queryParams = $request->getQueryParams();
+        // $locale = $queryParams['lang'] ?? null;
+        //
+        // if ($locale && $this->translator->isLocaleAvailable($locale)) {
+        //     $this->translator->setLocale($locale);
+        // }
+        //
+        // $request = $request->withAttribute('locale', $this->translator->getLocale());
+        // return $handler->handle($request);
+    }
+
+}
+```
+
+**How This Middleware Works:**
+
+1. **Query Parameter Check**: Checks URL for `?lang=fr` parameter
+2. **Validation**: Ensures requested locale is available before setting it
+3. **Fallback**: If no valid parameter provided, uses default locale (English)
+4. **Request Attribute**: Stores current locale in request for later access
+5. **Continues Request**: Passes control to next middleware/route
+
+---
+
+## Step 6: Update Configuration Files
+
+**Objective:** Register new components in the application's dependency injection container and middleware stack.
+
+### 6.1: Add Language Path Constant
+
+Open `config/constants.php` and add this constant after `APP_VIEWS_PATH`:
+
+```php title="config/constants.php"
+// Define the path of the application's language files directory.
+const APP_LANG_PATH = APP_BASE_DIR_PATH . '/lang';
+```
+
+**Why?** Centralizes the path to translation files so you can change it in one place.
+
+---
+
+### 6.2: Register Services in DI Container
+
+Open `config/container.php`.
+
+**Add use statements at the top:**
+
+```php
+use App\Helpers\TranslationHelper;
+use App\Middleware\LocaleMiddleware;
+```
+
+**Add service definitions in the `$definitions` array:**
+
+```php
+TranslationHelper::class => function (ContainerInterface $container): TranslationHelper {
+    return new TranslationHelper(
+        APP_LANG_PATH,
+        'en',           // Default locale
+        ['en', 'fr']    // Available locales
+    );
+},
+
+LocaleMiddleware::class => function (ContainerInterface $container): LocaleMiddleware {
+    return new LocaleMiddleware(
+        $container->get(TranslationHelper::class)
+    );
+},
+```
+
+**What This Does:**
+- Tells the container how to create TranslationHelper (pass it the language path)
+- Tells the container how to create LocaleMiddleware (inject TranslationHelper)
+- Enables dependency injection in controllers
+
+---
+
+### 6.3: Register Middleware
+
+Open `config/middleware.php`.
+
+**Add use statement:**
+
+```php
+use App\Middleware\LocaleMiddleware;
+```
+
+**Add middleware registration BEFORE ExceptionMiddleware:**
+
+```php
+// Detect and set the application locale
+$app->add(LocaleMiddleware::class);
+```
+
+**Order matters!** LocaleMiddleware must run before your route handlers so the language is set when views render.
+
+---
+
+### 6.4: Create Global Translation Function
+
+Open `config/functions.php` and add this at the end of the file:
+
+```php title="config/functions.php"
+if (!function_exists('trans')) {
+    /**
+     * Translate a message using the application's translation helper.
+     *
+     * This function provides a convenient way to translate strings in views and controllers.
+     * It uses the global TranslationHelper instance to perform translations with support
+     * for nested keys (dot notation) and parameter substitution.
+     *
+     * @param string $key Translation key (supports dot notation: 'home.welcome')
+     * @param array $parameters Parameters to replace in translation (e.g., ['name' => 'John'])
+     * @param string|null $locale Override current locale for this translation
+     * @return string Translated message or the key itself if translation not found
+     *
+     * @example
+     * echo trans('home.welcome');
+     * // Outputs: "Welcome to our e-commerce store" (in current locale)
+     *
+     * @example
+     * echo trans('common.hello', ['name' => 'Alice']);
+     * // Outputs: "Hello, Alice" (with parameter substitution)
+     *
+     * @example
+     * echo trans('nav.home', [], 'fr');
+     * // Outputs: "Accueil" (forced French translation)
+     */
+    function trans(string $key, array $parameters = [], ?string $locale = null): string
+    {
+        global $translator;
+
+        if (!isset($translator)) {
+            // Fallback: return the key if translator is not initialized
+            return $key;
+        }
+
+        return $translator->trans($key, $parameters, $locale);
+    }
+}
+```
+
+**Why a global function?** Makes views cleaner - you can write `trans('home.welcome')` instead of `$translator->trans('home.welcome')`.
+
+---
+
+### 6.5: Initialize Global Translator
+
+Open `config/bootstrap.php` and add this AFTER the container is built (after `$container = $containerBuilder->build();`):
+
+```php title="config/bootstrap.php"
+// Set up global translator for use in trans() helper function
+global $translator;
+$translator = $container->get(\App\Helpers\TranslationHelper::class);
+```
+
+**What This Does:** Makes the TranslationHelper instance available to the `trans()` function globally.
+
+---
+
+## Step 7: Update Views to Use Translations
+
+**Objective:** Replace hardcoded text in views with translation keys.
+
+### Example 1: Update Home Page
+
+Open `app/Views/homeView.php` (or equivalent).
+
+**Before:**
+```php
+<?php
+$page_title = 'Home';
+ViewHelper::loadHeader($page_title);
+?>
+
+<h1>Welcome to Our E-Commerce Store</h1>
+<p>Browse our products and enjoy a seamless shopping experience.</p>
+```
+
+**After:**
+```php
+<?php
+$page_title = trans('home.title');
+ViewHelper::loadHeader($page_title);
+?>
+
+<h1><?= hs(trans('home.welcome')) ?></h1>
+<p><?= hs(trans('home.description')) ?></p>
+```
+
+**IMPORTANT:** Always use `hs()` to escape output and prevent XSS attacks!
+
+---
+
+### Example 2: Update Navigation
+
+**Before:**
+```html
+<nav>
+    <a href="/">Home</a>
+    <a href="/products">Products</a>
+    <a href="/cart">Cart</a>
+</nav>
+```
+
+**After:**
+```html
+<nav>
+    <a href="/"><?= hs(trans('nav.home')) ?></a>
+    <a href="/products"><?= hs(trans('nav.products')) ?></a>
+    <a href="/cart"><?= hs(trans('nav.cart')) ?></a>
+</nav>
+```
+
+---
+
+### Example 3: Update 404 Error Page
+
+Open `app/Views/errors/404.php`.
+
+**Before:**
+```php
+<?php
+$page_title = '404 - Page Not Found';
+?>
+
+<h1>Page Not Found</h1>
+<p>Sorry, the page you are looking for does not exist.</p>
+<a href="/">Go Back Home</a>
+```
+
+**After:**
+```php
+<?php
+$page_title = trans('errors.404.title');
+?>
+
+<h1><?= hs(trans('errors.404.title')) ?></h1>
+<p><?= hs(trans('errors.404.message')) ?></p>
+<a href="/"><?= hs(trans('errors.404.back_home')) ?></a>
+```
+
+---
+
+### Example 4: Buttons and Form Labels
+
+**Before:**
+```html
+<button type="submit">Save</button>
+<button type="button">Cancel</button>
+```
+
+**After:**
+```html
+<button type="submit"><?= hs(trans('common.save')) ?></button>
+<button type="button"><?= hs(trans('common.cancel')) ?></button>
+```
+
+---
+
+## Testing Your Implementation
+
+### Test Case 1: Default Language (English)
+
+1. Visit `http://localhost/[your-app]/`
+2. **Expected:** Page displays in English
+3. Check home page title shows "Welcome to our e-commerce store"
+
+### Test Case 2: Switch to French via URL
+
+1. Visit `http://localhost/[your-app]/?lang=fr`
+2. **Expected:** Page displays in French
+3. Check home page title shows "Bienvenue dans notre boutique en ligne"
+
+### Test Case 3: Invalid Language Code
+
+1. Visit `http://localhost/[your-app]/?lang=es` (Spanish not supported)
+2. **Expected:** Falls back to English (default)
+
+### Test Case 4: Translation Key Consistency
+
+1. Visit multiple pages in French mode
+2. **Expected:** All pages show French consistently
+3. Navigation, buttons, errors should all be translated
+
+### Test Case 5: Missing Translation Key
+
+1. Temporarily use a non-existent key: `trans('fake.key')`
+2. **Expected:** Displays "fake.key" (fallback behavior)
+
+### Test Case 6: Special Characters
+
+1. Switch to French
+2. Check that special characters display correctly: é, à, è, ç
+3. **Expected:** No garbled characters or encoding issues
+
+### Test Case 7: XSS Protection
+
+1. Test with translation values
+2. **Expected:** Content is HTML-escaped (no script execution)
+
+---
+
+## Common Issues and Solutions
+
+### Issue 1: Translations Not Working
+
+**Symptom:** Translation keys are displayed instead of actual text (e.g., "home.welcome" instead of "Welcome...")
+
+**Possible Causes:**
+- JSON file has invalid syntax
+- Translation key doesn't exist in JSON file
+- File not loaded by TranslationHelper
+
+**Solution:**
+1. Validate JSON using [JSONLint](https://jsonlint.com/)
+2. Check that key exists in both `lang/en/messages.json` and `lang/fr/messages.json`
+3. Verify `loadTranslations()` method is called in constructor
+4. Check file permissions (must be readable)
+
+---
+
+### Issue 2: Always Shows Default Language
+
+**Symptom:** Application always displays English even with `?lang=fr`
+
+**Possible Causes:**
+- LocaleMiddleware not registered
+- Middleware registered in wrong order
+- Query parameter not being checked correctly
+
+**Solution:**
+1. Check `config/middleware.php` has `$app->add(LocaleMiddleware::class);`
+2. Ensure LocaleMiddleware runs BEFORE route handlers
+3. Verify `process()` method checks query parameters correctly
+
+---
+
+### Issue 3: Special Characters Display Incorrectly
+
+**Symptom:** French characters show as � or weird symbols
+
+**Possible Causes:**
+- JSON files not saved with UTF-8 encoding
+- Missing charset in HTML
+
+**Solution:**
+1. Save all JSON files with UTF-8 encoding (no BOM)
+2. Ensure views have `<meta charset="UTF-8">` in header
+3. Check database charset is utf8mb4 (if storing translations in DB)
+
+---
+
+### Issue 4: Translations Work in Some Views But Not Others
+
+**Symptom:** Some pages translated, others show hardcoded text
+
+**Possible Cause:**
+- Forgot to update those views to use `trans()`
+
+**Solution:**
+1. Search codebase for hardcoded text strings
+2. Replace with appropriate translation keys
+3. Add missing keys to JSON files if needed
+
+---
+
+## Security Best Practices
+
+### 1. Always Escape Output
+
+**Vulnerable Code:**
+```php
+<h1><?= trans('home.title') ?></h1>  <!-- XSS RISK -->
+```
+
+**Secure Code:**
+```php
+<h1><?= hs(trans('home.title')) ?></h1>  <!-- SAFE -->
+```
+
+**Why?** Even though you control translation files, always escape output to prevent injection attacks if translations are ever stored in a database or come from user input.
+
+---
+
+### 2. Validate Locale Input
+
+The `setLocale()` method already validates that requested locales are in the allowed list:
+
+```php
+if (!in_array($locale, $this->availableLocales)) {
+    throw new \InvalidArgumentException("Locale '{$locale}' is not available.");
+}
+```
+
+**Why?** Prevents attackers from using locale codes to traverse directories or inject malicious values.
+
+---
+
+### 3. Use UTF-8 Encoding
+
+Always save translation files and serve pages with UTF-8:
+
+```html
+<meta charset="UTF-8">
+```
+
+**Why?** Prevents encoding issues that could lead to XSS or display problems.
+
+---
+
+### 4. Don't Trust Client-Provided Locales Blindly
+
+LocaleMiddleware validates requested locales against the whitelist:
+
+```php
+if ($locale && $this->translator->isLocaleAvailable($locale)) {
+    $this->translator->setLocale($locale);
+}
+```
+
+**Why?** Ensures users can't request arbitrary locale codes.
+
+---
+
+## Best Practices
+
+### 1. Keep Translation Files Synchronized
+
+All language files should have the same structure:
+
+**Good:**
+```json
+// en/messages.json
+{ "home": { "title": "Home", "welcome": "Welcome" } }
+
+// fr/messages.json
+{ "home": { "title": "Accueil", "welcome": "Bienvenue" } }
+```
+
+**Bad:**
+```json
+// en/messages.json
+{ "home": { "title": "Home", "welcome": "Welcome" } }
+
+// fr/messages.json
+{ "home": { "title": "Accueil" } }  // Missing 'welcome' key!
+```
+
+---
+
+### 2. Use Consistent Key Naming
+
+Follow dot notation pattern:
+
+```
+section.subsection.key
+
+Examples:
+- home.title
+- nav.products
+- errors.404.message
+- common.save
+```
+
+---
+
+### 3. Group Related Translations
+
+```json
+{
+  "products": {
+    "title": "Products",
+    "add_to_cart": "Add to Cart",
+    "price": "Price"
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Your cart is empty"
+  }
+}
+```
+
+---
+
+### 4. Don't Hardcode Text Anywhere
+
+**Bad:**
+```php
+<button>Save</button>
+```
+
+**Good:**
+```php
+<button><?= hs(trans('common.save')) ?></button>
+```
+
+---
+
+### 5. Use Placeholders for Dynamic Content
+
+You can use placeholders in translations to insert dynamic content.
+
+In the following example, the placeholders `%name%` and `%count%` in the translation will be replaced with the actual values passed in the parameters array.
+
+If you need to include placeholders in translations:
+
+**Translation file:**
+```json title="lang/en/messages.json"
+{
+  "user": {
+    "greeting": "Hello, %name%! You have %count% messages."
+  }
+}
+```
+
+**Usage:**
+```php title="app/Views/homeView.php"
+<?= hs(trans('user.greeting', [
+    '%name%' => $username,
+    '%count%' => $messageCount
+])) ?>
+```
+
+
+
+---
+
+## Test Your Understanding
+
+:::note[Answer the questions below]
+1. What are the two methods LocaleMiddleware uses to detect the user's preferred language, and what is their priority order?
+2. Why do we use `hs(trans('key'))` instead of just `trans('key')` in views?
+3. What happens if you request a translation key that doesn't exist in the JSON file?
+4. Explain the purpose of the `setFallbackLocales()` method in TranslationHelper.
+5. Why is it important to keep all translation files (en, fr) with the same structure?
+6. How would you add support for Spanish to your application? List all files you would need to modify.
+7. What is the purpose of the global `$translator` variable in `config/bootstrap.php`?
+8. Why does LocaleMiddleware validate locale codes with `isLocaleAvailable()` before setting them?
+9. What would happen if you didn't register LocaleMiddleware in `config/middleware.php`?
+10. Explain the difference between `$this->currentLocale` and `$this->defaultLocale` in TranslationHelper.
+11. What security risks exist if you don't validate user-provided locale codes?
+12. How would you implement a language switcher dropdown that allows users to switch between English and French?
+:::
+
+---
+
+## Next Steps
+
+- Build a language switcher UI to switch languages
+
