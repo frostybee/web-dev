@@ -115,9 +115,8 @@ Symfony Translation uses caching to ensure translations are loaded efficiently, 
 - Install and configure Symfony Translation component
 - Create and organize JSON translation files
 - Build a TranslationHelper service to manage translations
-- Implement LocaleMiddleware for language detection via URL parameters
+- Implement LocaleMiddleware for language detection with session persistence
 - Update views to use translation keys instead of hardcoded text
-- Detect user language from URL parameters
 - Apply XSS protection when displaying translated content
 - Understand fallback mechanisms for missing translations
 
@@ -139,16 +138,17 @@ Symfony Translation uses caching to ensure translations are loaded efficiently, 
 ## How Localization Works
 
 **Translation Flow:**
-1. User visits your application with language parameter (e.g., `?lang=fr`)
-2. LocaleMiddleware detects requested language (French)
-3. Application loads French translation file (`lang/fr/messages.json`)
-4. Views use `trans('home.welcome')` instead of "Welcome"
+1. User visits your application (optionally with language parameter like `?lang=fr`)
+2. LocaleMiddleware detects language based on URL parameter, session, or default
+3. Application loads the appropriate translation file (`lang/fr/messages.json` for French)
+4. Views use `trans('home.welcome')` instead of hardcoded "Welcome"
 5. TranslationHelper returns "Bienvenue" from French translations
 6. User sees content in French
 
 **Language Detection Priority:**
-1. **URL Parameter** - `?lang=fr` (user explicitly selects language)
-2. **Default Locale** - English (fallback when no parameter is specified)
+1. **URL Parameter** - `?lang=fr` (user explicitly selects language - highest priority)
+2. **Session Value** - Previously saved preference (persists across requests)
+3. **Default Locale** - English (fallback when no parameter or session value)
 
 **File Organization:**
 ```
@@ -579,21 +579,20 @@ class LocaleMiddleware implements MiddlewareInterface
 
         // TODO: Determine which locale to use based on priority:
         // Priority 1: URL parameter (?lang=fr)
-        // Priority 2: Session value (use SessionManager::get('locale'))
+        // Priority 2: Session value (retrieve 'locale' key from session using SessionManager)
         // Priority 3: Default locale
-        // Hint: Use multiple ?? operators to chain fallbacks
-        // Example: $selectedLocale = $urlLocale ?? SessionManager::get('locale') ?? $this->translator->getDefaultLocale();
+        // Hint: Use the null coalescing operator (??) to chain these three sources
 
         // TODO: If a NEW locale was explicitly requested via URL parameter AND it's valid:
         //       1. Set it in the translator
         //       2. Save it to the session for future requests
         // Hint: Check both that $locale is not null AND that it's available
-        // Use: SessionManager::set('locale', $locale) to save it
+        // Use SessionManager to store the key 'locale' with the locale value in the session
 
         // TODO: If no URL parameter was provided, but session has a saved locale AND it's valid:
         //       Set the session locale in the translator
         // Hint: Use elseif to handle this case
-        // Get session locale using: SessionManager::get('locale')
+        // Use SessionManager to retrieve the 'locale' value from the session
 
         // TODO: Store the current locale in the request as an attribute named 'locale'
         // Hint: Use $request->withAttribute() and reassign the result
@@ -610,14 +609,14 @@ The method should follow this logic:
 1. Get the `lang` parameter from URL query string
 2. If URL parameter provided and valid:
    - Set it in translator
-   - **Save it to session** using `SessionManager::set('locale', $locale)`
-3. Else if session has a saved locale and it's valid:
+   - Store it in session with key `'locale'`
+3. Else if session has a saved locale (key `'locale'`) and it's valid:
    - Set it in translator
 4. Store current locale in request attribute
 5. Continue to next middleware
 
 **Important Notes:**
-- SessionManager uses **static methods** (`SessionManager::get()` and `SessionManager::set()`)
+- SessionManager uses **static methods** (recall what you learned in the Session lab)
 - You do NOT need to inject SessionManager into the constructor
 - SessionMiddleware (from the Session lab) starts the session automatically
 - Use the null coalescing operator (`??`) to chain fallbacks for priority detection
@@ -720,11 +719,11 @@ $app->add(LocaleMiddleware::class);   // This comes AFTER
 
 Middleware in Slim 4 works like an onion - the last one added runs first:
 1. **SessionMiddleware** must run first to start the session
-2. **LocaleMiddleware** runs second and can then use SessionManager to get/set the locale
+2. **LocaleMiddleware** runs second and can then use SessionManager to work with locale data
 
 **What happens if the order is wrong?**
 - If LocaleMiddleware runs before SessionMiddleware, the session won't be started yet
-- Calling `SessionManager::get('locale')` would fail or return incorrect values
+- Attempting to retrieve or store locale in session would fail or return incorrect values
 - Locale won't persist across requests
 
 ---
@@ -1094,21 +1093,21 @@ You can add this to your header/navigation:
 **Symptom:** Language changes with `?lang=fr` but reverts to default when navigating to other pages
 
 **Possible Causes:**
-- Forgot to call `SessionManager::set('locale', $locale)` in LocaleMiddleware
+- Forgot to save locale to session in LocaleMiddleware
 - SessionMiddleware not registered or running after LocaleMiddleware
 - Session not started
 - Incorrect middleware order
 
 **Solution:**
-1. Check that `process()` method in LocaleMiddleware saves locale to session using `SessionManager::set('locale', $locale)` when URL parameter is provided
+1. Check that `process()` method in LocaleMiddleware saves locale to session when URL parameter is provided
 2. Ensure SessionMiddleware is registered BEFORE LocaleMiddleware in `config/middleware.php`:
    ```php
    $app->add(SessionMiddleware::class);  // First
    $app->add(LocaleMiddleware::class);   // Second
    ```
-3. Verify SessionMiddleware is calling `SessionManager::start()`
+3. Verify SessionMiddleware is calling the start method from SessionManager
 4. Check browser cookies are enabled (use browser dev tools → Application → Cookies)
-5. Test by checking session directly: Add `var_dump(SessionManager::get('locale'));` in your view
+5. Test by checking session directly: Add a debug statement in your view to display the locale from session
 
 ---
 
