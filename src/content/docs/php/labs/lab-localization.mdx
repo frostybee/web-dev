@@ -905,9 +905,9 @@ $page_title = trans('errors.404.title');
 
 **Objective:** Create a UI component that allows users to easily switch languages.
 
-You can add this to your header/navigation:
+You can add this to your header (or `admin_header.php`) or navigation file:
 
-```php title="app/Views/components/header.php"
+```php title="app/Views/common/header.php"
 <div class="language-switcher">
     <?php
     // Get current locale from global translator
