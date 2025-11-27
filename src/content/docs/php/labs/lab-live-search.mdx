@@ -4,7 +4,7 @@ description: 'Implement live search functionality with AJAX to filter products a
 draft: false
 sidebar:
   label: 'Lab: Live Search with AJAX'
-  order: 11
+  order: 5
   badge:
     text: In-Class Lab
     variant: danger
@@ -88,7 +88,7 @@ User Input → Debounce → AJAX Request → Backend Processing → JSON Respons
 3. **AJAX request fires**: `GET http://localhost/[sub-directory-name]/api/products/search?q=lap&category=1`
 4. **Backend processes**:
    - Extract parameters
-   - Query database: `SELECT * FROM products WHERE name LIKE '%lap%'`
+   - Query database: `SELECT * FROM products WHERE name LIKE CONCAT('%', :search, '%')`
    - Format results as JSON
 5. **JSON response returned**:
    ```json
@@ -127,8 +127,8 @@ public function searchProducts(string $searchTerm = '', ?int $categoryId = null)
     // TODO: Initialize empty params array
 
     // TODO: If searchTerm is not empty:
-    // - Add condition: (p.name LIKE :search OR p.description LIKE :search)
-    // - Add to params: 'search' => '%' . $searchTerm . '%'
+    // - Add condition: (p.name LIKE CONCAT('%', :search, '%') OR p.description LIKE CONCAT('%', :search, '%'))
+    // - Add to params: 'search' => $searchTerm
 
     // TODO: If categoryId is provided and > 0:
     // - Add condition: p.category_id = :category_id
@@ -151,7 +151,7 @@ public function searchProducts(string $searchTerm = '', ?int $categoryId = null)
 - Use LEFT JOIN to include products without categories/images.
 - Use prepared statements with named parameters (:search, :category_id).
 - GROUP BY prevents duplicate rows from multiple images.
-- LIKE with % enables partial matching ("lap" matches "laptop").
+- Use SQL CONCAT function to build LIKE pattern: `CONCAT('%', :search, '%')` enables partial matching ("lap" matches "laptop").
 - WHERE 1=1 trick makes it easy to append AND conditions.
 
 **Verify:** Add to controller temporarily: `var_dump($this->model->searchProducts('laptop', null)); die();`
@@ -610,8 +610,9 @@ Test these scenarios to ensure everything works:
 
 **SQL Injection Prevention:**
 - Use prepared statements with named parameters
-- Never concatenate user input: `"WHERE name LIKE '%$searchTerm%'"`
-- Always use: `$params = ['search' => '%' . $searchTerm . '%']`
+- Never concatenate user input directly into SQL: `"WHERE name LIKE '%$searchTerm%'"`
+- Use SQL CONCAT function for LIKE patterns: `"WHERE name LIKE CONCAT('%', :search, '%')"`
+- Then bind the parameter safely: `$params = ['search' => $searchTerm]`
 
 **XSS Prevention:**
 - Escape output in PHP: `hs()` function

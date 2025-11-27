@@ -4,7 +4,7 @@ description: 'Implement internationalization using Symfony Translation with JSON
 draft: true
 sidebar:
   label: 'Lab: Localization'
-  order: 10
+  order: 11
   badge:
     text: In-Class Lab
     variant: danger
@@ -35,7 +35,7 @@ Localization (also called internationalization or i18n) is the process of adapti
 
 Symfony Translation is a powerful and flexible component that provides enterprise-grade internationalization (i18n) capabilities. Here are the main features you'll be using in this lab:
 
-### 1. **Multi-Language Support**
+### 1. Multi-Language Support
 Easily support multiple languages by organizing translations in separate files. Switch between languages seamlessly at runtime.
 
 ```php
@@ -46,8 +46,8 @@ trans('home.welcome')  // → "Welcome to our e-commerce store"
 trans('home.welcome')  // → "Bienvenue dans notre boutique en ligne"
 ```
 
-### 2. **Dynamic Content with Placeholders**
-Insert dynamic values into translations using placeholders, making your translations flexible and reusable.
+### 2. Dynamic Content with Placeholders
+Insert dynamic values into translations **using placeholders**, making your translations flexible and reusable.
 
 ```php
 // Translation: "Hello, %name%! You have %count% new messages."
@@ -55,7 +55,7 @@ trans('user.greeting', ['%name%' => 'John', '%count%' => 5])
 // → "Hello, John! You have 5 new messages."
 ```
 
-### 3. **Automatic Fallback Mechanism**
+### 3. Automatic Fallback Mechanism
 If a translation is missing in the requested language, Symfony automatically falls back to your default language, ensuring your application never displays broken text.
 
 ```php
@@ -63,7 +63,7 @@ If a translation is missing in the requested language, Symfony automatically fal
 trans('products.new_arrival')  // → Falls back to English version
 ```
 
-### 4. **Multiple File Format Support**
+### 4. Multiple File Format Support
 Symfony supports various translation file formats. In this lab, we'll use JSON for its simplicity and readability, but you can also use YAML, PHP arrays, XLIFF, and more.
 
 ```json
@@ -76,7 +76,7 @@ Symfony supports various translation file formats. In this lab, we'll use JSON f
 }
 ```
 
-### 5. **Organized Translation Keys**
+### 5. Organized Translation Keys
 Use dot notation to organize translations hierarchically, keeping your translation files clean and maintainable.
 
 ```php
@@ -86,7 +86,7 @@ trans('products.add_to_cart')       // → "Add to Cart"
 trans('common.save')                // → "Save"
 ```
 
-### 6. **Locale Detection and Management**
+### 6. Locale Detection and Management
 Built-in support for locale management with easy switching between languages using query parameters, sessions, or custom logic.
 
 ```php
@@ -97,7 +97,7 @@ $translator->setLocale('fr');
 $translator->getLocale();  // → "fr"
 ```
 
-### 7. **Translation Domains**
+### 7. Translation Domains
 Organize translations into domains (categories) to separate different parts of your application or share translations across projects.
 
 ```php
@@ -105,7 +105,7 @@ Organize translations into domains (categories) to separate different parts of y
 trans('home.welcome', [], 'messages')
 ```
 
-### 8. **Performance Optimized**
+### 8. Performance Optimized
 Symfony Translation uses caching to ensure translations are loaded efficiently, even with large translation files.
 
 ---
