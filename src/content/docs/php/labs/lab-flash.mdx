@@ -72,7 +72,7 @@ class FlashMessage
      */
     public static function success(string $message): void
     {
-        self::add('success', $message);
+        // TODO: Call the add() method with 'success' as the type
     }
 
     /**
@@ -80,7 +80,7 @@ class FlashMessage
      */
     public static function error(string $message): void
     {
-        self::add('error', $message);
+        // TODO: Call the add() method with 'error' as the type
     }
 
     /**
@@ -88,7 +88,7 @@ class FlashMessage
      */
     public static function info(string $message): void
     {
-        self::add('info', $message);
+        // TODO: Call the add() method with 'info' as the type
     }
 
     /**
@@ -96,7 +96,7 @@ class FlashMessage
      */
     public static function warning(string $message): void
     {
-        self::add('warning', $message);
+        // TODO: Call the add() method with 'warning' as the type
     }
 
     /**
@@ -104,14 +104,11 @@ class FlashMessage
      */
     public static function add(string $type, string $message): void
     {
-        if (!isset($_SESSION[self::FLASH_KEY])) {
-            $_SESSION[self::FLASH_KEY] = [];
-        }
+        // TODO: Check if $_SESSION[self::FLASH_KEY] is not set
+        // If not set, initialize it as an empty array
 
-        $_SESSION[self::FLASH_KEY][] = [
-            'type' => $type,
-            'message' => $message
-        ];
+        // TODO: Add a new message to the $_SESSION[self::FLASH_KEY] array
+        // The message should be an associative array with 'type' and 'message' keys
     }
 
     /**
@@ -119,9 +116,12 @@ class FlashMessage
      */
     public static function get(): array
     {
-        $messages = $_SESSION[self::FLASH_KEY] ?? [];
-        unset($_SESSION[self::FLASH_KEY]);
-        return $messages;
+        // TODO: Retrieve all messages from $_SESSION[self::FLASH_KEY]
+        // Hint: Use the null coalescing operator (??) to default to an empty array
+
+        // TODO: Remove the flash messages from the session using unset()
+
+        // TODO: Return the retrieved messages
     }
 
     /**
@@ -129,7 +129,8 @@ class FlashMessage
      */
     public static function has(): bool
     {
-        return !empty($_SESSION[self::FLASH_KEY]);
+        // TODO: Check if $_SESSION[self::FLASH_KEY] exists and is not empty
+        // Hint: Use the empty() function
     }
 
     /**
@@ -137,11 +138,13 @@ class FlashMessage
      */
     public static function clear(): void
     {
-        unset($_SESSION[self::FLASH_KEY]);
+        // TODO: Remove the flash messages from the session using unset()
     }
 
     /**
      * Render all flash messages as Bootstrap alerts.
+     *
+     * This method is provided for you as it involves complex HTML generation.
      */
     public static function render(bool $dismissible = true): string
     {
@@ -183,14 +186,18 @@ class FlashMessage
 }
 ```
 
-4. Save the file
+4. Implement all the TODO comments in the code above
+5. Save the file
 
-**What you just created:**
-- A FlashMessage helper class with methods for different message types
-- Methods to add, retrieve, check, and clear flash messages
-- A `render()` method that automatically generates Bootstrap alert HTML
-- Automatic message cleanup after display
-- XSS protection with `htmlspecialchars()`
+**What you need to implement:**
+- `success()`, `error()`, `info()`, `warning()` methods - each should call `add()` with the appropriate type
+- `add()` method - stores flash messages in the session
+- `get()` method - retrieves and clears flash messages from the session
+- `has()` method - checks if flash messages exist
+- `clear()` method - removes flash messages from the session
+
+**Already provided:**
+- The `render()` method that generates Bootstrap alert HTML with XSS protection
 
 ---
 
@@ -243,53 +250,12 @@ Create the following public controller callback methods. Each controller callbac
 
 **Implementation Hints:**
 
-<details>
-<summary>Click to see hints for implementing the methods</summary>
-
-**For the `index()` method:**
-```php
-public function index(Request $request, Response $response, array $args): Response
-{
-    // Use $this->render() to render the view
-    // Pass 'title' in the data array
-}
-```
-
-**For message methods (`success()`, `error()`, etc.):**
-```php
-public function success(Request $request, Response $response, array $args): Response
-{
-    // 1. Use FlashMessage::success() to add a message
-    // 2. Use $this->redirect() to redirect to 'flash.demo' route
-}
-```
-
-**For the `multiple()` method:**
-```php
-public function multiple(Request $request, Response $response, array $args): Response
-{
-    // 1. Call FlashMessage::success() with a message
-    // 2. Call FlashMessage::info() with a different message
-    // 3. Call FlashMessage::warning() with another message
-    // 4. Use $this->redirect() to redirect to 'flash.demo' route
-}
-```
-
-</details>
-
-**Key Points to Remember:**
 - Use `FlashMessage::success()`, `FlashMessage::error()`, `FlashMessage::info()`, or `FlashMessage::warning()`
 - Always use `$this->redirect($request, $response, 'route.name')` after setting flash messages
 - The message text can be anything descriptive (e.g., "This is a success message!")
-- For `multiple()`, demonstrate that you can set multiple messages before redirecting
+- For `multiple()`, set 2-3 different flash messages before redirecting
 
 4. Save the file
-
-**What you should have created:**
-- A controller extending BaseController with a constructor
-- An `index()` method that renders a view
-- Five methods that set flash messages and redirect
-- Proper use of the Post-Redirect-Get (PRG) pattern
 
 ---
 
@@ -328,12 +294,12 @@ $app->post('/flash/multiple', [FlashDemoController::class, 'multiple'])->setName
 
 **Instructions:**
 
-1. Navigate to your `views/` directory
+1. Navigate to your `app/Views/` directory
 2. Create a new folder named `flash/`
 3. Inside `flash/`, create a file named `flashIndexView.php`
 4. Copy and paste the following code:
 
-```php title="views/flash/flashIndexView.php"
+```php title="app/Views/flash/flashIndexView.php"
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -431,32 +397,17 @@ $app->post('/flash/multiple', [FlashDemoController::class, 'multiple'])->setName
 
 **Expected Behavior:**
 
-- ✅ Messages appear at the top of the page after redirect
-- ✅ Messages have appropriate colors (success=green, error=red, etc.)
-- ✅ Messages have close buttons (dismissible)
-- ✅ Refreshing the page clears all messages
-- ✅ Multiple messages can be displayed at once
+- Messages appear at the top of the page after redirect
+- Messages have appropriate colors (success=green, error=red, info=blue, warning=yellow)
+- Messages have close buttons (dismissible)
+- Refreshing the page clears all messages
+- Multiple messages can be displayed at once
 
 **If messages don't appear:**
 - Verify SessionMiddleware is registered in `config/middleware.php`
 - Check browser console for JavaScript errors
 - Ensure Bootstrap CSS and JS are loading
 - Verify the FlashMessage::render() line is in your view
-
----
-
-## Verification Checklist
-
-Before submitting your lab, verify the following:
-
-- [ ] FlashMessage.php exists in `app/Helpers/` directory
-- [ ] FlashDemoController.php exists in `app/Controllers/` directory
-- [ ] All six controller methods are implemented correctly (`index`, `success`, `error`, `info`, `warning`, `multiple`)
-- [ ] Flash demo routes are registered in `web-routes.php`
-- [ ] Flash demo page (`/flash`) displays all message types correctly
-- [ ] Messages disappear after page refresh
-- [ ] Multiple messages can be displayed simultaneously
-- [ ] Close buttons work on dismissible alerts
 
 ---
 
@@ -483,15 +434,6 @@ Before submitting your lab, verify the following:
 3. **Display:** Next page renders messages using `FlashMessage::render()`
 4. **Auto-clear:** Messages are automatically removed after being retrieved
 5. **Result:** Message only appears once, then disappears
-
-### Bootstrap Alert Mapping
-
-| Flash Type | Bootstrap Class | Color |
-|------------|----------------|-------|
-| `success` | `alert-success` | Green |
-| `error` | `alert-danger` | Red |
-| `info` | `alert-info` | Blue |
-| `warning` | `alert-warning` | Yellow |
 
 ---
 
