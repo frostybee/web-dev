@@ -4,8 +4,6 @@ import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
 import { pluginFullscreen } from 'expressive-code-fullscreen';
 import { pluginLanguageBadge } from 'expressive-code-language-badge';
 
-
-
 function sideBorder() {
   return definePlugin({
     name: "Adds side border to Starlight code blocks",
@@ -116,6 +114,11 @@ export default {
   defaultProps: {
     showLineNumbers: false,
     wrap: true,
+    overridesByLang: {
+      'js,html,css, php, json': {
+        showLineNumbers: true,
+      },
+    },
   },
   themes: ["github-dark-high-contrast", "light-plus"],
   styleOverrides: {
