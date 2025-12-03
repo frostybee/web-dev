@@ -71,7 +71,7 @@ By completing this lab, you will:
 
 **Objective:** Add the TOTP and QR code generation libraries to your project.
 
-Open your a terminal in VS Code and run the following commands:
+Open a terminal in VS Code and run the following commands:
 
 ```bash title="Composer Commands to Install the Required Packages"
 composer require robthree/twofactorauth
@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS trusted_devices (
     INDEX idx_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Login attempts table for rate limiting (security)
+-- Login attempts table for rate limiting (optional - for future enhancement)
 CREATE TABLE IF NOT EXISTS login_attempts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(100) NOT NULL,
@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 **Tables Created:**
 - `two_factor_auth` - Stores TOTP secrets for users
 - `trusted_devices` - Stores trusted device tokens for "Remember this device" feature
+- `login_attempts` - (Optional) For implementing login rate limiting in future enhancements
 
 ---
 
@@ -271,6 +272,7 @@ namespace App\Controllers;
 
 use App\Domain\Models\TwoFactorAuthModel;
 use App\Domain\Models\UserModel;
+use App\Helpers\FlashMessage;
 use App\Helpers\SessionManager;
 use RobThree\Auth\TwoFactorAuth;
 use RobThree\Auth\Providers\Qr\BaconQrCodeProvider;
@@ -283,30 +285,25 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  */
 class TwoFactorController extends BaseController
 {
-    private TwoFactorAuthModel $twoFactorModel;
-    private UserModel $userModel;
-
+    
     public function __construct(
         ContainerInterface $container,
-        TwoFactorAuthModel $twoFactorModel,
-        UserModel $userModel
+        private TwoFactorAuthModel $twoFactorModel,
+        private UserModel $userModel
     ) {
-        parent::__construct($container);
-        $this->twoFactorModel = $twoFactorModel;
-        $this->userModel = $userModel;
+        parent::__construct($container);        
     }
     /**
      * Display the 2FA setup page with QR code.
      */
     public function showSetup(Request $request, Response $response): Response
     {
-        $user = $request->getAttribute('user');
-        $userId = $user['id'];
-        $userEmail = $user['email'];
+        $userId = SessionManager::get('user_id');
+        $userEmail = SessionManager::get('user_email');
 
         // Check if user already has 2FA enabled
         if ($this->twoFactorModel->isEnabled($userId)) {
-            SessionManager::setFlash('error', '2FA is already enabled.');
+            FlashMessage::error('2FA is already enabled.');
             return $this->redirect($request, $response, 'dashboard');
         }
 
@@ -341,9 +338,8 @@ class TwoFactorController extends BaseController
      */
     public function verifyAndEnable(Request $request, Response $response): Response
     {
-        $user = $request->getAttribute('user');
-        $userId = $user['id'];
-        $userEmail = $user['email'];
+        $userId = SessionManager::get('user_id');
+        $userEmail = SessionManager::get('user_email');
         $data = $request->getParsedBody();
         $code = $data['code'] ?? '';
 
@@ -351,7 +347,7 @@ class TwoFactorController extends BaseController
         $secret = SessionManager::get('2fa_setup_secret');
 
         if (!$secret) {
-            SessionManager::setFlash('error', 'Setup session expired. Please try again.');
+            FlashMessage::error('Setup session expired. Please try again.');
             return $this->redirect($request, $response, '2fa.setup');
         }
 
@@ -382,7 +378,7 @@ class TwoFactorController extends BaseController
         // Clear the setup secret from session
         SessionManager::remove('2fa_setup_secret');
 
-        SessionManager::setFlash('success', '2FA has been enabled successfully!');
+        FlashMessage::success('2FA has been enabled successfully!');
         return $this->redirect($request, $response, 'dashboard');
     }
 
@@ -409,7 +405,8 @@ class TwoFactorController extends BaseController
         // HINT: Use $this->twoFactorModel->getSecret($userId) to retrieve the secret
         $secret = ''; // Replace with your implementation
 
-        // TODO: Create a QR code provider and TFA instance
+        // TODO: Create a TwoFactorAuth instance (QR provider not needed for verification)
+        // HINT: new TwoFactorAuth('YourAppName')
 
         // TODO: Verify the user's code against their stored secret
         // HINT: Use $tfa->verifyCode($secret, $code)
@@ -448,13 +445,13 @@ class TwoFactorController extends BaseController
      */
     public function disable(Request $request, Response $response): Response
     {
-        $user = $request->getAttribute('user');
-        $userId = $user['id'];
+        $userId = SessionManager::get('user_id');
+        $userEmail = SessionManager::get('user_email');
         $data = $request->getParsedBody();
         $password = $data['password'] ?? '';
 
         // Verify password before disabling 2FA
-        $validUser = $this->userModel->verifyPassword($user['email'], $password);
+        $validUser = $this->userModel->verifyPassword($userEmail, $password);
 
         if (!$validUser) {
             return $this->render($response, 'auth/2fa-disable.php', [
@@ -466,7 +463,7 @@ class TwoFactorController extends BaseController
         // TODO: Disable 2FA in the database
         // HINT: Call $this->twoFactorModel->disable($userId)
 
-        SessionManager::setFlash('success', '2FA has been disabled.');
+        FlashMessage::success('2FA has been disabled.');
         return $this->redirect($request, $response, 'dashboard');
     }
 
@@ -526,11 +523,8 @@ use Slim\Routing\RouteContext;
  */
 class TwoFactorMiddleware implements MiddlewareInterface
 {
-    private TwoFactorAuthModel $twoFactorModel;
-
-    public function __construct(TwoFactorAuthModel $twoFactorModel)
+    public function __construct(private TwoFactorAuthModel $twoFactorModel)
     {
-        $this->twoFactorModel = $twoFactorModel;
     }
 
     public function process(Request $request, RequestHandler $handler): ResponseInterface
@@ -802,46 +796,17 @@ $app->get('/dashboard', [AuthController::class, 'dashboard'])
 
 ---
 
-## Step 8: Register Dependencies
-
-**Objective:** Register the new classes in the dependency injection container.
-
-> **Note:** This follows the same container registration pattern from previous labs.
-
-Add to `config/container.php`:
-
-```php title="config/container.php"
-use App\Domain\Models\TwoFactorAuthModel;
-use App\Middleware\TwoFactorMiddleware;
-use App\Controllers\TwoFactorController;
-
-// Add TwoFactorAuthModel
-TwoFactorAuthModel::class => function (ContainerInterface $c) {
-    return new TwoFactorAuthModel($c->get(PDOService::class));
-},
-
-// Add TwoFactorMiddleware (inject TwoFactorAuthModel)
-TwoFactorMiddleware::class => function (ContainerInterface $c) {
-    return new TwoFactorMiddleware($c->get(TwoFactorAuthModel::class));
-},
-
-// Add TwoFactorController (inject TwoFactorAuthModel and UserModel)
-TwoFactorController::class => function (ContainerInterface $c) {
-    return new TwoFactorController(
-        $c,
-        $c->get(TwoFactorAuthModel::class),
-        $c->get(UserModel::class)
-    );
-},
-```
-
----
-
-## Step 9: Update Login Flow
+## Step 8: Update Login Flow
 
 **Objective:** Modify the login process to check for 2FA status.
 
-Update `AuthController::Authenticate()` - after setting session data (around line 152), update to:
+First, add the required import at the top of `AuthController.php`:
+
+```php title="app/Controllers/AuthController.php"
+use App\Domain\Models\TwoFactorAuthModel;
+```
+
+Then update `AuthController::Authenticate()` - after setting session data (around line 152), update to:
 
 ```php title="app/Controllers/AuthController.php"
 // Check if user has 2FA enabled
@@ -863,13 +828,12 @@ SessionManager::set('two_factor_verified', !$has2FA);  // Auto-verified if no 2F
 ```php title="app/Controllers/AuthController.php"
 public function dashboard(Request $request, Response $response): Response
 {
-    $user = $request->getAttribute('user');
+    $userId = SessionManager::get('user_id');
     $twoFactorModel = $this->container->get(TwoFactorAuthModel::class);
-    $has2FA = $twoFactorModel->isEnabled($user['id']);
+    $has2FA = $twoFactorModel->isEnabled($userId);
 
     return $this->render($response, 'dashboard.php', [
         'title' => 'Dashboard',
-        'user' => $user,
         'has2FA' => $has2FA
     ]);
 }
@@ -877,7 +841,7 @@ public function dashboard(Request $request, Response $response): Response
 
 ---
 
-## Step 10: Test 2FA
+## Step 9: Test 2FA
 
 **Objective:** Verify that the basic 2FA functionality works correctly.
 
@@ -908,7 +872,7 @@ public function dashboard(Request $request, Response $response): Response
 
 ---
 
-## Step 11: Create TrustedDeviceModel
+## Step 10: Create TrustedDeviceModel
 
 **Objective:** Create a model to manage trusted devices for the "Remember this device" feature.
 
@@ -1020,7 +984,7 @@ class TrustedDeviceModel extends BaseModel
 
 ---
 
-## Step 12: Update TwoFactorController for Device Trust
+## Step 11: Update TwoFactorController for Device Trust
 
 **Objective:** Add device trust functionality to the 2FA verification process.
 
@@ -1029,21 +993,13 @@ First, update the `TwoFactorController` constructor to inject `TrustedDeviceMode
 ```php title="app/Controllers/TwoFactorController.php"
 use App\Domain\Models\TrustedDeviceModel;
 
-// Update the class properties and constructor:
-private TwoFactorAuthModel $twoFactorModel;
-private UserModel $userModel;
-private TrustedDeviceModel $trustedDeviceModel;
-
 public function __construct(
     ContainerInterface $container,
-    TwoFactorAuthModel $twoFactorModel,
-    UserModel $userModel,
-    TrustedDeviceModel $trustedDeviceModel
+    private TwoFactorAuthModel $twoFactorModel,
+    private UserModel $userModel,
+    private TrustedDeviceModel $trustedDeviceModel
 ) {
-    parent::__construct($container);
-    $this->twoFactorModel = $twoFactorModel;
-    $this->userModel = $userModel;
-    $this->trustedDeviceModel = $trustedDeviceModel;
+    parent::__construct($container);    
 }
 ```
 
@@ -1113,7 +1069,7 @@ private function getClientIp(Request $request): string
 
 ---
 
-## Step 13: Update TwoFactorMiddleware for Device Trust
+## Step 12: Update TwoFactorMiddleware for Device Trust
 
 **Objective:** Check for trusted device cookie before requiring 2FA verification.
 
@@ -1122,16 +1078,10 @@ First, update the `TwoFactorMiddleware` constructor to inject `TrustedDeviceMode
 ```php title="app/Middleware/TwoFactorMiddleware.php"
 use App\Domain\Models\TrustedDeviceModel;
 
-// Update the class properties and constructor:
-private TwoFactorAuthModel $twoFactorModel;
-private TrustedDeviceModel $trustedDeviceModel;
-
 public function __construct(
-    TwoFactorAuthModel $twoFactorModel,
-    TrustedDeviceModel $trustedDeviceModel
+    private TwoFactorAuthModel $twoFactorModel,
+    private TrustedDeviceModel $trustedDeviceModel
 ) {
-    $this->twoFactorModel = $twoFactorModel;
-    $this->trustedDeviceModel = $trustedDeviceModel;
 }
 ```
 
@@ -1160,42 +1110,7 @@ if ($deviceToken) {
 
 ---
 
-## Step 14: Update Container Registrations for Device Trust
-
-**Objective:** Update the dependency injection container to include TrustedDeviceModel.
-
-Update `config/container.php` with the following changes:
-
-```php title="config/container.php"
-use App\Domain\Models\TrustedDeviceModel;
-
-// Add TrustedDevice model
-TrustedDeviceModel::class => function (ContainerInterface $c) {
-    return new TrustedDeviceModel($c->get(PDOService::class));
-},
-
-// Update TwoFactorMiddleware to inject TrustedDevice
-TwoFactorMiddleware::class => function (ContainerInterface $c) {
-    return new TwoFactorMiddleware(
-        $c->get(TwoFactorAuthModel::class),
-        $c->get(TrustedDeviceModel::class)
-    );
-},
-
-// Update TwoFactorController to inject TrustedDevice
-TwoFactorController::class => function (ContainerInterface $c) {
-    return new TwoFactorController(
-        $c,
-        $c->get(TwoFactorAuthModel::class),
-        $c->get(UserModel::class),
-        $c->get(TrustedDeviceModel::class)
-    );
-},
-```
-
----
-
-## Step 15: Test Remember Device Feature
+## Step 13: Test Remember Device Feature
 
 **Objective:** Verify the trusted device functionality works correctly.
 
@@ -1307,8 +1222,8 @@ TwoFactorController::class => function (ContainerInterface $c) {
 
 | File | Status |
 | --- | --- |
-| `app/Domain/Models/TwoFactorAuth.php` | Create (skeleton) |
-| `app/Domain/Models/TrustedDevice.php` | Create (skeleton) |
+| `app/Domain/Models/TwoFactorAuthModel.php` | Create (skeleton) |
+| `app/Domain/Models/TrustedDeviceModel.php` | Create (skeleton) |
 | `app/Controllers/TwoFactorController.php` | Create (skeleton) |
 | `app/Middleware/TwoFactorMiddleware.php` | Create (skeleton) |
 | `app/Views/auth/2fa-setup.php` | Create |
