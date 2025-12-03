@@ -1,0 +1,1268 @@
+---
+title: 'Lab: Two-Factor Authentication (2FA)'
+description: 'Implement TOTP-based two-factor authentication with QR codes and trusted device support'
+draft: false
+sidebar:
+  label: 'Lab: 2FA'
+  order: 3
+  badge:
+    text: In-Class Lab
+    variant: danger
+---
+
+## Resources
+
+- [TOTP: Time-Based One-Time Password Algorithm (RFC 6238)](https://datatracker.ietf.org/doc/html/rfc6238)
+- [robthree/twofactorauth Library Documentation](https://github.com/RobThree/TwoFactorAuth)
+- [OWASP Multi-Factor Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html)
+- [Google Authenticator](https://support.google.com/accounts/answer/1066447)
+
+--- 
+
+## Overview
+
+In this lab, you'll implement Two-Factor Authentication (2FA) for your e-commerce application using TOTP (Time-based One-Time Password). 
+- 2FA adds an extra layer of security by requiring users to provide two different authentication factors: something they know (password) and something they have (authenticator app on their phone).
+
+**What is TOTP?**
+TOTP generates a 6-digit code that changes every 30 seconds. The code is calculated using a shared secret key and the current time. Both the server and the authenticator app (like Google Authenticator or Authy) use the same algorithm, so they generate matching codes without needing to communicate.
+
+**How 2FA Works in This Lab:**
+1. User enables 2FA by scanning a QR code with their authenticator app
+2. The QR code contains a secret key that both the server and app will use
+3. When logging in, after entering their password, users must also enter the 6-digit code from their app
+4. The server verifies the code matches what it expects based on the shared secret
+
+**Real-World Applications:**
+- Banking and financial applications
+- Email providers (Gmail, Outlook)
+- Social media platforms
+- Corporate VPN access
+- E-commerce checkout protection
+
+---
+
+## Learning Objectives
+
+By completing this lab, you will:
+- Implement TOTP (Time-based One-Time Password) authentication
+- Generate QR codes for authenticator app setup
+- Create middleware for 2FA verification flow
+- Build a "Remember this device" feature
+
+---
+
+## Prerequisites
+
+- **Working authentication system** (Registration and Login labs completed)
+- **Session Middleware lab completed** (SessionManager must be implemented)
+- PHP 8.2+
+- Smartphone with Google Authenticator or Authy app installed
+
+**Important:** This lab builds on the authentication system from previous labs. You must have a working login system before implementing 2FA.
+
+---
+
+## Step 1: Install Required Packages
+
+**Objective:** Add the TOTP and QR code generation libraries to your project.
+
+Open your terminal in the project directory and run:
+
+```bash
+composer require robthree/twofactorauth
+composer require bacon/bacon-qr-code
+```
+
+**What Gets Installed:**
+- `robthree/twofactorauth` - TOTP generation and validation library
+- `bacon/bacon-qr-code` - QR code generation (required dependency for displaying setup QR codes)
+
+**Verify Installation:**
+Check that both packages appear in your `composer.json` file under the `require` section.
+
+---
+
+## Step 2: Run Database Schema
+
+**Objective:** Create the database tables needed for 2FA functionality.
+
+The database schema should already be prepared. Execute the SQL file in your MySQL database:
+
+```bash
+mysql -u your_username -p your_database < database/auth_setup.sql
+```
+
+Or open `database/auth_setup.sql` in phpMyAdmin and execute it.
+
+**Tables Created:**
+- `two_factor_auth` - Stores TOTP secrets for users
+- `trusted_devices` - Stores trusted device tokens for "Remember this device" feature
+
+---
+
+## Step 3: Create TwoFactorAuth Model
+
+**Objective:** Create a model to manage 2FA data in the database.
+
+Create `app/Domain/Models/TwoFactorAuth.php`:
+
+```php title="app/Domain/Models/TwoFactorAuth.php"
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Models;
+
+/**
+ * Model for managing Two-Factor Authentication data.
+ */
+class TwoFactorAuth extends BaseModel
+{
+    /**
+     * Find 2FA record by user ID.
+     *
+     * @param int $userId The user's ID
+     * @return array|null 2FA data or null if not found
+     */
+    public function findByUserId(int $userId): ?array
+    {
+        // TODO: Query the two_factor_auth table to find record by user_id
+        // HINT: Use $this->selectOne() method from BaseModel
+        // SQL: SELECT * FROM two_factor_auth WHERE user_id = ?
+        // Return the result, or null if false
+
+        return null; // Replace with your implementation
+    }
+
+    /**
+     * Create a new 2FA record for a user.
+     *
+     * @param int $userId The user's ID
+     * @param string $secret The TOTP secret key
+     * @return int The ID of the created record
+     */
+    public function create(int $userId, string $secret): int
+    {
+        // TODO: Insert a new record into two_factor_auth table
+        // HINT: Use $this->execute() for INSERT
+        // Fields: user_id, secret, enabled (default false)
+        // Return $this->lastInsertId()
+
+        return 0; // Replace with your implementation
+    }
+
+    /**
+     * Enable 2FA for a user.
+     *
+     * @param int $userId The user's ID
+     * @return bool True if successful
+     */
+    public function enable(int $userId): bool
+    {
+        // TODO: Update the record to set enabled = true and enabled_at = NOW()
+        // HINT: Use $this->execute() and check rowCount() > 0
+
+        return false; // Replace with your implementation
+    }
+
+    /**
+     * Disable 2FA for a user.
+     *
+     * @param int $userId The user's ID
+     * @return bool True if successful
+     */
+    public function disable(int $userId): bool
+    {
+        // TODO: Update the record to set enabled = false
+        // HINT: Use $this->execute() and check rowCount() > 0
+
+        return false; // Replace with your implementation
+    }
+
+    /**
+     * Check if user has 2FA enabled.
+     *
+     * @param int $userId The user's ID
+     * @return bool True if 2FA is enabled
+     */
+    public function isEnabled(int $userId): bool
+    {
+        // TODO: Query to check if user has enabled = true
+        // HINT: Use $this->selectOne() and check the 'enabled' field
+
+        return false; // Replace with your implementation
+    }
+
+    /**
+     * Get the secret for a user.
+     *
+     * @param int $userId The user's ID
+     * @return string|null The secret or null if not found
+     */
+    public function getSecret(int $userId): ?string
+    {
+        // TODO: Get the secret field for the user
+        // HINT: Use findByUserId() and return the 'secret' field
+
+        return null; // Replace with your implementation
+    }
+}
+```
+
+---
+
+## Step 4: Create TwoFactorController
+
+**Objective:** Create a controller to handle 2FA setup, verification, and disabling.
+
+Create `app/Controllers/TwoFactorController.php`:
+
+```php title="app/Controllers/TwoFactorController.php"
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Domain\Models\TwoFactorAuth;
+use App\Domain\Models\User;
+use RobThree\Auth\TwoFactorAuth as TFA;
+use RobThree\Auth\Providers\Qr\BaconQrCodeProvider;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+
+/**
+ * Controller for Two-Factor Authentication operations.
+ */
+class TwoFactorController extends BaseController
+{
+    /**
+     * Display the 2FA setup page with QR code.
+     */
+    public function showSetup(Request $request, Response $response): Response
+    {
+        $user = $request->getAttribute('user');
+        $userId = $user['id'];
+        $userEmail = $user['email'];
+
+        // Check if user already has 2FA enabled
+        $twoFactorModel = $this->container->get(TwoFactorAuth::class);
+        if ($twoFactorModel->isEnabled($userId)) {
+            $_SESSION['error_message'] = '2FA is already enabled.';
+            return $this->redirect($request, $response, 'dashboard');
+        }
+
+        // TODO: Create TFA instance with QR provider and generate secret
+        // HINT: $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
+        //       $tfa = new TFA($qrProvider, 'YourAppName');
+        //       $secret = $tfa->createSecret();
+        $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
+        $tfa = new TFA($qrProvider, 'YourAppName');
+        $secret = ''; // Replace with: $tfa->createSecret();
+
+        // Store secret in session temporarily (not in database yet)
+        $_SESSION['2fa_setup_secret'] = $secret;
+
+        // TODO: Generate QR code as data URI (ready to use in <img src="">)
+        // HINT: $qrCodeDataUri = $tfa->getQRCodeImageAsDataUri($userEmail, $secret);
+        // This returns: "data:image/svg+xml;base64,..." which works directly in img src
+        $qrCodeDataUri = ''; // Replace with: $tfa->getQRCodeImageAsDataUri($userEmail, $secret);
+
+        return $this->render($response, 'auth/2fa-setup.php', [
+            'title' => 'Enable 2FA',
+            'qrCodeDataUri' => $qrCodeDataUri,
+            'secret' => $secret
+        ]);
+    }
+
+    /**
+     * Verify the code and enable 2FA.
+     */
+    public function verifyAndEnable(Request $request, Response $response): Response
+    {
+        $user = $request->getAttribute('user');
+        $userId = $user['id'];
+        $userEmail = $user['email'];
+        $data = $request->getParsedBody();
+        $code = $data['code'] ?? '';
+
+        // Get secret from session
+        $secret = $_SESSION['2fa_setup_secret'] ?? null;
+
+        if (!$secret) {
+            $_SESSION['error_message'] = 'Setup session expired. Please try again.';
+            return $this->redirect($request, $response, '2fa.setup');
+        }
+
+        // TODO: Verify the code using TFA
+        // HINT: $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
+        //       $tfa = new TFA($qrProvider, 'YourAppName');
+        //       $valid = $tfa->verifyCode($secret, $code);
+        $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
+        $tfa = new TFA($qrProvider, 'YourAppName');
+        $valid = false; // Replace with: $tfa->verifyCode($secret, $code);
+
+        if (!$valid) {
+            // Regenerate QR code for retry
+            $qrCodeDataUri = $tfa->getQRCodeImageAsDataUri($userEmail, $secret);
+
+            return $this->render($response, 'auth/2fa-setup.php', [
+                'title' => 'Enable 2FA',
+                'error' => 'Invalid verification code. Please try again.',
+                'qrCodeDataUri' => $qrCodeDataUri,
+                'secret' => $secret
+            ]);
+        }
+
+        // TODO: Save secret to database and enable 2FA
+        // HINT: Use TwoFactorAuth model's create() and enable() methods
+        $twoFactorModel = $this->container->get(TwoFactorAuth::class);
+        // 1. Create the record: $twoFactorModel->create($userId, $secret);
+        // 2. Enable it: $twoFactorModel->enable($userId);
+
+        // Clear the setup secret from session
+        unset($_SESSION['2fa_setup_secret']);
+
+        $_SESSION['success_message'] = '2FA has been enabled successfully!';
+        return $this->redirect($request, $response, 'dashboard');
+    }
+
+    /**
+     * Show the 2FA verification page (during login).
+     */
+    public function showVerify(Request $request, Response $response): Response
+    {
+        return $this->render($response, 'auth/2fa-verify.php', [
+            'title' => 'Verify 2FA'
+        ]);
+    }
+
+    /**
+     * Verify 2FA code during login.
+     */
+    public function verify(Request $request, Response $response): Response
+    {
+        $user = $_SESSION['user'];
+        $userId = $user['id'];
+        $data = $request->getParsedBody();
+        $code = $data['code'] ?? '';
+
+        // TODO: Get user's secret from database
+        $twoFactorModel = $this->container->get(TwoFactorAuth::class);
+        $secret = ''; // Replace with: $twoFactorModel->getSecret($userId);
+
+        // TODO: Verify the code
+        // HINT: $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
+        //       $tfa = new TFA($qrProvider, 'YourAppName');
+        //       $valid = $tfa->verifyCode($secret, $code);
+        $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
+        $tfa = new TFA($qrProvider, 'YourAppName');
+        $valid = false; // Replace with: $tfa->verifyCode($secret, $code);
+
+        if (!$valid) {
+            // Track failed attempts
+            $_SESSION['2fa_attempts'] = ($_SESSION['2fa_attempts'] ?? 0) + 1;
+
+            // Lockout after 5 failed attempts
+            if ($_SESSION['2fa_attempts'] >= 5) {
+                unset($_SESSION['user']);
+                session_destroy();
+                return $this->redirect($request, $response, 'auth.login');
+            }
+
+            return $this->render($response, 'auth/2fa-verify.php', [
+                'title' => 'Verify 2FA',
+                'error' => 'Invalid code. Please try again.'
+            ]);
+        }
+
+        // Success! Mark 2FA as verified in session
+        $_SESSION['user']['two_factor_verified'] = true;
+        unset($_SESSION['2fa_attempts']);
+
+        // Regenerate session ID for security
+        session_regenerate_id(true);
+
+        // Redirect to dashboard
+        return $this->redirect($request, $response, 'dashboard');
+    }
+
+    /**
+     * Disable 2FA for the user.
+     */
+    public function disable(Request $request, Response $response): Response
+    {
+        $user = $request->getAttribute('user');
+        $userId = $user['id'];
+        $data = $request->getParsedBody();
+        $password = $data['password'] ?? '';
+
+        // Verify password before disabling 2FA
+        $userModel = $this->container->get(User::class);
+        $validUser = $userModel->verifyPassword($user['email'], $password);
+
+        if (!$validUser) {
+            return $this->render($response, 'auth/2fa-disable.php', [
+                'title' => 'Disable 2FA',
+                'error' => 'Invalid password.'
+            ]);
+        }
+
+        // TODO: Disable 2FA in database
+        $twoFactorModel = $this->container->get(TwoFactorAuth::class);
+        // $twoFactorModel->disable($userId);
+
+        $_SESSION['success_message'] = '2FA has been disabled.';
+        return $this->redirect($request, $response, 'dashboard');
+    }
+
+    /**
+     * Show disable confirmation page.
+     */
+    public function showDisable(Request $request, Response $response): Response
+    {
+        return $this->render($response, 'auth/2fa-disable.php', [
+            'title' => 'Disable 2FA'
+        ]);
+    }
+}
+```
+
+---
+
+## Step 5: Create TwoFactorMiddleware
+
+**Objective:** Create middleware to enforce 2FA verification for authenticated users who have it enabled.
+
+This middleware runs AFTER AuthMiddleware. It checks:
+1. Is the user authenticated?
+2. Does the user have 2FA enabled?
+3. Has the user already verified 2FA in this session?
+
+If 2FA is required but not verified, the user is redirected to `/2fa/verify`.
+
+Create `app/Middleware/TwoFactorMiddleware.php`:
+
+```php title="app/Middleware/TwoFactorMiddleware.php"
+<?php
+
+declare(strict_types=1);
+
+namespace App\Middleware;
+
+use App\Domain\Models\TwoFactorAuth;
+use Psr\Container\ContainerInterface;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Slim\Routing\RouteContext;
+
+/**
+ * Middleware to check if user needs to verify 2FA.
+ *
+ * This middleware runs AFTER AuthMiddleware. It checks:
+ * 1. Is the user authenticated?
+ * 2. Does the user have 2FA enabled?
+ * 3. Has the user already verified 2FA in this session?
+ *
+ * If 2FA is required but not verified, redirect to /2fa/verify
+ */
+class TwoFactorMiddleware implements MiddlewareInterface
+{
+    private ContainerInterface $container;
+
+    public function __construct(ContainerInterface $container)
+    {
+        $this->container = $container;
+    }
+
+    public function process(Request $request, RequestHandler $handler): ResponseInterface
+    {
+        // Check if user is authenticated
+        if (!isset($_SESSION['user']) || !$_SESSION['user']['is_authenticated']) {
+            // Not authenticated, let AuthMiddleware handle it
+            return $handler->handle($request);
+        }
+
+        $userId = $_SESSION['user']['id'];
+
+        // TODO: Check if user has 2FA enabled
+        // HINT: Use TwoFactorAuth model's isEnabled() method
+        $twoFactorModel = $this->container->get(TwoFactorAuth::class);
+        $has2FAEnabled = false; // Replace with: $twoFactorModel->isEnabled($userId);
+
+        // If 2FA is not enabled, proceed normally
+        if (!$has2FAEnabled) {
+            return $handler->handle($request);
+        }
+
+        // TODO: Check if 2FA has already been verified in this session
+        // HINT: Check $_SESSION['user']['two_factor_verified']
+        $isVerified = false; // Replace with your implementation
+
+        if ($isVerified) {
+            // 2FA already verified, proceed
+            return $handler->handle($request);
+        }
+
+        // 2FA required but not verified - redirect to verification page
+        $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+        $verifyUrl = $routeParser->urlFor('2fa.verify');
+
+        $response = new \Nyholm\Psr7\Response();
+        return $response
+            ->withStatus(302)
+            ->withHeader('Location', $verifyUrl);
+    }
+}
+```
+
+---
+
+## Step 6: Create Views
+
+**Objective:** Create the view templates for 2FA setup, verification, and disabling.
+
+### 6.1: Create 2FA Setup View
+
+Create `app/Views/auth/2fa-setup.php`:
+
+```php title="app/Views/auth/2fa-setup.php"
+<?php require __DIR__ . '/../common/header.php'; ?>
+
+<div class="container" style="max-width: 500px; margin: 50px auto;">
+    <h1>Enable Two-Factor Authentication</h1>
+
+    <?php if (isset($error)): ?>
+        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
+    <div class="setup-steps">
+        <h3>Setup Instructions:</h3>
+        <ol>
+            <li>Install Google Authenticator or Authy on your smartphone</li>
+            <li>Scan the QR code below with the app</li>
+            <li>Enter the 6-digit code from the app to verify</li>
+        </ol>
+    </div>
+
+    <div class="qr-code" style="text-align: center; margin: 20px 0; background: white; padding: 20px;">
+        <!-- QR code displays as an image using data URI -->
+        <img src="<?= $qrCodeDataUri ?? '' ?>" alt="QR Code for 2FA Setup">
+    </div>
+
+    <div class="manual-entry" style="background: #f5f5f5; padding: 15px; margin: 20px 0;">
+        <p><strong>Can't scan?</strong> Enter this code manually:</p>
+        <code style="font-size: 1.2em; letter-spacing: 2px;"><?= htmlspecialchars($secret ?? '') ?></code>
+    </div>
+
+    <form method="POST" action="<?= '/' . APP_ROOT_DIR_NAME . '/2fa/verify-and-enable' ?>">
+        <div class="form-group">
+            <label for="code">Verification Code:</label>
+            <input type="text"
+                   id="code"
+                   name="code"
+                   pattern="[0-9]{6}"
+                   maxlength="6"
+                   required
+                   autofocus
+                   placeholder="Enter 6-digit code"
+                   style="font-size: 1.5em; letter-spacing: 5px; text-align: center;">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Verify and Enable 2FA</button>
+        <a href="<?= '/' . APP_ROOT_DIR_NAME . '/dashboard' ?>" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+<style>
+    .form-group { margin: 20px 0; }
+    .form-group label { display: block; margin-bottom: 5px; }
+    .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+    .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; margin-right: 10px; }
+    .btn-primary { background: #007bff; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .alert-danger { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
+</style>
+
+<?php require __DIR__ . '/../common/footer.php'; ?>
+```
+
+---
+
+### 6.2: Create 2FA Verification View
+
+Create `app/Views/auth/2fa-verify.php`:
+
+```php title="app/Views/auth/2fa-verify.php"
+<?php require __DIR__ . '/../common/header.php'; ?>
+
+<div class="container" style="max-width: 400px; margin: 100px auto;">
+    <h1>Two-Factor Verification</h1>
+    <p>Enter the 6-digit code from your authenticator app.</p>
+
+    <?php if (isset($error)): ?>
+        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
+    <form method="POST" action="<?= '/' . APP_ROOT_DIR_NAME . '/2fa/verify' ?>">
+        <div class="form-group">
+            <label for="code">Verification Code:</label>
+            <input type="text"
+                   id="code"
+                   name="code"
+                   pattern="[0-9]{6}"
+                   maxlength="6"
+                   required
+                   autofocus
+                   placeholder="000000"
+                   style="font-size: 2em; letter-spacing: 10px; text-align: center;">
+        </div>
+
+        <!-- TODO: Add trust device checkbox (Part 3) -->
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="trust_device" value="1">
+                Trust this device for 30 days
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Verify</button>
+    </form>
+
+    <div style="margin-top: 20px; text-align: center;">
+        <form method="POST" action="<?= '/' . APP_ROOT_DIR_NAME . '/logout' ?>">
+            <button type="submit" class="btn-link">Cancel and Logout</button>
+        </form>
+    </div>
+</div>
+
+<style>
+    .form-group { margin: 20px 0; }
+    .form-group label { display: block; margin-bottom: 5px; }
+    .form-group input[type="text"] { width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+    .btn { padding: 15px 20px; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-primary { background: #007bff; color: white; }
+    .btn-link { background: none; border: none; color: #007bff; cursor: pointer; text-decoration: underline; }
+    .alert-danger { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; }
+</style>
+
+<?php require __DIR__ . '/../common/footer.php'; ?>
+```
+
+---
+
+### 6.3: Create 2FA Disable View
+
+Create `app/Views/auth/2fa-disable.php`:
+
+```php title="app/Views/auth/2fa-disable.php"
+<?php require __DIR__ . '/../common/header.php'; ?>
+
+<div class="container" style="max-width: 400px; margin: 100px auto;">
+    <h1>Disable Two-Factor Authentication</h1>
+    <p>Enter your password to confirm disabling 2FA.</p>
+
+    <?php if (isset($error)): ?>
+        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
+    <form method="POST" action="<?= '/' . APP_ROOT_DIR_NAME . '/2fa/disable' ?>">
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+
+        <button type="submit" class="btn btn-danger">Disable 2FA</button>
+        <a href="<?= '/' . APP_ROOT_DIR_NAME . '/dashboard' ?>" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+<style>
+    .form-group { margin: 20px 0; }
+    .form-group label { display: block; margin-bottom: 5px; }
+    .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+    .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; margin-right: 10px; }
+    .btn-danger { background: #dc3545; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .alert-danger { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; }
+</style>
+
+<?php require __DIR__ . '/../common/footer.php'; ?>
+```
+
+---
+
+## Step 7: Register Routes
+
+**Objective:** Add the 2FA routes to your application.
+
+Add these routes to `app/Routes/web-routes.php`:
+
+```php title="app/Routes/web-routes.php"
+use App\Controllers\TwoFactorController;
+use App\Middleware\TwoFactorMiddleware;
+
+// 2FA Setup routes (requires auth, but not 2FA verification)
+$app->get('/2fa/setup', [TwoFactorController::class, 'showSetup'])
+    ->setName('2fa.setup')
+    ->add(AuthMiddleware::class);
+
+$app->post('/2fa/verify-and-enable', [TwoFactorController::class, 'verifyAndEnable'])
+    ->setName('2fa.enable')
+    ->add(AuthMiddleware::class);
+
+// 2FA Verification during login
+$app->get('/2fa/verify', [TwoFactorController::class, 'showVerify'])
+    ->setName('2fa.verify')
+    ->add(AuthMiddleware::class);
+
+$app->post('/2fa/verify', [TwoFactorController::class, 'verify'])
+    ->setName('2fa.verify.post')
+    ->add(AuthMiddleware::class);
+
+// 2FA Disable (requires full auth including 2FA)
+$app->get('/2fa/disable', [TwoFactorController::class, 'showDisable'])
+    ->setName('2fa.disable.show')
+    ->add(TwoFactorMiddleware::class)
+    ->add(AuthMiddleware::class);
+
+$app->post('/2fa/disable', [TwoFactorController::class, 'disable'])
+    ->setName('2fa.disable')
+    ->add(TwoFactorMiddleware::class)
+    ->add(AuthMiddleware::class);
+```
+
+**Also update the dashboard route** to include `TwoFactorMiddleware`:
+
+```php title="app/Routes/web-routes.php"
+$app->get('/dashboard', [AuthController::class, 'dashboard'])
+    ->setName('dashboard')
+    ->add(TwoFactorMiddleware::class)  // Add this line
+    ->add(AuthMiddleware::class);
+```
+
+---
+
+## Step 8: Register Dependencies
+
+**Objective:** Register the new classes in the dependency injection container.
+
+Add to `config/container.php`:
+
+```php title="config/container.php"
+use App\Domain\Models\TwoFactorAuth;
+use App\Middleware\TwoFactorMiddleware;
+
+// Add TwoFactorAuth model
+TwoFactorAuth::class => function (ContainerInterface $c) {
+    return new TwoFactorAuth($c->get(PDOService::class));
+},
+
+// Add TwoFactorMiddleware
+TwoFactorMiddleware::class => function (ContainerInterface $c) {
+    return new TwoFactorMiddleware($c);
+},
+```
+
+---
+
+## Step 9: Update Login Flow
+
+**Objective:** Modify the login process to check for 2FA status.
+
+Update `AuthController::login()` - after setting session data (around line 152), update to:
+
+```php title="app/Controllers/AuthController.php"
+// Check if user has 2FA enabled
+$twoFactorModel = $this->container->get(TwoFactorAuth::class);
+$has2FA = $twoFactorModel->isEnabled($user['id']);
+
+// Set session data
+$_SESSION['user'] = [
+    'id' => $user['id'],
+    'email' => $user['email'],
+    'first_name' => $user['first_name'],
+    'last_name' => $user['last_name'],
+    'is_authenticated' => true,
+    'requires_2fa' => $has2FA,
+    'two_factor_verified' => !$has2FA  // Auto-verified if no 2FA
+];
+```
+
+**Also update the dashboard method** to pass `has2FA` dynamically:
+
+```php title="app/Controllers/AuthController.php"
+public function dashboard(Request $request, Response $response): Response
+{
+    $user = $request->getAttribute('user');
+    $twoFactorModel = $this->container->get(TwoFactorAuth::class);
+    $has2FA = $twoFactorModel->isEnabled($user['id']);
+
+    return $this->render($response, 'dashboard.php', [
+        'title' => 'Dashboard',
+        'user' => $user,
+        'has2FA' => $has2FA
+    ]);
+}
+```
+
+---
+
+## Step 10: Test 2FA
+
+**Objective:** Verify that the basic 2FA functionality works correctly.
+
+**Testing Checklist:**
+
+### Test Case 1: Enable 2FA
+1. Login with a test account
+2. Access `/2fa/setup` - QR code displays
+3. Scan QR code with Google Authenticator/Authy
+4. Enter wrong code - shows error
+5. Enter correct code - enables 2FA successfully
+
+### Test Case 2: Login with 2FA
+1. Logout and login again
+2. Redirected to `/2fa/verify` after password
+3. Enter correct code - access dashboard
+
+### Test Case 3: Failed Attempts
+1. Login and reach 2FA verification
+2. Enter wrong code 5 times
+3. Should be logged out and session destroyed
+
+### Test Case 4: Disable 2FA
+1. Navigate to disable 2FA page
+2. Enter incorrect password - shows error
+3. Enter correct password - 2FA disabled
+4. Next login doesn't require 2FA
+
+---
+
+## Step 11: Create TrustedDevice Model
+
+**Objective:** Create a model to manage trusted devices for the "Remember this device" feature.
+
+This feature allows users to skip 2FA on trusted devices for 30 days.
+
+Create `app/Domain/Models/TrustedDevice.php`:
+
+```php title="app/Domain/Models/TrustedDevice.php"
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Models;
+
+/**
+ * Model for managing trusted devices.
+ */
+class TrustedDevice extends BaseModel
+{
+    /**
+     * Create a new trusted device record.
+     *
+     * @param int $userId
+     * @param string $deviceToken
+     * @param array $deviceInfo ['device_name', 'user_agent', 'ip_address', 'expires_at']
+     * @return int
+     */
+    public function create(int $userId, string $deviceToken, array $deviceInfo): int
+    {
+        // TODO: Insert a new record into trusted_devices table
+        // HINT: Use $this->execute() for INSERT
+        // Fields: user_id, device_token, device_name, user_agent, ip_address, expires_at
+
+        return 0; // Replace with your implementation
+    }
+
+    /**
+     * Check if a device token is valid for a user.
+     *
+     * @param string $deviceToken
+     * @param int $userId
+     * @return bool True if token is valid and not expired
+     */
+    public function isValid(string $deviceToken, int $userId): bool
+    {
+        // TODO: Query to check if token exists, belongs to user, and hasn't expired
+        // HINT: Use $this->selectOne()
+        // SQL: SELECT * FROM trusted_devices WHERE device_token = ? AND user_id = ? AND expires_at > NOW()
+
+        return false; // Replace with your implementation
+    }
+
+    /**
+     * Update the last_used_at timestamp for a device.
+     *
+     * @param string $deviceToken
+     * @return bool
+     */
+    public function updateLastUsed(string $deviceToken): bool
+    {
+        // TODO: Update last_used_at = NOW() for the device
+
+        return false; // Replace with your implementation
+    }
+
+    /**
+     * Get all trusted devices for a user.
+     *
+     * @param int $userId
+     * @return array
+     */
+    public function getAllByUserId(int $userId): array
+    {
+        // TODO: Select all non-expired devices for the user
+        // HINT: Use $this->selectAll()
+
+        return []; // Replace with your implementation
+    }
+
+    /**
+     * Revoke (delete) a specific device.
+     *
+     * @param int $deviceId
+     * @param int $userId
+     * @return bool
+     */
+    public function revoke(int $deviceId, int $userId): bool
+    {
+        // TODO: Delete the device record
+        // IMPORTANT: Include user_id in WHERE clause for security
+
+        return false; // Replace with your implementation
+    }
+
+    /**
+     * Revoke all devices for a user.
+     *
+     * @param int $userId
+     * @return bool
+     */
+    public function revokeAll(int $userId): bool
+    {
+        // TODO: Delete all trusted devices for the user
+
+        return false; // Replace with your implementation
+    }
+}
+```
+
+---
+
+## Step 12: Update TwoFactorController for Device Trust
+
+**Objective:** Add device trust functionality to the 2FA verification process.
+
+First, add the TrustedDevice import at the top of `TwoFactorController.php`:
+
+```php title="app/Controllers/TwoFactorController.php"
+use App\Domain\Models\TrustedDevice;
+```
+
+Then add device trust functionality to the `verify()` method, after the line `$_SESSION['user']['two_factor_verified'] = true;`:
+
+```php title="app/Controllers/TwoFactorController.php"
+// Check if user wants to trust this device
+$trustDevice = $data['trust_device'] ?? false;
+
+if ($trustDevice) {
+    // TODO: Generate unique device token
+    $deviceToken = bin2hex(random_bytes(32));
+
+    // Calculate expiration (30 days from now)
+    $expiresAt = (new \DateTime())->modify('+30 days')->format('Y-m-d H:i:s');
+
+    // Get device information
+    $deviceInfo = [
+        'device_name' => $this->getDeviceName($request),
+        'user_agent' => $request->getHeaderLine('User-Agent'),
+        'ip_address' => $this->getClientIp($request),
+        'expires_at' => $expiresAt
+    ];
+
+    // TODO: Save to database
+    $trustedDeviceModel = $this->container->get(TrustedDevice::class);
+    // $trustedDeviceModel->create($userId, $deviceToken, $deviceInfo);
+
+    // Set secure cookie
+    setcookie(
+        'trusted_device',
+        $deviceToken,
+        [
+            'expires' => strtotime('+30 days'),
+            'path' => '/' . APP_ROOT_DIR_NAME,
+            'secure' => false,  // Set to true in production (HTTPS)
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]
+    );
+}
+```
+
+**Add helper methods to TwoFactorController:**
+
+```php title="app/Controllers/TwoFactorController.php"
+private function getDeviceName(Request $request): string
+{
+    $userAgent = $request->getHeaderLine('User-Agent');
+
+    if (stripos($userAgent, 'Windows') !== false) return 'Windows PC';
+    if (stripos($userAgent, 'Mac') !== false) return 'Mac';
+    if (stripos($userAgent, 'iPhone') !== false) return 'iPhone';
+    if (stripos($userAgent, 'Android') !== false) return 'Android';
+    if (stripos($userAgent, 'Linux') !== false) return 'Linux PC';
+
+    return 'Unknown Device';
+}
+
+private function getClientIp(Request $request): string
+{
+    $serverParams = $request->getServerParams();
+
+    if (!empty($serverParams['HTTP_X_FORWARDED_FOR'])) {
+        $ipList = explode(',', $serverParams['HTTP_X_FORWARDED_FOR']);
+        return trim($ipList[0]);
+    }
+
+    return $serverParams['REMOTE_ADDR'] ?? '0.0.0.0';
+}
+```
+
+---
+
+## Step 13: Update TwoFactorMiddleware for Device Trust
+
+**Objective:** Check for trusted device cookie before requiring 2FA verification.
+
+First, add the TrustedDevice import at the top of `TwoFactorMiddleware.php`:
+
+```php title="app/Middleware/TwoFactorMiddleware.php"
+use App\Domain\Models\TrustedDevice;
+```
+
+Then add trusted device check in the `process()` method, after checking if 2FA is enabled but before redirecting to verify:
+
+```php title="app/Middleware/TwoFactorMiddleware.php"
+// Check for trusted device cookie
+$cookies = $request->getCookieParams();
+$deviceToken = $cookies['trusted_device'] ?? null;
+
+if ($deviceToken) {
+    $trustedDeviceModel = $this->container->get(TrustedDevice::class);
+
+    if ($trustedDeviceModel->isValid($deviceToken, $userId)) {
+        // Device is trusted - mark 2FA as verified
+        $_SESSION['user']['two_factor_verified'] = true;
+        $trustedDeviceModel->updateLastUsed($deviceToken);
+
+        return $handler->handle($request);
+    } else {
+        // Token invalid/expired - delete cookie
+        setcookie('trusted_device', '', time() - 3600, '/' . APP_ROOT_DIR_NAME);
+    }
+}
+
+// Continue to redirect to 2FA verification...
+```
+
+---
+
+## Step 14: Register TrustedDevice in Container
+
+**Objective:** Add TrustedDevice model to the dependency injection container.
+
+Add to `config/container.php`:
+
+```php title="config/container.php"
+use App\Domain\Models\TrustedDevice;
+
+TrustedDevice::class => function (ContainerInterface $c) {
+    return new TrustedDevice($c->get(PDOService::class));
+},
+```
+
+---
+
+## Step 15: Test Remember Device Feature
+
+**Objective:** Verify the trusted device functionality works correctly.
+
+**Testing Checklist:**
+
+### Test Case 1: Trust a Device
+1. Login with 2FA enabled
+2. Check "Trust this device" checkbox
+3. Verify 2FA code successfully
+4. Check browser cookies - `trusted_device` should be set
+
+### Test Case 2: Skip 2FA on Trusted Device
+1. Logout and login again
+2. Should skip 2FA verification automatically
+3. Direct access to dashboard
+
+### Test Case 3: Different Browser Still Requires 2FA
+1. Open a different browser (or incognito mode)
+2. Login with same account
+3. Should still require 2FA (no cookie in new browser)
+
+### Test Case 4: Expired Token
+1. Wait for token to expire (or manually modify database)
+2. Login again
+3. Should require 2FA verification
+
+---
+
+## Testing Your Implementation
+
+### Functional Tests Summary
+
+| Test | Expected Result |
+| --- | --- |
+| Enable 2FA | QR code scanned, code verified, 2FA enabled |
+| Login with 2FA | After password, redirected to /2fa/verify |
+| Correct 2FA code | Access granted to dashboard |
+| Wrong 2FA code | Error message, retry allowed |
+| 5 failed codes | Logged out, session destroyed |
+| Disable 2FA | Password required, 2FA disabled |
+| Trust device | Cookie set, skips 2FA on next login |
+| Different browser | Still requires 2FA (no cookie) |
+
+---
+
+## Common Issues and Solutions
+
+### Issue 1: QR Code Not Displaying
+
+**Symptom:** QR code area is blank or shows broken image
+
+**Possible Causes:**
+- BaconQrCodeProvider not installed correctly
+- Secret not being generated
+
+**Solution:**
+1. Verify `bacon/bacon-qr-code` is installed: `composer show bacon/bacon-qr-code`
+2. Check that `$tfa->createSecret()` is being called
+3. Verify `$tfa->getQRCodeImageAsDataUri()` returns a valid data URI
+
+---
+
+### Issue 2: Code Always Invalid
+
+**Symptom:** Even correct codes from authenticator app are rejected
+
+**Possible Causes:**
+- Time sync issue between server and phone
+- Wrong secret being used for verification
+
+**Solution:**
+1. Ensure server time is accurate (use NTP)
+2. Verify the same secret is used for QR generation and verification
+3. Check that the secret from session matches during setup
+
+---
+
+### Issue 3: Session Secret Lost
+
+**Symptom:** "Setup session expired" error during 2FA setup
+
+**Possible Causes:**
+- Session not persisting between requests
+- Session cookie issues
+
+**Solution:**
+1. Verify SessionMiddleware is running
+2. Check session configuration in PHP
+3. Ensure cookies are enabled in browser
+
+---
+
+### Issue 4: Trusted Device Not Working
+
+**Symptom:** Still prompted for 2FA even after trusting device
+
+**Possible Causes:**
+- Cookie not being set correctly
+- TwoFactorMiddleware not checking cookie
+
+**Solution:**
+1. Check browser cookies for `trusted_device`
+2. Verify cookie path matches your app root
+3. Check database for trusted device record
+
+---
+
+## Security Best Practices
+
+### 1. Secrets Storage
+- Secrets are stored in database (never exposed after setup)
+- Consider encrypting secrets at rest for additional security
+
+### 2. Session Security
+- Session ID is regenerated after 2FA verification
+- Prevents session fixation attacks
+
+### 3. Device Tokens
+- Device tokens are cryptographically random (64 characters)
+- Generated using `random_bytes()` for secure randomness
+
+### 4. Cookie Security
+- Cookies use HttpOnly flag (not accessible via JavaScript)
+- SameSite attribute prevents CSRF attacks
+- Set `secure: true` in production for HTTPS-only
+
+### 5. Password Verification
+- Password required to disable 2FA
+- Prevents unauthorized 2FA removal if session is compromised
+
+### 6. Rate Limiting
+- 5 failed 2FA attempts triggers lockout
+- Session is destroyed after lockout
+
+---
+
+## Key Takeaways
+
+1. **TOTP** uses shared secrets + time to generate 6-digit codes
+2. **Middleware** is the right place to enforce 2FA verification
+3. **Device trust** improves UX without sacrificing security
+4. **Session regeneration** prevents session fixation attacks
+5. **Always validate** user input and use prepared statements
+
+---
+
+## Files Summary
+
+| File | Status |
+| --- | --- |
+| `app/Domain/Models/TwoFactorAuth.php` | Create (skeleton) |
+| `app/Domain/Models/TrustedDevice.php` | Create (skeleton) |
+| `app/Controllers/TwoFactorController.php` | Create (skeleton) |
+| `app/Middleware/TwoFactorMiddleware.php` | Create (skeleton) |
+| `app/Views/auth/2fa-setup.php` | Create |
+| `app/Views/auth/2fa-verify.php` | Create |
+| `app/Views/auth/2fa-disable.php` | Create |
+| `app/Routes/web-routes.php` | Modify (add routes) |
+| `config/container.php` | Modify (add dependencies) |
+| `app/Controllers/AuthController.php` | Modify (add 2FA check) |
+
+---
+
+:::note[Answer the questions below]
+1. What is TOTP and how does it generate codes without communicating with the server?
+2. Why do we store the 2FA secret in the session during setup before saving it to the database?
+3. Explain the purpose of the `two_factor_verified` session flag.
+4. Why is password verification required to disable 2FA?
+5. What happens if a user enters 5 incorrect 2FA codes?
+6. How does the "Trust this device" feature work? What data is stored in the cookie vs. database?
+7. Why do we regenerate the session ID after successful 2FA verification?
+8. What is the purpose of the `TwoFactorMiddleware`? When does it redirect users?
+9. Why is it important to include `user_id` in the WHERE clause when revoking trusted devices?
+10. How would you add backup codes for users who lose access to their authenticator app?
+11. What security risks exist if you don't set `httponly: true` on the trusted device cookie?
+12. Explain why the middleware order matters (AuthMiddleware before TwoFactorMiddleware).
+:::
