@@ -10,6 +10,8 @@ sidebar:
     variant: danger
 ---
 
+import {CollapsiblePanel} from 'astro-nebula-ui'
+
 ## Resources
 
 - [TOTP: Time-Based One-Time Password Algorithm (RFC 6238)](https://datatracker.ietf.org/doc/html/rfc6238)
@@ -54,12 +56,14 @@ By completing this lab, you will:
 
 ## Prerequisites
 
-- **Working authentication system** (Registration and Login labs completed)
-- **Session Middleware lab completed** (SessionManager must be implemented)
+- **Session Middleware lab completed** - You will use `SessionManager` for all session operations
+- **Authentication Part 2 lab completed** - You will apply middleware patterns learned there
 - PHP 8.2+
-- Smartphone with Google Authenticator or Authy app installed
+- Smartphone with Google Authenticator, Microsoft Authenticator, or Authy app installed
 
-**Important:** This lab builds on the authentication system from previous labs. You must have a working login system before implementing 2FA.
+**Important:** This lab builds on concepts from previous labs:
+- **SessionManager** (from Session lab) - All session operations use `SessionManager::set()`, `SessionManager::get()`, etc.
+- **AuthMiddleware pattern** (from Part 2) - TwoFactorMiddleware follows the same pattern
 
 ---
 
@@ -67,9 +71,9 @@ By completing this lab, you will:
 
 **Objective:** Add the TOTP and QR code generation libraries to your project.
 
-Open your terminal in the project directory and run:
+Open your a terminal in VS Code and run the following commands:
 
-```bash
+```bash title="Composer Commands to Install the Required Packages"
 composer require robthree/twofactorauth
 composer require bacon/bacon-qr-code
 ```
@@ -83,17 +87,57 @@ Check that both packages appear in your `composer.json` file under the `require`
 
 ---
 
-## Step 2: Run Database Schema
+## Step 2: Import the Database Schema
 
-**Objective:** Create the database tables needed for 2FA functionality.
+**Objective:** Import the database schema needed for 2FA functionality using phpMyAdmin.
 
-The database schema should already be prepared. Execute the SQL file in your MySQL database:
+Open phpMyAdmin in your browser. Select your project database, click on the “SQL” tab, and execute the following SQL statements:
 
-```bash
-mysql -u your_username -p your_database < database/auth_setup.sql
+<CollapsiblePanel title="SQL Statements to Create the Tables for 2FA" defaultOpen={true} defaultExpanded={true}>
+
+```sql title="SQL Statements to Create the Tables for 2FA"
+-- Two-factor authentication table
+CREATE TABLE IF NOT EXISTS two_factor_auth (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    secret VARCHAR(255) NOT NULL,
+    enabled BOOLEAN DEFAULT FALSE,
+    enabled_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Trusted devices table for "Remember this device" feature
+CREATE TABLE IF NOT EXISTS trusted_devices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    device_token VARCHAR(255) UNIQUE NOT NULL,
+    device_name VARCHAR(100),
+    user_agent VARCHAR(255),
+    ip_address VARCHAR(45),
+    last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_device_token (device_token),
+    INDEX idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Login attempts table for rate limiting (security)
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    successful BOOLEAN DEFAULT FALSE,
+    INDEX idx_email_ip (email, ip_address),
+    INDEX idx_attempted_at (attempted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
+</CollapsiblePanel>
 
-Or open `database/auth_setup.sql` in phpMyAdmin and execute it.
 
 **Tables Created:**
 - `two_factor_auth` - Stores TOTP secrets for users
@@ -227,6 +271,7 @@ namespace App\Controllers;
 
 use App\Domain\Models\TwoFactorAuth;
 use App\Domain\Models\User;
+use App\Helpers\SessionManager;
 use RobThree\Auth\TwoFactorAuth as TFA;
 use RobThree\Auth\Providers\Qr\BaconQrCodeProvider;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -249,7 +294,7 @@ class TwoFactorController extends BaseController
         // Check if user already has 2FA enabled
         $twoFactorModel = $this->container->get(TwoFactorAuth::class);
         if ($twoFactorModel->isEnabled($userId)) {
-            $_SESSION['error_message'] = '2FA is already enabled.';
+            SessionManager::setFlash('error', '2FA is already enabled.');
             return $this->redirect($request, $response, 'dashboard');
         }
 
@@ -262,7 +307,7 @@ class TwoFactorController extends BaseController
         $secret = ''; // Replace with: $tfa->createSecret();
 
         // Store secret in session temporarily (not in database yet)
-        $_SESSION['2fa_setup_secret'] = $secret;
+        SessionManager::set('2fa_setup_secret', $secret);
 
         // TODO: Generate QR code as data URI (ready to use in <img src="">)
         // HINT: $qrCodeDataUri = $tfa->getQRCodeImageAsDataUri($userEmail, $secret);
@@ -288,10 +333,10 @@ class TwoFactorController extends BaseController
         $code = $data['code'] ?? '';
 
         // Get secret from session
-        $secret = $_SESSION['2fa_setup_secret'] ?? null;
+        $secret = SessionManager::get('2fa_setup_secret');
 
         if (!$secret) {
-            $_SESSION['error_message'] = 'Setup session expired. Please try again.';
+            SessionManager::setFlash('error', 'Setup session expired. Please try again.');
             return $this->redirect($request, $response, '2fa.setup');
         }
 
@@ -322,9 +367,9 @@ class TwoFactorController extends BaseController
         // 2. Enable it: $twoFactorModel->enable($userId);
 
         // Clear the setup secret from session
-        unset($_SESSION['2fa_setup_secret']);
+        SessionManager::remove('2fa_setup_secret');
 
-        $_SESSION['success_message'] = '2FA has been enabled successfully!';
+        SessionManager::setFlash('success', '2FA has been enabled successfully!');
         return $this->redirect($request, $response, 'dashboard');
     }
 
@@ -343,8 +388,7 @@ class TwoFactorController extends BaseController
      */
     public function verify(Request $request, Response $response): Response
     {
-        $user = $_SESSION['user'];
-        $userId = $user['id'];
+        $userId = SessionManager::get('user_id');
         $data = $request->getParsedBody();
         $code = $data['code'] ?? '';
 
@@ -362,12 +406,12 @@ class TwoFactorController extends BaseController
 
         if (!$valid) {
             // Track failed attempts
-            $_SESSION['2fa_attempts'] = ($_SESSION['2fa_attempts'] ?? 0) + 1;
+            $attempts = (SessionManager::get('2fa_attempts') ?? 0) + 1;
+            SessionManager::set('2fa_attempts', $attempts);
 
             // Lockout after 5 failed attempts
-            if ($_SESSION['2fa_attempts'] >= 5) {
-                unset($_SESSION['user']);
-                session_destroy();
+            if ($attempts >= 5) {
+                SessionManager::destroy();
                 return $this->redirect($request, $response, 'auth.login');
             }
 
@@ -378,11 +422,11 @@ class TwoFactorController extends BaseController
         }
 
         // Success! Mark 2FA as verified in session
-        $_SESSION['user']['two_factor_verified'] = true;
-        unset($_SESSION['2fa_attempts']);
+        SessionManager::set('two_factor_verified', true);
+        SessionManager::remove('2fa_attempts');
 
         // Regenerate session ID for security
-        session_regenerate_id(true);
+        SessionManager::regenerate();
 
         // Redirect to dashboard
         return $this->redirect($request, $response, 'dashboard');
@@ -413,7 +457,7 @@ class TwoFactorController extends BaseController
         $twoFactorModel = $this->container->get(TwoFactorAuth::class);
         // $twoFactorModel->disable($userId);
 
-        $_SESSION['success_message'] = '2FA has been disabled.';
+        SessionManager::setFlash('success', '2FA has been disabled.');
         return $this->redirect($request, $response, 'dashboard');
     }
 
@@ -435,6 +479,8 @@ class TwoFactorController extends BaseController
 
 **Objective:** Create middleware to enforce 2FA verification for authenticated users who have it enabled.
 
+> **Note:** This middleware follows the same pattern as `AuthMiddleware` from the Authentication Part 2 lab. If you need a refresher on middleware fundamentals, refer back to that lab.
+
 This middleware runs AFTER AuthMiddleware. It checks:
 1. Is the user authenticated?
 2. Does the user have 2FA enabled?
@@ -452,6 +498,7 @@ declare(strict_types=1);
 namespace App\Middleware;
 
 use App\Domain\Models\TwoFactorAuth;
+use App\Helpers\SessionManager;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
@@ -481,12 +528,12 @@ class TwoFactorMiddleware implements MiddlewareInterface
     public function process(Request $request, RequestHandler $handler): ResponseInterface
     {
         // Check if user is authenticated
-        if (!isset($_SESSION['user']) || !$_SESSION['user']['is_authenticated']) {
+        if (!SessionManager::get('is_authenticated')) {
             // Not authenticated, let AuthMiddleware handle it
             return $handler->handle($request);
         }
 
-        $userId = $_SESSION['user']['id'];
+        $userId = SessionManager::get('user_id');
 
         // TODO: Check if user has 2FA enabled
         // HINT: Use TwoFactorAuth model's isEnabled() method
@@ -499,8 +546,8 @@ class TwoFactorMiddleware implements MiddlewareInterface
         }
 
         // TODO: Check if 2FA has already been verified in this session
-        // HINT: Check $_SESSION['user']['two_factor_verified']
-        $isVerified = false; // Replace with your implementation
+        // HINT: Check SessionManager::get('two_factor_verified')
+        $isVerified = false; // Replace with: SessionManager::get('two_factor_verified')
 
         if ($isVerified) {
             // 2FA already verified, proceed
@@ -699,6 +746,8 @@ Create `app/Views/auth/2fa-disable.php`:
 
 **Objective:** Add the 2FA routes to your application.
 
+> **Note:** This follows the same routing and middleware syntax from Part 2. Middleware is chained using `->add()` and executes in reverse order (last added runs first).
+
 Add these routes to `app/Routes/web-routes.php`:
 
 ```php title="app/Routes/web-routes.php"
@@ -750,6 +799,8 @@ $app->get('/dashboard', [AuthController::class, 'dashboard'])
 
 **Objective:** Register the new classes in the dependency injection container.
 
+> **Note:** This follows the same container registration pattern from previous labs.
+
 Add to `config/container.php`:
 
 ```php title="config/container.php"
@@ -780,16 +831,14 @@ Update `AuthController::login()` - after setting session data (around line 152),
 $twoFactorModel = $this->container->get(TwoFactorAuth::class);
 $has2FA = $twoFactorModel->isEnabled($user['id']);
 
-// Set session data
-$_SESSION['user'] = [
-    'id' => $user['id'],
-    'email' => $user['email'],
-    'first_name' => $user['first_name'],
-    'last_name' => $user['last_name'],
-    'is_authenticated' => true,
-    'requires_2fa' => $has2FA,
-    'two_factor_verified' => !$has2FA  // Auto-verified if no 2FA
-];
+// Set session data using SessionManager (same pattern as Auth Part 2)
+SessionManager::set('user_id', $user['id']);
+SessionManager::set('user_email', $user['email']);
+SessionManager::set('user_first_name', $user['first_name']);
+SessionManager::set('user_last_name', $user['last_name']);
+SessionManager::set('is_authenticated', true);
+SessionManager::set('requires_2fa', $has2FA);
+SessionManager::set('two_factor_verified', !$has2FA);  // Auto-verified if no 2FA
 ```
 
 **Also update the dashboard method** to pass `has2FA` dynamically:
@@ -1057,7 +1106,7 @@ if ($deviceToken) {
 
     if ($trustedDeviceModel->isValid($deviceToken, $userId)) {
         // Device is trusted - mark 2FA as verified
-        $_SESSION['user']['two_factor_verified'] = true;
+        SessionManager::set('two_factor_verified', true);
         $trustedDeviceModel->updateLastUsed($deviceToken);
 
         return $handler->handle($request);
@@ -1193,45 +1242,6 @@ TrustedDevice::class => function (ContainerInterface $c) {
 1. Check browser cookies for `trusted_device`
 2. Verify cookie path matches your app root
 3. Check database for trusted device record
-
----
-
-## Security Best Practices
-
-### 1. Secrets Storage
-- Secrets are stored in database (never exposed after setup)
-- Consider encrypting secrets at rest for additional security
-
-### 2. Session Security
-- Session ID is regenerated after 2FA verification
-- Prevents session fixation attacks
-
-### 3. Device Tokens
-- Device tokens are cryptographically random (64 characters)
-- Generated using `random_bytes()` for secure randomness
-
-### 4. Cookie Security
-- Cookies use HttpOnly flag (not accessible via JavaScript)
-- SameSite attribute prevents CSRF attacks
-- Set `secure: true` in production for HTTPS-only
-
-### 5. Password Verification
-- Password required to disable 2FA
-- Prevents unauthorized 2FA removal if session is compromised
-
-### 6. Rate Limiting
-- 5 failed 2FA attempts triggers lockout
-- Session is destroyed after lockout
-
----
-
-## Key Takeaways
-
-1. **TOTP** uses shared secrets + time to generate 6-digit codes
-2. **Middleware** is the right place to enforce 2FA verification
-3. **Device trust** improves UX without sacrificing security
-4. **Session regeneration** prevents session fixation attacks
-5. **Always validate** user input and use prepared statements
 
 ---
 
