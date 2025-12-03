@@ -1,0 +1,245 @@
+---
+title: 'Understanding Two-Factor Authentication (2FA)'
+description: 'Learn how 2FA works, why it matters, and understand the components you will implement'
+draft: false
+sidebar:
+  label: 'Understanding 2FA'
+  order: 3
+---
+
+## What is Two-Factor Authentication?
+
+**Two-Factor Authentication (2FA)** is a security mechanism that requires users to provide two different types of identification before gaining access to an account or system. It adds an extra layer of protection beyond just a username and password.
+
+The "two factors" typically come from different categories:
+
+1. **Something you know** → Password, PIN, security question
+2. **Something you have** → Phone, hardware token, authenticator app
+3. **Something you are** → Fingerprint, face recognition, voice
+
+In our implementation, we use:
+- **Factor 1:** Password (something you know)
+- **Factor 2:** TOTP code from authenticator app (something you have)
+
+---
+
+## Purpose of 2FA
+
+### Why Use 2FA?
+
+1. **Protection Against Password Theft**
+   - Even if an attacker steals or guesses your password, they cannot access your account without the second factor.
+2. **Defense Against Phishing**
+   - Phishing attacks that capture passwords become less effective because the attacker still needs the time-sensitive code.
+3. **Mitigation of Credential Stuffing**
+   - Attackers who obtain leaked credentials from data breaches cannot use them without the second factor.
+4. **Compliance Requirements**
+   - Many regulations (PCI-DSS, HIPAA, GDPR) require or recommend multi-factor authentication for sensitive data access.
+5. **User Trust**
+   - Offering 2FA demonstrates commitment to security and builds user confidence in your application.
+
+---
+
+## How TOTP Works
+
+**TOTP (Time-based One-Time Password)** is the algorithm behind apps like Google Authenticator and Authy.
+
+### The Process
+
+1. **Secret Generation**: The server generates a random secret key (Base32 encoded string)
+2. **Secret Sharing**: The secret is shared with the user via QR code or manual entry
+3. **Code Generation**: Both server and authenticator app use the same formula:
+   ```
+   TOTP = HMAC-SHA1(secret, floor(current_time / 30))
+   ```
+4. **Code Validation**: The server accepts codes that match the current or adjacent 30-second windows
+
+### Key Properties
+
+- Codes change every 30 seconds
+- Codes are 6 digits long
+- No internet connection needed on the phone (after initial setup)
+- The secret is never transmitted after setup
+
+---
+
+## Components You Will Implement
+
+### 1. TwoFactorAuthModel
+
+**Purpose:** Manages the storage and retrieval of 2FA data in the database.
+
+**Key Functions:**
+
+| Method | Purpose |
+|--------|---------|
+| `findByUserId()` | Retrieves the 2FA record for a specific user |
+| `create()` | Stores a new TOTP secret when user enables 2FA |
+| `enable()` | Activates 2FA after successful verification |
+| `disable()` | Deactivates 2FA (requires password confirmation) |
+| `isEnabled()` | Checks if a user has 2FA turned on |
+| `getSecret()` | Retrieves the stored secret for code verification |
+
+**Why it matters:** This model provides the data layer for 2FA, ensuring secrets are securely stored in the database and can be retrieved during login verification.
+
+---
+
+### 2. TwoFactorController
+
+**Purpose:** Handles all HTTP requests related to 2FA setup, verification, and management.
+
+**Key Actions:**
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| `showSetup()` | GET /2fa/setup | Displays QR code for authenticator app setup |
+| `verifyAndEnable()` | POST /2fa/verify-and-enable | Validates initial code and enables 2FA |
+| `showVerify()` | GET /2fa/verify | Shows the verification form during login |
+| `verify()` | POST /2fa/verify | Validates the code during login |
+| `showDisable()` | GET /2fa/disable | Shows the disable confirmation form |
+| `disable()` | POST /2fa/disable | Disables 2FA (requires password) |
+
+**Why it matters:** This controller orchestrates the entire 2FA user experience, from initial setup to daily verification to eventual disabling.
+
+---
+
+### 3. TwoFactorMiddleware
+
+**Purpose:** Intercepts requests to protected routes and ensures 2FA verification is complete.
+
+**How it works:**
+
+1. Runs after AuthMiddleware (user already logged in with password)
+2. Checks if the user has 2FA enabled
+3. Checks if 2FA has been verified in the current session
+4. Redirects to `/2fa/verify` if verification is needed
+5. Allows the request to proceed if verified or 2FA is not enabled
+
+**Why it matters:** Middleware is the gatekeeper that enforces 2FA on every protected route without requiring code changes in each controller. It's the security enforcement point.
+
+---
+
+### 4. TrustedDeviceModel
+
+**Purpose:** Manages the "Remember this device" feature, allowing users to skip 2FA on trusted devices.
+
+**Key Functions:**
+
+| Method | Purpose |
+|--------|---------|
+| `create()` | Stores a new trusted device with token and expiration |
+| `isValid()` | Checks if a device token is valid and not expired |
+| `updateLastUsed()` | Updates the timestamp when a trusted device is used |
+| `getAllByUserId()` | Lists all trusted devices for a user |
+| `revoke()` | Removes trust from a specific device |
+| `revokeAll()` | Removes trust from all user devices |
+
+**Why it matters:** This improves user experience by not requiring 2FA on every login from the same device, while maintaining security through cryptographic tokens and expiration dates.
+
+---
+
+### 5. Database Tables
+
+#### `two_factor_auth` Table
+
+| Column | Purpose |
+|--------|---------|
+| `id` | Primary key |
+| `user_id` | Links to the user |
+| `secret` | The TOTP secret key (encrypted storage recommended) |
+| `enabled` | Whether 2FA is currently active |
+| `enabled_at` | When 2FA was enabled |
+
+#### `trusted_devices` Table
+
+| Column | Purpose |
+|--------|---------|
+| `id` | Primary key |
+| `user_id` | Links to the user |
+| `device_token` | Cryptographic token stored in cookie |
+| `device_name` | Human-readable device identifier |
+| `user_agent` | Browser/device information |
+| `ip_address` | IP when device was trusted |
+| `expires_at` | When the trust expires (30 days) |
+| `last_used_at` | Last time this device was used |
+
+---
+
+### 6. Views
+
+#### `2fa-setup.php`
+- Displays the QR code for authenticator app scanning
+- Shows the secret key for manual entry
+- Provides a form to enter the verification code
+
+#### `2fa-verify.php`
+- Shown during login when 2FA is required
+- Simple form for entering the 6-digit code
+- Includes "Trust this device" checkbox
+
+#### `2fa-disable.php`
+- Confirmation page for disabling 2FA
+- Requires password entry for security
+
+---
+
+## Security Measures
+
+1. **Session Regeneration**: After successful 2FA verification, the session ID is regenerated to prevent session fixation attacks.
+
+2. **Attempt Limiting**: After 5 failed verification attempts, the user is logged out and the session is destroyed.
+
+3. **Password Confirmation**: Disabling 2FA requires the user's password, preventing unauthorized disabling.
+
+4. **Secure Cookies**: Trusted device tokens use HttpOnly and SameSite flags to prevent XSS and CSRF attacks.
+
+5. **Cryptographic Tokens**: Device tokens are generated using `random_bytes()`, making them unpredictable.
+
+6. **Token Expiration**: Trusted devices expire after 30 days, requiring re-verification.
+
+---
+
+## Authentication Flow Summary
+
+```
+User Login Flow with 2FA:
+
+1. User enters email/password
+         |
+         v
+2. AuthMiddleware validates credentials
+         |
+         v
+3. Session created with is_authenticated=true
+         |
+         v
+4. TwoFactorMiddleware checks:
+   - Does user have 2FA enabled?
+   - Is there a valid trusted device cookie?
+   - Has 2FA been verified this session?
+         |
+    +----+----+
+    |         |
+    v         v
+5a. No 2FA   5b. 2FA Required
+    |              |
+    v              v
+6a. Access     6b. Redirect to /2fa/verify
+    granted         |
+                    v
+               7. User enters TOTP code
+                    |
+                    v
+               8. Code validated
+                    |
+               +----+----+
+               |         |
+               v         v
+           Invalid    Valid
+               |         |
+               v         v
+           Retry    9. Mark verified in session
+           (max 5)      |
+                        v
+                   10. Access granted
+```

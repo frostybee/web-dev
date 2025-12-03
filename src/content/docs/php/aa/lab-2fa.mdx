@@ -1218,6 +1218,135 @@ if ($deviceToken) {
 
 ---
 
+## Step 14: Applying 2FA to Your Admin Panel
+
+**Objective:** Integrate 2FA protection into your admin panel from Assignment 2.
+
+### Why Admin Panels Need 2FA
+
+Admin panels have access to sensitive operations:
+- View and modify customer data
+- Manage products and pricing
+- Process orders and refunds
+- Change user permissions
+
+If an admin account is compromised, an attacker gains full control of your e-commerce site. **2FA provides a critical second layer of protection** - even if an attacker steals an admin's password, they still can't access the admin panel without the authenticator app.
+
+---
+
+### Adding TwoFactorMiddleware to Admin Routes
+
+In Assignment 2, you created an admin route group with `AdminAuthMiddleware`. Now you'll add `TwoFactorMiddleware` to require 2FA verification for all admin routes.
+
+Update your admin route group in `app/Routes/web-routes.php`:
+
+```php title="app/Routes/web-routes.php"
+use App\Middleware\TwoFactorMiddleware;
+use App\Middleware\AdminAuthMiddleware;
+use App\Middleware\AuthMiddleware;
+
+$app->group('/admin', function ($group) {
+    $group->get('/dashboard', [AdminController::class, 'dashboard']);
+    $group->get('/users', [AdminController::class, 'users']);
+    $group->get('/products', [ProductsController::class, 'index']);
+    $group->post('/products/create', [ProductsController::class, 'createProduct']);
+    // ... other admin routes
+})
+->add(TwoFactorMiddleware::class)   // Step 3: Check 2FA verified
+->add(AdminAuthMiddleware::class)   // Step 2: Check user is admin
+->add(AuthMiddleware::class);       // Step 1: Check user is logged in
+```
+
+**Middleware Execution Order:**
+
+Remember that middleware executes in **reverse order** of the `.add()` calls:
+
+```
+Request → AuthMiddleware → AdminAuthMiddleware → TwoFactorMiddleware → Controller
+              ↓                   ↓                    ↓
+        "Is logged in?"    "Is user admin?"    "Is 2FA verified?"
+```
+
+1. **AuthMiddleware** runs first - checks if user is logged in
+2. **AdminAuthMiddleware** runs second - checks if user has admin role
+3. **TwoFactorMiddleware** runs third - checks if 2FA has been verified
+4. **Controller** finally handles the request
+
+---
+
+### Requiring 2FA for Admin Accounts
+
+For maximum security, you can **require all admin users to enable 2FA** before accessing the admin panel. This ensures no admin account exists without 2FA protection.
+
+Update your `AdminAuthMiddleware` to inject `TwoFactorAuthModel` and check if the admin has 2FA enabled:
+
+```php title="app/Middleware/AdminAuthMiddleware.php"
+<?php
+
+declare(strict_types=1);
+
+namespace App\Middleware;
+
+use App\Domain\Models\TwoFactorAuthModel;
+use App\Helpers\FlashMessage;
+use App\Helpers\SessionManager;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Slim\Routing\RouteContext;
+
+class AdminAuthMiddleware implements MiddlewareInterface
+{
+    public function __construct(
+        private TwoFactorAuthModel $twoFactorModel
+    ) {
+    }
+
+    public function process(Request $request, RequestHandler $handler): ResponseInterface
+    {
+        // ... existing admin role check code ...
+
+        // After verifying the user is an admin, check if 2FA is enabled
+        $userId = SessionManager::get('user_id');
+
+        if (!$this->twoFactorModel->isEnabled($userId)) {
+            // Admin must enable 2FA before accessing admin panel
+            FlashMessage::warning('Admin accounts require Two-Factor Authentication. Please enable 2FA to continue.');
+
+            $routeParser = RouteContext::fromRequest($request)->getRouteParser();
+            $setupUrl = $routeParser->urlFor('2fa.setup');
+
+            $response = new \Nyholm\Psr7\Response();
+            return $response->withStatus(302)->withHeader('Location', $setupUrl);
+        }
+
+        return $handler->handle($request);
+    }
+}
+```
+
+**Flow for Admin Without 2FA:**
+1. Admin logs in with password
+2. Tries to access `/admin/dashboard`
+3. `AdminAuthMiddleware` detects 2FA is not enabled
+4. Redirected to `/2fa/setup` with a warning message
+5. After enabling 2FA, admin can access the admin panel
+
+---
+
+### Testing Checklist
+
+| Test Case | Expected Result |
+|-----------|-----------------|
+| Admin without 2FA tries to access `/admin/dashboard` | Redirected to `/2fa/setup` with warning |
+| Admin with 2FA enabled but not verified this session | Redirected to `/2fa/verify` |
+| Admin with 2FA verified | Access granted to admin panel |
+| Regular user tries to access admin route | Redirected to login or access denied |
+| Admin with trusted device cookie | Skips 2FA verification, accesses admin panel |
+
+---
+
 ## Files Summary
 
 | File | Status |
@@ -1232,8 +1361,11 @@ if ($deviceToken) {
 | `app/Routes/web-routes.php` | Modify (add routes) |
 | `config/container.php` | Modify (add dependencies) |
 | `app/Controllers/AuthController.php` | Modify (add 2FA check) |
+| `app/Middleware/AdminAuthMiddleware.php` | Modify (add 2FA requirement for admins - Step 14) |
 
 ---
+
+## Test Your Understanding
 
 :::note[Answer the questions below]
 1. What is TOTP and how does it generate codes without communicating with the server?
@@ -1248,4 +1380,6 @@ if ($deviceToken) {
 10. How would you add backup codes for users who lose access to their authenticator app?
 11. What security risks exist if you don't set `httponly: true` on the trusted device cookie?
 12. Explain why the middleware order matters (AuthMiddleware before TwoFactorMiddleware).
+13. Why should admin accounts be required to enable 2FA before accessing the admin panel?
+14. In the admin route group, what is the execution order when you chain AuthMiddleware, AdminAuthMiddleware, and TwoFactorMiddleware?
 :::
