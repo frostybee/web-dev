@@ -298,21 +298,24 @@ class TwoFactorController extends BaseController
             return $this->redirect($request, $response, 'dashboard');
         }
 
-        // TODO: Create TFA instance with QR provider and generate secret
-        // HINT: $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
-        //       $tfa = new TFA($qrProvider, 'YourAppName');
-        //       $secret = $tfa->createSecret();
-        $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
-        $tfa = new TFA($qrProvider, 'YourAppName');
-        $secret = ''; // Replace with: $tfa->createSecret();
+        // TODO: Create a QR code provider instance
+        // HINT: Use BaconQrCodeProvider with parameters: (4, '#ffffff', '#000000', 'svg')
+        // The parameters are: size, background color, foreground color, image format
+
+        // TODO: Create a TFA (TwoFactorAuth) instance
+        // HINT: Pass the QR provider and your app name (e.g., 'YourAppName') to the constructor
+
+        // TODO: Generate a new TOTP secret
+        // HINT: Use the TFA instance's createSecret() method
+        $secret = ''; // Replace with your implementation
 
         // Store secret in session temporarily (not in database yet)
         SessionManager::set('2fa_setup_secret', $secret);
 
-        // TODO: Generate QR code as data URI (ready to use in <img src="">)
-        // HINT: $qrCodeDataUri = $tfa->getQRCodeImageAsDataUri($userEmail, $secret);
-        // This returns: "data:image/svg+xml;base64,..." which works directly in img src
-        $qrCodeDataUri = ''; // Replace with: $tfa->getQRCodeImageAsDataUri($userEmail, $secret);
+        // TODO: Generate QR code as a data URI for display in an <img> tag
+        // HINT: Use $tfa->getQRCodeImageAsDataUri($userEmail, $secret)
+        // This returns a string like "data:image/svg+xml;base64,..." ready for img src
+        $qrCodeDataUri = ''; // Replace with your implementation
 
         return $this->render($response, 'auth/2fa-setup.php', [
             'title' => 'Enable 2FA',
@@ -340,17 +343,17 @@ class TwoFactorController extends BaseController
             return $this->redirect($request, $response, '2fa.setup');
         }
 
-        // TODO: Verify the code using TFA
-        // HINT: $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
-        //       $tfa = new TFA($qrProvider, 'YourAppName');
-        //       $valid = $tfa->verifyCode($secret, $code);
-        $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
-        $tfa = new TFA($qrProvider, 'YourAppName');
-        $valid = false; // Replace with: $tfa->verifyCode($secret, $code);
+        // TODO: Create a QR code provider and TFA instance (same as showSetup)
+        // HINT: Use BaconQrCodeProvider and TFA classes
+
+        // TODO: Verify the user's code against the secret
+        // HINT: Use $tfa->verifyCode($secret, $code) - returns true if valid
+        $valid = false; // Replace with your implementation
 
         if (!$valid) {
-            // Regenerate QR code for retry
-            $qrCodeDataUri = $tfa->getQRCodeImageAsDataUri($userEmail, $secret);
+            // TODO: Regenerate QR code for retry (user entered wrong code)
+            // HINT: Use $tfa->getQRCodeImageAsDataUri($userEmail, $secret)
+            $qrCodeDataUri = ''; // Replace with your implementation
 
             return $this->render($response, 'auth/2fa-setup.php', [
                 'title' => 'Enable 2FA',
@@ -361,10 +364,9 @@ class TwoFactorController extends BaseController
         }
 
         // TODO: Save secret to database and enable 2FA
-        // HINT: Use TwoFactorAuth model's create() and enable() methods
-        $twoFactorModel = $this->container->get(TwoFactorAuth::class);
-        // 1. Create the record: $twoFactorModel->create($userId, $secret);
-        // 2. Enable it: $twoFactorModel->enable($userId);
+        // Step 1: Get the TwoFactorAuth model from the container
+        // Step 2: Create a new 2FA record: $twoFactorModel->create($userId, $secret)
+        // Step 3: Enable 2FA for the user: $twoFactorModel->enable($userId)
 
         // Clear the setup secret from session
         SessionManager::remove('2fa_setup_secret');
@@ -392,17 +394,16 @@ class TwoFactorController extends BaseController
         $data = $request->getParsedBody();
         $code = $data['code'] ?? '';
 
-        // TODO: Get user's secret from database
-        $twoFactorModel = $this->container->get(TwoFactorAuth::class);
-        $secret = ''; // Replace with: $twoFactorModel->getSecret($userId);
+        // TODO: Get the user's TOTP secret from the database
+        // Step 1: Get the TwoFactorAuth model from the container
+        // Step 2: Use getSecret($userId) to retrieve the secret
+        $secret = ''; // Replace with your implementation
 
-        // TODO: Verify the code
-        // HINT: $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
-        //       $tfa = new TFA($qrProvider, 'YourAppName');
-        //       $valid = $tfa->verifyCode($secret, $code);
-        $qrProvider = new BaconQrCodeProvider(4, '#ffffff', '#000000', 'svg');
-        $tfa = new TFA($qrProvider, 'YourAppName');
-        $valid = false; // Replace with: $tfa->verifyCode($secret, $code);
+        // TODO: Create a QR code provider and TFA instance
+
+        // TODO: Verify the user's code against their stored secret
+        // HINT: Use $tfa->verifyCode($secret, $code)
+        $valid = false; // Replace with your implementation
 
         if (!$valid) {
             // Track failed attempts
@@ -453,9 +454,9 @@ class TwoFactorController extends BaseController
             ]);
         }
 
-        // TODO: Disable 2FA in database
-        $twoFactorModel = $this->container->get(TwoFactorAuth::class);
-        // $twoFactorModel->disable($userId);
+        // TODO: Disable 2FA in the database
+        // Step 1: Get the TwoFactorAuth model from the container
+        // Step 2: Call the disable($userId) method to disable 2FA
 
         SessionManager::setFlash('success', '2FA has been disabled.');
         return $this->redirect($request, $response, 'dashboard');
@@ -1020,36 +1021,32 @@ Then add device trust functionality to the `verify()` method, after the line `$_
 $trustDevice = $data['trust_device'] ?? false;
 
 if ($trustDevice) {
-    // TODO: Generate unique device token
-    $deviceToken = bin2hex(random_bytes(32));
+    // TODO: Generate a unique device token (64-character hex string)
+    // HINT: Use bin2hex(random_bytes(32)) to generate a secure random token
+    $deviceToken = ''; // Replace with your implementation
 
-    // Calculate expiration (30 days from now)
-    $expiresAt = (new \DateTime())->modify('+30 days')->format('Y-m-d H:i:s');
+    // TODO: Calculate the expiration date (30 days from now)
+    // HINT: Use DateTime class: (new \DateTime())->modify('+30 days')->format('Y-m-d H:i:s')
+    $expiresAt = ''; // Replace with your implementation
 
-    // Get device information
-    $deviceInfo = [
-        'device_name' => $this->getDeviceName($request),
-        'user_agent' => $request->getHeaderLine('User-Agent'),
-        'ip_address' => $this->getClientIp($request),
-        'expires_at' => $expiresAt
-    ];
+    // TODO: Build the device information array with the following keys:
+    // - 'device_name': Use $this->getDeviceName($request) helper method
+    // - 'user_agent': Use $request->getHeaderLine('User-Agent')
+    // - 'ip_address': Use $this->getClientIp($request) helper method
+    // - 'expires_at': Use the expiration date calculated above
+    $deviceInfo = []; // Replace with your implementation
 
-    // TODO: Save to database
-    $trustedDeviceModel = $this->container->get(TrustedDevice::class);
-    // $trustedDeviceModel->create($userId, $deviceToken, $deviceInfo);
+    // TODO: Save the trusted device to the database
+    // Step 1: Get the TrustedDevice model from the container
+    // Step 2: Call create($userId, $deviceToken, $deviceInfo)
 
-    // Set secure cookie
-    setcookie(
-        'trusted_device',
-        $deviceToken,
-        [
-            'expires' => strtotime('+30 days'),
-            'path' => '/' . APP_ROOT_DIR_NAME,
-            'secure' => false,  // Set to true in production (HTTPS)
-            'httponly' => true,
-            'samesite' => 'Lax'
-        ]
-    );
+    // TODO: Set a secure cookie to remember this device
+    // HINT: Use setcookie() with an options array containing:
+    // - 'expires': strtotime('+30 days')
+    // - 'path': '/' . APP_ROOT_DIR_NAME
+    // - 'secure': false (set to true in production with HTTPS)
+    // - 'httponly': true (prevents JavaScript access)
+    // - 'samesite': 'Lax' (CSRF protection)
 }
 ```
 
