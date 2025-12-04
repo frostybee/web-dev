@@ -23,8 +23,21 @@ Your e-commerce site has two protected areas:
 1. **Admin Panel**: Only administrators can access (from Assignment 2)
 2. **Checkout Process**: Only logged-in customers can checkout items from their cart
 
-**Authentication** answers: "Who are you?" (verifying identity with email/password)
-**Authorization** answers: "What can you do?" (checking permissions and roles)
+---
+
+## Authentication vs. Authorization
+
+| Concept | Question | Example |
+|---------|----------|---------|
+| **Authentication** | "Who are you?" | Verifying identity with email/password |
+| **Authorization** | "What can you do?" | Checking if user has admin role |
+
+- **Authentication** happens first → users prove their identity by logging in. 
+- **Authorization** happens after → the system checks what the authenticated user is allowed to access.
+
+In this lab:
+- **Authentication**: Login form verifies credentials against the database.
+- **Authorization**: Middleware checks user roles before granting access to protected routes.
 
 ---
 
