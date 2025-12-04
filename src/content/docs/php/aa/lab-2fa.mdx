@@ -575,6 +575,8 @@ class TwoFactorMiddleware implements MiddlewareInterface
 
 ### 6.1: Create 2FA Setup View
 
+**Objective:** Create the 2FA setup view to display the QR code and secret key to the user.
+
 Create `app/Views/auth/2fa-setup.php`:
 
 <CollapsiblePanel title="app/Views/auth/2fa-setup.php">
@@ -644,6 +646,8 @@ Create `app/Views/auth/2fa-setup.php`:
 
 ### 6.2: Create 2FA Verification View
 
+**Objective:** Create the 2FA verification view to verify the user's code.
+
 Create `app/Views/auth/2fa-verify.php`:
 
 <CollapsiblePanel title="app/Views/auth/2fa-verify.php">
@@ -709,6 +713,8 @@ Create `app/Views/auth/2fa-verify.php`:
 
 ### 6.3: Create 2FA Disable View
 
+**Objective:** Create the disable 2FA view to confirm the user's password before disabling 2FA.
+
 Create `app/Views/auth/2fa-disable.php`:
 
 <CollapsiblePanel title="app/Views/auth/2fa-disable.php">
@@ -753,7 +759,9 @@ Create `app/Views/auth/2fa-disable.php`:
 
 ### 6.4: Create the Dashboard View
 
-<CollapsiblePanel title="app/Views/dashboard.php">
+**Objective:** Create the dashboard view to display the user's information and security settings.
+
+<CollapsiblePanel title="app/Views/auth/dashboard.php">
 ```php title="app/Views/dashboard.php"
 <?php require __DIR__ . '/../common/header.php'; ?>
 
