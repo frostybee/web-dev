@@ -985,7 +985,7 @@ public function dashboard(Request $request, Response $response): Response
     $userId = SessionManager::get('user_id');
     $has2FA = $this->twoFactorModel->isEnabled($userId);
 
-    return $this->render($response, 'app/Views/auth/dashboard.php', [
+    return $this->render($response, 'auth/dashboard.php', [
         'title' => 'Dashboard',
         'has2FA' => $has2FA
     ]);
